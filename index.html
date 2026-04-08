@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>READPLAY — epub을 게임으로</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #1a1714;
+  --ink2: #4a4540;
+  --ink3: #8a837a;
+  --paper: #f5f0e8;
+  --paper2: #ede8de;
+  --paper3: #e3ddd2;
+  --gold: #b8860b;
+  --gold-light: #f0d060;
+  --red: #8b2020;
+  --green: #1a5c3a;
+  --border: rgba(26,23,20,0.15);
+  --border2: rgba(26,23,20,0.25);
+  --ff-serif: 'Playfair Display', Georgia, serif;
+  --ff-mono: 'IBM Plex Mono', monospace;
+  --radius: 4px;
+}
+
+html { font-size: 16px; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ff-mono);
+  min-height: 100vh;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(26,23,20,0.04) 28px);
+}
+
+/* NOISE OVERLAY */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* LAYOUT */
+.page { max-width: 680px; margin: 0 auto; padding: 3rem 1.5rem; }
+
+/* SCREENS */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ─── SETUP ─── */
+.masthead {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border2);
+  position: relative;
+}
+.masthead::after {
+  content: '◆';
+  position: absolute;
+  bottom: -0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--paper);
+  padding: 0 0.75rem;
+  color: var(--gold);
+  font-size: 12px;
+}
+.logo {
+  font-family: var(--ff-serif);
+  font-size: 2.8rem;
+  letter-spacing: 0.15em;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 0.4rem;
+}
+.logo span { color: var(--gold); }
+.tagline {
+  font-size: 11px;
+  color: var(--ink3);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.field-group { margin-bottom: 1.5rem; }
+.field-label {
+  font-size: 10px;
+  color: var(--ink3);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.field-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--paper2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field-input:focus { border-color: var(--gold); }
+
+.drop-zone {
+  border: 1.5px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--paper2);
+  transition: all 0.15s;
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--gold);
+  background: var(--paper3);
+}
+.dz-icon {
+  font-family: var(--ff-serif);
+  font-size: 2.5rem;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+.dz-main { font-size: 13px; color: var(--ink2); margin-bottom: 4px; }
+.dz-sub { font-size: 11px; color: var(--ink3); }
+.file-badge {
+  display: none;
+  margin-top: 1rem;
+  font-size: 12px;
+  color: var(--green);
+  padding: 6px 12px;
+  background: rgba(26,92,58,0.08);
+  border: 1px solid rgba(26,92,58,0.2);
+  border-radius: var(--radius);
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+.file-badge.show { display: flex; }
+
+/* OPTIONS GRID */
+.opt-section { margin-bottom: 1.5rem; }
+.opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.opt-card {
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  cursor: pointer;
+  background: var(--paper2);
+  transition: all 0.12s;
+}
+.opt-card:hover { background: var(--paper3); }
+.opt-card.sel {
+  border-color: var(--gold);
+  background: var(--paper3);
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+.oc-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+.oc-desc { font-size: 11px; color: var(--ink3); line-height: 1.5; }
+.opt-card.sel .oc-title { color: var(--gold); }
+
+/* LANG TOGGLE */
+.lang-row {
+  display: flex;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.lang-opt {
+  flex: 1;
+  padding: 9px 8px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  background: var(--paper2);
+  border: none;
+  cursor: pointer;
+  color: var(--ink3);
+  transition: all 0.12s;
+  border-right: 1px solid var(--border);
+  letter-spacing: 0.05em;
+}
+.lang-opt:last-child { border-right: none; }
+.lang-opt.sel { background: var(--ink); color: var(--gold-light); font-weight: 500; }
+
+/* START BUTTON */
+.btn-start {
+  width: 100%;
+  padding: 13px;
+  background: var(--ink);
+  color: var(--gold-light);
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.btn-start:hover:not(:disabled) { background: #2a2420; }
+.btn-start:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-start::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+}
+
+/* ─── LOADING ─── */
+.loading-center { text-align: center; padding: 5rem 1rem; }
+.book-anim {
+  font-family: var(--ff-serif);
+  font-size: 3rem;
+  color: var(--gold);
+  animation: pulse 1.5s ease-in-out infinite;
+  display: block;
+  margin-bottom: 1.5rem;
+}
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.95); } }
+.loading-h { font-family: var(--ff-serif); font-size: 1.4rem; color: var(--ink); margin-bottom: 2rem; }
+.log-terminal {
+  background: var(--ink);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  text-align: left;
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.log-terminal p { color: var(--ink3); }
+.log-terminal p.ok { color: #4caf78; }
+.log-terminal p.err { color: #e05555; }
+.log-terminal p::before { content: '$ '; color: var(--gold); }
+
+/* ─── GAME ─── */
+.game-masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+.game-book-title {
+  font-family: var(--ff-serif);
+  font-size: 1.1rem;
+  color: var(--ink);
+  font-style: italic;
+  max-width: 70%;
+}
+.game-stats {
+  text-align: right;
+  font-size: 11px;
+  color: var(--ink3);
+}
+.game-stats .score { font-size: 18px; font-weight: 500; color: var(--gold); font-family: var(--ff-serif); display: block; }
+
+.progress-rail {
+  height: 3px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* LANG PILL in game */
+.game-lang-pill {
+  display: none;
+  gap: 0;
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  overflow: hidden;
+  width: fit-content;
+  margin-bottom: 1rem;
+}
+.game-lang-pill.show { display: flex; }
+.glp-btn {
+  padding: 4px 14px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ink3);
+  transition: all 0.12s;
+}
+.glp-btn.active { background: var(--ink); color: var(--gold-light); border-radius: 20px; }
+
+/* SCENE */
+.scene-wrap {
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1rem;
+  background: var(--paper2);
+}
+.scene-header {
+  background: var(--ink);
+  color: var(--gold-light);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  display: flex;
+  justify-content: space-between;
+}
+.scene-body {
+  padding: 1.25rem 1.5rem;
+  font-family: var(--ff-serif);
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--ink);
+}
+
+/* ORIGINAL TEXT */
+.orig-toggle {
+  font-size: 11px;
+  color: var(--ink3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--ff-mono);
+  letter-spacing: 0.08em;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.orig-toggle:hover { color: var(--ink); }
+.orig-box {
+  display: none;
+  background: var(--paper3);
+  border-left: 3px solid var(--gold);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-family: var(--ff-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink2);
+  line-height: 1.7;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.orig-box.show { display: block; }
+
+/* CHOICES */
+.choices-header {
+  font-size: 10px;
+  color: var(--ink3);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+.choices-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
+.choice {
+  text-align: left;
+  padding: 11px 16px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: var(--paper2);
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all 0.12s;
+  line-height: 1.5;
+}
+.choice:hover { border-color: var(--gold); background: var(--paper3); color: var(--ink); box-shadow: inset 3px 0 0 var(--gold); }
+.choice:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+.outcome {
+  font-size: 12px;
+  color: var(--green);
+  font-style: italic;
+  padding: 6px 0 2px;
+  font-family: var(--ff-serif);
+}
+
+/* QUIZ */
+.quiz-wrap {
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1rem;
+  background: var(--paper2);
+}
+.quiz-header {
+  background: var(--red);
+  color: #fde8e8;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+}
+.quiz-body { padding: 1.25rem 1.5rem; }
+.quiz-q {
+  font-family: var(--ff-serif);
+  font-size: 15px;
+  color: var(--ink);
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+.q-result-good {
+  font-size: 12px; color: var(--green); margin-top: 8px;
+  font-family: var(--ff-serif); font-style: italic;
+}
+.q-result-bad {
+  font-size: 12px; color: var(--red); margin-top: 8px;
+  font-family: var(--ff-serif); font-style: italic;
+}
+
+/* GAME FOOTER */
+.game-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+.btn-ghost {
+  padding: 6px 12px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: transparent;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all 0.12s;
+  letter-spacing: 0.05em;
+}
+.btn-ghost:hover { background: var(--paper2); color: var(--ink); border-color: var(--ink2); }
+
+/* ENDING */
+.ending-wrap { text-align: center; padding: 2rem 1rem; }
+.ending-mark {
+  font-family: var(--ff-serif);
+  font-size: 3rem;
+  color: var(--gold);
+  display: block;
+  margin-bottom: 1rem;
+}
+.ending-h {
+  font-family: var(--ff-serif);
+  font-size: 1.6rem;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+.ending-sub { font-size: 12px; color: var(--ink3); margin-bottom: 2rem; line-height: 1.7; }
+.ending-score {
+  font-family: var(--ff-serif);
+  font-size: 2.5rem;
+  color: var(--gold);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+.ending-score-label { font-size: 11px; color: var(--ink3); letter-spacing: 0.15em; text-transform: uppercase; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* FADE IN */
+@keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.fadein { animation: fadein 0.35s ease both; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── SETUP ── -->
+  <div id="screen-setup" class="screen active">
+    <div class="masthead fadein">
+      <div class="logo">READ<span>PLAY</span></div>
+      <div class="tagline">epub을 인터랙티브 텍스트 게임으로</div>
+    </div>
+
+    <div class="field-group fadein" style="animation-delay:0.05s; display:none">
+      <label class="field-label">Vertex AI API Key</label>
+      <input class="field-input" type="password" id="api-key" placeholder="AIza..." autocomplete="off">
+    </div>
+
+    <div class="field-group fadein" style="animation-delay:0.1s">
+      <label class="field-label">epub 파일</label>
+      <div class="drop-zone" id="drop-zone">
+        <span class="dz-icon">📖</span>
+        <div class="dz-main">파일을 드래그하거나 클릭해서 업로드</div>
+        <div class="dz-sub">.epub 파일만 지원</div>
+      </div>
+      <input type="file" id="file-input" accept=".epub" style="display:none">
+      <div class="file-badge" id="file-badge">
+        <span>✓</span>
+        <span id="file-name-label">-</span>
+      </div>
+    </div>
+
+    <div class="opt-section fadein" style="animation-delay:0.15s">
+      <label class="field-label">게임 모드</label>
+      <div class="opt-grid" id="mode-grid">
+        <div class="opt-card sel" data-mode="adventure">
+          <div class="oc-title">⚔ 주인공 빙의</div>
+          <div class="oc-desc">선택지로 스토리를 분기하며 진행</div>
+        </div>
+        <div class="opt-card" data-mode="quiz">
+          <div class="oc-title">✦ 독해 퀴즈</div>
+          <div class="oc-desc">원문 읽고 내용 퀴즈로 학습</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opt-section fadein" style="animation-delay:0.2s">
+      <label class="field-label">언어 설정</label>
+      <div class="lang-row" id="lang-row">
+        <button class="lang-opt sel" data-lang="ko">🇰🇷 한국어로</button>
+        <button class="lang-opt" data-lang="en">🇺🇸 영어 원문</button>
+        <button class="lang-opt" data-lang="bilingual">🔄 한/영 병행</button>
+      </div>
+    </div>
+
+    <button class="btn-start fadein" id="btn-start" disabled style="animation-delay:0.25s">
+      ◆ 게임 생성 시작
+    </button>
+  </div>
+
+  <!-- ── LOADING ── -->
+  <div id="screen-loading" class="screen">
+    <div class="loading-center">
+      <span class="book-anim">📖</span>
+      <div class="loading-h">Gemini가 책을 읽고 있어요</div>
+      <div class="log-terminal" id="log"></div>
+    </div>
+  </div>
+
+  <!-- ── GAME ── -->
+  <div id="screen-game" class="screen">
+    <div class="game-masthead fadein">
+      <div class="game-book-title" id="g-title">-</div>
+      <div class="game-stats">
+        <span class="score" id="g-score">0</span>
+        <span id="g-chap">1 / 1</span>
+      </div>
+    </div>
+    <div class="progress-rail">
+      <div class="progress-fill" id="g-prog" style="width:0%"></div>
+    </div>
+
+    <div class="game-lang-pill" id="lang-pill">
+      <button class="glp-btn active" onclick="switchLang('ko')">한국어</button>
+      <button class="glp-btn" onclick="switchLang('en')">English</button>
+    </div>
+
+    <button class="orig-toggle" id="orig-toggle">원문 발췌 보기 ▾</button>
+    <div class="orig-box" id="orig-box"></div>
+
+    <div class="scene-wrap fadein">
+      <div class="scene-header">
+        <span id="g-context">장면</span>
+        <span id="g-chapter-label">chapter 1</span>
+      </div>
+      <div class="scene-body" id="g-scene">...</div>
+    </div>
+
+    <div id="adventure-area">
+      <div class="choices-header">선택지</div>
+      <div class="choices-list" id="g-choices"></div>
+    </div>
+
+    <div id="quiz-area" style="display:none">
+      <div class="quiz-wrap">
+        <div class="quiz-header">퀴즈</div>
+        <div class="quiz-body">
+          <div class="quiz-q" id="q-text"></div>
+          <div class="choices-list" id="q-choices"></div>
+          <div id="q-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ending-area" style="display:none">
+      <div class="ending-wrap fadein">
+        <span class="ending-mark">✦</span>
+        <div class="ending-h" id="ending-title">완독</div>
+        <div class="ending-sub" id="ending-sub"></div>
+        <span class="ending-score" id="ending-score" style="display:none"></span>
+        <div class="ending-score-label" id="ending-score-label" style="display:none">최종 점수</div>
+      </div>
+    </div>
+
+    <div class="game-footer">
+      <div style="display:flex;gap:6px;">
+        <button class="btn-ghost" id="btn-restart">← 처음으로</button>
+      </div>
+      <div style="font-size:10px;color:var(--ink3);letter-spacing:0.1em;">READPLAY</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+
+
+let gameData = null, curIdx = 0, score = 0;
+let selectedMode = 'adventure', selectedLang = 'ko', activeLang = 'ko';
+let epubText = '', bookTitle = '';
+
+const $ = id => document.getElementById(id);
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-' + name).classList.add('active');
+}
+
+function log(msg, cls = '') {
+  const el = $('log');
+  const p = document.createElement('p');
+  if (cls) p.className = cls;
+  p.textContent = msg;
+  el.appendChild(p);
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ── MODE CARDS ── */
+$('mode-grid').querySelectorAll('.opt-card').forEach(c => {
+  c.addEventListener('click', () => {
+    $('mode-grid').querySelectorAll('.opt-card').forEach(x => x.classList.remove('sel'));
+    c.classList.add('sel');
+    selectedMode = c.dataset.mode;
+  });
+});
+
+/* ── LANG TOGGLE ── */
+$('lang-row').querySelectorAll('.lang-opt').forEach(b => {
+  b.addEventListener('click', () => {
+    $('lang-row').querySelectorAll('.lang-opt').forEach(x => x.classList.remove('sel'));
+    b.classList.add('sel');
+    selectedLang = b.dataset.lang;
+  });
+});
+
+/* ── FILE DROP ── */
+const dz = $('drop-zone');
+dz.addEventListener('click', () => $('file-input').click());
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.endsWith('.epub')) handleFile(f);
+});
+$('file-input').addEventListener('change', () => {
+  if ($('file-input').files[0]) handleFile($('file-input').files[0]);
+});
+
+function checkReady() {
+  $('btn-start').disabled = !(epubText.length > 0);
+}
+
+async function handleFile(file) {
+  bookTitle = file.name.replace(/\.epub$/i, '');
+  $('file-name-label').textContent = file.name;
+  $('file-badge').classList.add('show');
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const promises = [];
+    zip.forEach((path, zf) => {
+      if (!zf.dir && /\.(html|xhtml|htm)$/i.test(path)) {
+        promises.push(zf.async('string').then(html => {
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          doc.querySelectorAll('script,style,nav,aside').forEach(el => el.remove());
+          return doc.body ? doc.body.innerText.replace(/\s+/g, ' ').trim() : '';
+        }));
+      }
+    });
+    const parts = await Promise.all(promises);
+    epubText = parts.filter(t => t.length > 100).join('\n\n');
+    if (epubText.length > 40000) epubText = epubText.slice(0, 40000);
+    checkReady();
+  } catch(e) { alert('epub 파싱 실패: ' + e.message); }
+}
+
+/* ── GENERATE ── */
+$('btn-start').addEventListener('click', generate);
+
+async function generate() {
+  showScreen('loading');
+  log('epub 파싱 완료 (' + Math.round(epubText.length / 1000) + 'k chars)');
+  log('모드: ' + selectedMode + ' / 언어: ' + selectedLang);
+  log('Gemini API 호출 중...');
+
+  const langMap = {
+    ko: 'narrative, choices, quiz의 모든 텍스트를 자연스러운 한국어로 작성. 원문이 영어면 한국어로 번역/각색.',
+    en: '모든 텍스트를 원문 언어(영어)로 유지.',
+    bilingual: 'narrative는 한국어로 작성하고 en_narrative 필드에 영어 원문도 포함. choices도 text는 한국어, en_text는 영어.'
+  };
+
+  const modeMap = {
+    adventure: '각 씬마다 choices 배열 (text, en_text, next, outcome 필드). 선택에 따라 다음 씬으로 분기.',
+    quiz: '각 씬마다 quiz 객체 (question, choices 4개, answer 인덱스, explanation) + next 필드.'
+  };
+
+  const prompt = `다음 epub 텍스트를 기반으로 인터랙티브 텍스트 게임 데이터를 JSON으로 생성하세요.
+
+[텍스트]
+${epubText.slice(0, 24000)}
+
+[언어] ${langMap[selectedLang]}
+[모드] ${modeMap[selectedMode]}
+
+[규칙]
+- 5~8개 씬 구성
+- 각 씬 필드: id(1~), context(10자내 씬제목), narrative(200자내 서술), original_excerpt(원문핵심문장 항상원문언어로)
+- JSON만 출력, 다른 텍스트 없음
+
+{
+  "title": "원제",
+  "title_ko": "한국어 제목",
+  "mode": "${selectedMode}",
+  "lang": "${selectedLang}",
+  "scenes": [...]
+}`;
+
+  log('Gemini 호출 중...');
+  try {
+    const res = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 8192, temperature: 0.75 }
+      })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      log('API 오류 ' + res.status + ': ' + JSON.stringify(errData).slice(0, 200), 'err');
+      return;
+    }
+    const data = await res.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) { log('JSON 파싱 실패: ' + raw.slice(0, 200), 'err'); return; }
+    gameData = JSON.parse(match[0]);
+    log('씬 ' + gameData.scenes.length + '개 생성 완료', 'ok');
+    log('게임 시작!', 'ok');
+    setTimeout(startGame, 600);
+  } catch(e) {
+    log('오류: ' + e.message, 'err');
+  }
+}
+
+/* ── GAME ── */
+function startGame() {
+  score = 0; curIdx = 0; activeLang = 'ko';
+  const title = selectedLang === 'en' ? gameData.title : (gameData.title_ko || gameData.title);
+  $('g-title').textContent = title || bookTitle;
+  $('lang-pill').classList.toggle('show', selectedLang === 'bilingual');
+  showScreen('game');
+  renderScene();
+}
+
+function switchLang(lang) {
+  activeLang = lang;
+  document.querySelectorAll('.glp-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && lang === 'ko') || (i === 1 && lang === 'en'));
+  });
+  renderScene();
+}
+
+function getText(obj, field) {
+  if (selectedLang === 'bilingual' && activeLang === 'en') return obj['en_' + field] || obj[field] || '';
+  return obj[field] || '';
+}
+
+function renderScene() {
+  const scene = gameData.scenes[curIdx];
+  if (!scene) { showEnding(); return; }
+
+  const total = gameData.scenes.length;
+  $('g-prog').style.width = Math.round(((curIdx + 1) / total) * 100) + '%';
+  $('g-chap').textContent = (curIdx + 1) + ' / ' + total;
+  $('g-chapter-label').textContent = 'scene ' + scene.id;
+  $('g-score').textContent = score;
+  $('g-context').textContent = scene.context || '';
+  $('g-scene').textContent = getText(scene, 'narrative');
+  $('orig-box').textContent = scene.original_excerpt || '';
+  $('orig-box').classList.remove('show');
+  $('orig-toggle').textContent = '원문 발췌 보기 ▾';
+
+  $('adventure-area').style.display = 'none';
+  $('quiz-area').style.display = 'none';
+  $('ending-area').style.display = 'none';
+
+  if (gameData.mode === 'quiz') {
+    $('quiz-area').style.display = 'block';
+    renderQuiz(scene);
+  } else {
+    $('adventure-area').style.display = 'block';
+    renderChoices(scene);
+  }
+}
+
+function renderChoices(scene) {
+  const cont = $('g-choices');
+  cont.innerHTML = '';
+  (scene.choices || []).forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice';
+    btn.textContent = getText(c, 'text') || c.text || '';
+    btn.addEventListener('click', () => {
+      cont.querySelectorAll('.choice').forEach(b => b.disabled = true);
+      const out = document.createElement('div');
+      out.className = 'outcome';
+      out.textContent = '→ ' + (getText(c, 'outcome') || c.outcome || '');
+      cont.appendChild(out);
+      setTimeout(() => {
+        curIdx = c.next ? Math.min(c.next - 1, gameData.scenes.length - 1) : Math.min(curIdx + 1, gameData.scenes.length - 1);
+        renderScene();
+      }, 1200);
+    });
+    cont.appendChild(btn);
+  });
+}
+
+function renderQuiz(scene) {
+  const quiz = scene.quiz;
+  if (!quiz) { setTimeout(() => { curIdx++; renderScene(); }, 400); return; }
+  $('q-text').textContent = quiz.question;
+  $('q-result').textContent = '';
+  const cont = $('q-choices');
+  cont.innerHTML = '';
+  quiz.choices.forEach((ch, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice';
+    btn.textContent = ['①','②','③','④'][i] + ' ' + ch;
+    btn.addEventListener('click', () => {
+      cont.querySelectorAll('.choice').forEach(b => b.disabled = true);
+      const res = $('q-result');
+      if (i === quiz.answer) {
+        score += 10; $('g-score').textContent = score;
+        res.className = 'q-result-good';
+        res.textContent = '✓ 정답! ' + (quiz.explanation || '');
+      } else {
+        res.className = 'q-result-bad';
+        res.textContent = '✗ 오답. 정답: ' + (quiz.choices[quiz.answer] || '') + '  ' + (quiz.explanation || '');
+      }
+      setTimeout(() => {
+        curIdx = scene.next ? scene.next - 1 : curIdx + 1;
+        renderScene();
+      }, 2200);
+    });
+    cont.appendChild(btn);
+  });
+}
+
+function showEnding() {
+  $('adventure-area').style.display = 'none';
+  $('quiz-area').style.display = 'none';
+  $('ending-area').style.display = 'block';
+  $('g-prog').style.width = '100%';
+  $('g-context').textContent = '完';
+  $('g-scene').textContent = '';
+  $('ending-title').textContent = '완독';
+  $('ending-sub').textContent = gameData.title_ko || gameData.title || bookTitle;
+
+  if (gameData.mode === 'quiz') {
+    $('ending-score').textContent = score + '점';
+    $('ending-score').style.display = 'block';
+    $('ending-score-label').style.display = 'block';
+  }
+}
+
+$('orig-toggle').addEventListener('click', () => {
+  const show = $('orig-box').classList.toggle('show');
+  $('orig-toggle').textContent = show ? '원문 발췌 숨기기 ▴' : '원문 발췌 보기 ▾';
+});
+
+$('btn-restart').addEventListener('click', () => {
+  epubText = ''; gameData = null;
+  $('file-badge').classList.remove('show');
+  $('file-input').value = '';
+  checkReady();
+  showScreen('setup');
+});
+</script>
+</body>
+</html>

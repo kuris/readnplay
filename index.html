@@ -492,6 +492,136 @@ body::before {
 /* FADE IN */
 @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .fadein { animation: fadein 0.35s ease both; }
+
+/* SOURCE TOGGLE */
+.source-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+.source-btn {
+  flex: 1;
+  padding: 11px 16px;
+  background: var(--paper2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+  color: var(--ink3);
+}
+.source-btn.active {
+  background: var(--ink);
+  color: var(--gold-light);
+  border-color: var(--ink);
+  font-weight: 500;
+}
+
+/* GUTENBERG BROWSER */
+.gb-container {
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  background: var(--paper2);
+  margin-bottom: 1.5rem;
+  display: none;
+}
+
+.gb-search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+.gb-search-bar .field-input {
+  flex: 1;
+}
+
+.gb-categories {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.gb-cat-btn {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.12s;
+  color: var(--ink3);
+}
+.gb-cat-btn.active {
+  background: var(--ink);
+  color: var(--gold-light);
+  border-color: var(--ink);
+}
+
+.gb-books-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.gb-book-card {
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: var(--paper);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.gb-book-card:hover {
+  border-color: var(--gold);
+  background: var(--paper3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26,23,20,0.08);
+}
+.gb-book-card.selected {
+  border-color: var(--gold);
+  background: var(--paper3);
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+.gbc-title {
+  font-family: var(--ff-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+.gbc-author {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-bottom: 8px;
+}
+.gbc-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--ink3);
+}
+.gbc-tag {
+  padding: 2px 8px;
+  background: rgba(184, 134, 11, 0.1);
+  border-radius: 10px;
+  color: var(--gold);
+}
+
+.gb-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  display: none;
+}
 </style>
 </head>
 <body>
@@ -509,7 +639,44 @@ body::before {
       <input class="field-input" type="password" id="api-key" placeholder="AIza..." autocomplete="off">
     </div>
 
-    <div class="field-group fadein" style="animation-delay:0.1s">
+    <div class="opt-section fadein" style="animation-delay:0.05s">
+      <label class="field-label">책 선택 방법</label>
+      <div class="source-toggle" id="source-toggle">
+        <button class="source-btn active" data-source="upload">
+          📁 내 파일 업로드
+        </button>
+        <button class="source-btn" data-source="gutenberg">
+          📚 무료 고전 도서관
+        </button>
+      </div>
+    </div>
+
+    <!-- 구텐베르크 브라우저 -->
+    <div id="gutenberg-browser" class="gb-container">
+      <div class="gb-search-bar">
+        <input type="text" id="gb-search-input" class="field-input" 
+               placeholder="작품명이나 작가명으로 검색... (예: sherlock, austen)">
+        <button class="btn-ghost" id="gb-search-btn">🔍 검색</button>
+      </div>
+      
+      <div class="gb-categories">
+        <button class="gb-cat-btn active" data-cat="featured">⭐ 추천</button>
+        <button class="gb-cat-btn" data-cat="romance">💕 로맨스</button>
+        <button class="gb-cat-btn" data-cat="mystery">🔍 미스터리</button>
+        <button class="gb-cat-btn" data-cat="adventure">⚔️ 모험</button>
+        <button class="gb-cat-btn" data-cat="horror">👻 공포</button>
+        <button class="gb-cat-btn" data-cat="short">⚡ 단편</button>
+      </div>
+      
+      <div class="gb-books-grid" id="gb-books-grid"></div>
+      
+      <div class="gb-loading" id="gb-loading">
+        <span class="book-anim" style="font-size:2rem">📖</span>
+        <div style="font-size:12px;color:var(--ink3)">책을 불러오는 중...</div>
+      </div>
+    </div>
+
+    <div class="field-group fadein" id="upload-area" style="animation-delay:0.1s">
       <label class="field-label">epub 파일</label>
       <div class="drop-zone" id="drop-zone">
         <span class="dz-icon">📖</span>
@@ -534,10 +701,32 @@ body::before {
           <div class="oc-title">✦ 독해 퀴즈</div>
           <div class="oc-desc">원문 읽고 내용 퀴즈로 학습</div>
         </div>
+        <div class="opt-card" data-mode="study">
+          <div class="oc-title">📕 기술 학습</div>
+          <div class="oc-desc">전문서적용 핵심 개념 및 실습</div>
+        </div>
       </div>
     </div>
 
-    <div class="opt-section fadein" style="animation-delay:0.2s">
+    <div class="opt-section fadein" style="animation-delay:0.25s">
+      <label class="field-label">게임 길이</label>
+      <div class="opt-grid" id="length-grid">
+        <div class="opt-card" data-length="short">
+          <div class="oc-title">⚡ 빠른 체험</div>
+          <div class="oc-desc">3-5 씬, 10분 내외</div>
+        </div>
+        <div class="opt-card sel" data-length="medium">
+          <div class="oc-title">📖 표준</div>
+          <div class="oc-desc">5-8 씬, 20분 내외</div>
+        </div>
+        <div class="opt-card" data-length="long">
+          <div class="oc-title">🎯 심화</div>
+          <div class="oc-desc">10-15 씬, 40분 내외</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opt-section fadein" style="animation-delay:0.3s">
       <label class="field-label">언어 설정</label>
       <div class="lang-row" id="lang-row">
         <button class="lang-opt sel" data-lang="ko">🇰🇷 한국어로</button>
@@ -549,6 +738,14 @@ body::before {
     <button class="btn-start fadein" id="btn-start" disabled style="animation-delay:0.25s">
       ◆ 게임 생성 시작
     </button>
+    
+    <!-- 이어하기 버튼 -->
+    <div id="continue-section" style="display:none; margin-top:1rem; text-align:center;">
+      <div style="font-size:11px; color:var(--ink3); margin-bottom:0.5rem;">기존에 진행 중인 게임이 있습니다</div>
+      <button class="btn-ghost" id="btn-continue" style="width:100%; padding:11px; border-color:var(--gold); color:var(--gold);">
+        ↻ 이어서 진행하기
+      </button>
+    </div>
   </div>
 
   <!-- ── LOADING ── -->
@@ -630,10 +827,76 @@ body::before {
 
 
 let gameData = null, curIdx = 0, score = 0;
-let selectedMode = 'adventure', selectedLang = 'ko', activeLang = 'ko';
-let epubText = '', bookTitle = '';
+let selectedMode = 'adventure', selectedLang = 'ko', activeLang = 'ko', selectedLength = 'medium';
+let epubText = '', bookTitle = '', selectedSource = 'upload', selectedGutenbergBook = null;
+let gameStartTime = 0;
 
 const $ = id => document.getElementById(id);
+
+// --- GUTENBERG CONSTANTS ---
+const GUTENBERG_API = 'https://gutendex.com/books/';
+const GUTENBERG_MIRROR = 'https://www.gutenberg.org/files/';
+const FEATURED_BOOKS = [
+  { id: 1342, title: 'Pride and Prejudice', author: 'Jane Austen', lang: 'en', category: 'romance' },
+  { id: 84, title: 'Frankenstein', author: 'Mary Shelley', lang: 'en', category: 'horror' },
+  { id: 2701, title: 'Moby Dick', author: 'Herman Melville', lang: 'en', category: 'adventure' },
+  { id: 1661, title: 'The Adventures of Sherlock Holmes', author: 'Arthur Conan Doyle', lang: 'en', category: 'mystery' },
+  { id: 11, title: 'Alice\'s Adventures in Wonderland', author: 'Lewis Carroll', lang: 'en', category: 'fantasy' },
+  { id: 174, title: 'The Picture of Dorian Gray', author: 'Oscar Wilde', lang: 'en', category: 'classic' },
+  { id: 98, title: 'A Tale of Two Cities', author: 'Charles Dickens', lang: 'en', category: 'historical' },
+  { id: 1952, title: 'The Yellow Wallpaper', author: 'Charlotte Perkins Gilman', lang: 'en', category: 'short' },
+  { id: 244, title: 'A Study in Scarlet', author: 'Arthur Conan Doyle', lang: 'en', category: 'mystery' },
+  { id: 46, title: 'A Christmas Carol', author: 'Charles Dickens', lang: 'en', category: 'short' }
+];
+
+// --- PROGRESS SYSTEM ---
+function saveProgress() {
+  if (!gameData) return;
+  const saveData = {
+    gameData, curIdx, score, bookTitle, selectedMode, selectedLang,
+    timestamp: Date.now()
+  };
+  localStorage.setItem('readplay_save', JSON.stringify(saveData));
+}
+
+function loadProgress() {
+  const saved = localStorage.getItem('readplay_save');
+  if (!saved) return false;
+  try {
+    const data = JSON.parse(saved);
+    if (Date.now() - data.timestamp > 7 * 24 * 60 * 60 * 1000) {
+      localStorage.removeItem('readplay_save');
+      return false;
+    }
+    gameData = data.gameData;
+    curIdx = data.curIdx;
+    score = data.score;
+    bookTitle = data.bookTitle;
+    selectedMode = data.selectedMode;
+    selectedLang = data.selectedLang;
+    return true;
+  } catch(e) { return false; }
+}
+
+function clearProgress() {
+  localStorage.removeItem('readplay_save');
+}
+
+// --- UTILS ---
+function chunkTextIntoSegments(chapters, maxChars) {
+  const segments = [];
+  let currentSegment = '';
+  for (const chapter of chapters) {
+    if (currentSegment.length + chapter.length < maxChars) {
+      currentSegment += '\n\n' + chapter;
+    } else {
+      if (currentSegment) segments.push(currentSegment);
+      currentSegment = chapter;
+    }
+  }
+  if (currentSegment) segments.push(currentSegment);
+  return segments;
+}
 
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -655,6 +918,32 @@ $('mode-grid').querySelectorAll('.opt-card').forEach(c => {
     $('mode-grid').querySelectorAll('.opt-card').forEach(x => x.classList.remove('sel'));
     c.classList.add('sel');
     selectedMode = c.dataset.mode;
+  });
+});
+
+/* ── LENGTH CARDS ── */
+$('length-grid').querySelectorAll('.opt-card').forEach(c => {
+  c.addEventListener('click', () => {
+    $('length-grid').querySelectorAll('.opt-card').forEach(x => x.classList.remove('sel'));
+    c.classList.add('sel');
+    selectedLength = c.dataset.length;
+  });
+});
+
+/* ── SOURCE TOGGLE ── */
+document.querySelectorAll('.source-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedSource = btn.dataset.source;
+    
+    $('upload-area').style.display = selectedSource === 'upload' ? 'block' : 'none';
+    $('gutenberg-browser').style.display = selectedSource === 'gutenberg' ? 'block' : 'none';
+    
+    if (selectedSource === 'gutenberg' && !$('gb-books-grid').innerHTML) {
+      renderFeaturedBooks();
+    }
+    checkReady();
   });
 });
 
@@ -682,7 +971,10 @@ $('file-input').addEventListener('change', () => {
 });
 
 function checkReady() {
-  $('btn-start').disabled = !(epubText.length > 0);
+  const ready = selectedSource === 'upload' 
+    ? epubText.length > 0 
+    : selectedGutenbergBook !== null;
+  $('btn-start').disabled = !ready;
 }
 
 async function handleFile(file) {
@@ -691,31 +983,165 @@ async function handleFile(file) {
   $('file-badge').classList.add('show');
   try {
     const zip = await JSZip.loadAsync(file);
-    const promises = [];
+    const chapters = [];
     zip.forEach((path, zf) => {
       if (!zf.dir && /\.(html|xhtml|htm)$/i.test(path)) {
-        promises.push(zf.async('string').then(html => {
-          const doc = new DOMParser().parseFromString(html, 'text/html');
-          doc.querySelectorAll('script,style,nav,aside').forEach(el => el.remove());
-          return doc.body ? doc.body.innerText.replace(/\s+/g, ' ').trim() : '';
-        }));
+        chapters.push({
+          path: path,
+          promise: zf.async('string').then(html => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            doc.querySelectorAll('script,style,nav,aside').forEach(el => el.remove());
+            return doc.body ? doc.body.innerText.replace(/\s+/g, ' ').trim() : '';
+          })
+        });
       }
     });
-    const parts = await Promise.all(promises);
-    epubText = parts.filter(t => t.length > 100).join('\n\n');
-    if (epubText.length > 40000) epubText = epubText.slice(0, 40000);
+    const parts = await Promise.all(chapters.map(c => c.promise));
+    const validParts = parts.filter(t => t.length > 100);
+    epubText = validParts.join('\n\n');
     checkReady();
   } catch(e) { alert('epub 파싱 실패: ' + e.message); }
 }
 
+// --- GUTENBERG LOGIC ---
+function renderFeaturedBooks() {
+  const grid = $('gb-books-grid');
+  grid.innerHTML = '';
+  FEATURED_BOOKS.forEach(book => grid.appendChild(createBookCard(book)));
+}
+
+function createBookCard(book) {
+  const card = document.createElement('div');
+  card.className = 'gb-book-card';
+  card.innerHTML = `
+    <div class="gbc-title">${book.title}</div>
+    <div class="gbc-author">by ${book.author}</div>
+    <div class="gbc-meta">
+      <span class="gbc-tag">${book.category || 'classic'}</span>
+      ${book.lang === 'en' ? '<span class="gbc-tag">🇬🇧 English</span>' : ''}
+    </div>
+  `;
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.gb-book-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedGutenbergBook = book;
+    bookTitle = book.title;
+    checkReady();
+  });
+  return card;
+}
+
+async function searchGutenberg(query, page = 1) {
+  try {
+    const res = await fetch(`${GUTENBERG_API}?search=${encodeURIComponent(query)}&page=${page}`);
+    const data = await res.json();
+    return data.results;
+  } catch(e) { return []; }
+}
+
+async function fetchGutenbergBook(bookId) {
+  const formats = [
+    `${GUTENBERG_MIRROR}${bookId}/${bookId}-0.txt`,
+    `${GUTENBERG_MIRROR}${bookId}/${bookId}.txt`
+  ];
+  for (const url of formats) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        let text = await res.text();
+        return cleanGutenbergText(text);
+      }
+    } catch(e) { continue; }
+  }
+  throw new Error('책을 불러올 수 없습니다');
+}
+
+function cleanGutenbergText(text) {
+  const startMarkers = ['*** START OF THE PROJECT GUTENBERG EBOOK', '*** START OF THIS PROJECT GUTENBERG EBOOK', '*END*THE SMALL PRINT'];
+  const endMarkers = ['*** END OF THE PROJECT GUTENBERG EBOOK', '*** END OF THIS PROJECT GUTENBERG EBOOK', 'End of the Project Gutenberg EBook'];
+  let cleaned = text;
+  for (const marker of startMarkers) {
+    const idx = cleaned.indexOf(marker);
+    if (idx !== -1) {
+      const lineEnd = cleaned.indexOf('\n', idx);
+      cleaned = cleaned.substring(lineEnd + 1);
+      break;
+    }
+  }
+  for (const marker of endMarkers) {
+    const idx = cleaned.indexOf(marker);
+    if (idx !== -1) { cleaned = cleaned.substring(0, idx); break; }
+  }
+  return cleaned.trim();
+}
+
+$('gb-search-btn').addEventListener('click', async () => {
+  const query = $('gb-search-input').value.trim();
+  if (!query) return;
+  $('gb-loading').style.display = 'block';
+  $('gb-books-grid').innerHTML = '';
+  try {
+    const results = await searchGutenberg(query);
+    $('gb-loading').style.display = 'none';
+    if (results.length === 0) {
+      $('gb-books-grid').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink3);font-size:12px;">검색 결과가 없습니다</div>';
+      return;
+    }
+    results.slice(0, 12).forEach(book => {
+      $('gb-books-grid').appendChild(createBookCard({
+        id: book.id, title: book.title, author: book.authors?.[0]?.name || 'Unknown',
+        lang: book.languages?.[0] || 'en', category: 'classic'
+      }));
+    });
+  } catch(e) {
+    $('gb-loading').style.display = 'none';
+    alert('검색 중 오류 발생');
+  }
+});
+
+// Category Filter Listeners
+document.querySelectorAll('.gb-cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.gb-cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const cat = btn.dataset.cat;
+    if (cat === 'featured') {
+      renderFeaturedBooks();
+    } else {
+      const grid = $('gb-books-grid');
+      grid.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink3);font-size:12px;">이 카테고리를 검색해보세요...</div>';
+      $('gb-search-input').value = cat;
+      $('gb-search-btn').click();
+    }
+  });
+});
+
 /* ── GENERATE ── */
 $('btn-start').addEventListener('click', generate);
 
-async function generate() {
+async function generate(retryCount = 0) {
   showScreen('loading');
-  log('epub 파싱 완료 (' + Math.round(epubText.length / 1000) + 'k chars)');
-  log('모드: ' + selectedMode + ' / 언어: ' + selectedLang);
-  log('Gemini API 호출 중...');
+  const maxRetries = 2;
+
+  // 1. Gutenberg fetch if needed
+  if (selectedSource === 'gutenberg' && selectedGutenbergBook) {
+    if (retryCount === 0) log('구텐베르크에서 책을 불러오는 중...');
+    try {
+      epubText = await fetchGutenbergBook(selectedGutenbergBook.id);
+    } catch(e) {
+      log('다운로드 실패: ' + e.message, 'err');
+      return;
+    }
+  }
+
+  // 2. Chunking logic
+  const lengthMap = { short: 15000, medium: 25000, long: 40000 };
+  const scenesCountMap = { short: '3~5', medium: '5~8', long: '10~15' };
+  const targetChars = lengthMap[selectedLength] || 25000;
+  const processingText = epubText.slice(0, targetChars);
+
+  log('콘텐츠 준비 완료 (' + Math.round(processingText.length / 1000) + 'k chars)');
+  log('모드: ' + selectedMode + ' / 길이: ' + selectedLength);
 
   const langMap = {
     ko: 'narrative, choices, quiz의 모든 텍스트를 자연스러운 한국어로 작성. 원문이 영어면 한국어로 번역/각색.',
@@ -723,23 +1149,27 @@ async function generate() {
     bilingual: 'narrative는 한국어로 작성하고 en_narrative 필드에 영어 원문도 포함. choices도 text는 한국어, en_text는 영어.'
   };
 
-  const modeMap = {
-    adventure: '각 씬마다 choices 배열 (text, en_text, next, outcome 필드). 선택에 따라 다음 씬으로 분기.',
-    quiz: '각 씬마다 quiz 객체 (question, choices 4개, answer 인덱스, explanation) + next 필드.'
+  const modeExplain = {
+    adventure: '주인공 시점의 스토리텔링. 선택지에 따라 분기 가능.',
+    quiz: '본문 내용을 기반으로 한 4지선다형 독해 퀴즈.',
+    study: '기술/전문 지식 습득을 위한 핵심 개념 정리 및 확인 질문. narrative에는 핵심 개념(key_concept)과 실습 예제(practical_example)를 포함.'
   };
 
-  const prompt = `다음 epub 텍스트를 기반으로 인터랙티브 텍스트 게임 데이터를 JSON으로 생성하세요.
+  const prompt = `다음 텍스트를 기반으로 인터랙티브 독서 체험 데이터를 JSON으로 생성하세요.
 
 [텍스트]
-${epubText.slice(0, 24000)}
+${processingText}
 
-[언어] ${langMap[selectedLang]}
-[모드] ${modeMap[selectedMode]}
+[언어 설정] ${langMap[selectedLang]}
+[체험 모드] ${selectedMode} (${modeExplain[selectedMode]})
 
 [규칙]
-- 5~8개 씬 구성
-- 각 씬 필드: id(1~), context(10자내 씬제목), narrative(200자내 서술), original_excerpt(원문핵심문장 항상원문언어로)
-- JSON만 출력, 다른 텍스트 없음
+- ${scenesCountMap[selectedLength]}개 씬 구성
+- 각 씬 공통 필드: id(1~), context(10자내), narrative(200자내), original_excerpt(원문핵심문장)
+- adventure 모드: 각 씬에 choices 배열 (text, en_text, next, outcome)
+- quiz 모드: 각 씬에 quiz 객체 (question, choices[4], answer_idx, explanation)
+- study 모드: 각 씬 narrative에 markdown 형식의 개념 설명 포함. quiz 객체도 선택적으로 포함 가능.
+- 반드시 JSON만 출력.
 
 {
   "title": "원제",
@@ -749,31 +1179,51 @@ ${epubText.slice(0, 24000)}
   "scenes": [...]
 }`;
 
-  log('Gemini 호출 중...');
+  log('Gemini AI 호출 중 (시도 ' + (retryCount + 1) + ')...');
+  
   try {
     const res = await fetch('/api/gemini', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 8192, temperature: 0.75 }
+        generationConfig: { 
+          maxOutputTokens: 8192, 
+          temperature: 0.75,
+          topP: 0.95 
+        }
       })
     });
+
     if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      log('API 오류 ' + res.status + ': ' + JSON.stringify(errData).slice(0, 200), 'err');
-      return;
+      if (res.status === 429 && retryCount < maxRetries) {
+        log('속도 제한 발생. 3초 후 재시도...', 'err');
+        await new Promise(r => setTimeout(r, 3000));
+        return generate(retryCount + 1);
+      }
+      throw new Error(`API 오류 ${res.status}`);
     }
+
     const data = await res.json();
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) { log('JSON 파싱 실패: ' + raw.slice(0, 200), 'err'); return; }
-    gameData = JSON.parse(match[0]);
-    log('씬 ' + gameData.scenes.length + '개 생성 완료', 'ok');
-    log('게임 시작!', 'ok');
+    
+    let jsonText = raw;
+    if (raw.includes('```json')) jsonText = raw.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || raw;
+    else if (raw.includes('{')) jsonText = raw.match(/\{[\s\S]*\}/)?.[0] || raw;
+
+    gameData = JSON.parse(jsonText);
+    gameStartTime = Date.now();
+    log('게임 구성 완료 (' + gameData.scenes.length + ' 씬)', 'ok');
     setTimeout(startGame, 600);
+    
   } catch(e) {
     log('오류: ' + e.message, 'err');
+    if (retryCount < maxRetries) {
+      log('잠시 후 재시도합니다...', 'err');
+      setTimeout(() => generate(retryCount + 1), 2000);
+    } else {
+      log('최종 실패. 다시 시작해주세요.', 'err');
+    }
   }
 }
 
@@ -803,6 +1253,8 @@ function getText(obj, field) {
 function renderScene() {
   const scene = gameData.scenes[curIdx];
   if (!scene) { showEnding(); return; }
+  
+  saveProgress(); // 자동 저장
 
   const total = gameData.scenes.length;
   $('g-prog').style.width = Math.round(((curIdx + 1) / total) * 100) + '%';
@@ -810,7 +1262,16 @@ function renderScene() {
   $('g-chapter-label').textContent = 'scene ' + scene.id;
   $('g-score').textContent = score;
   $('g-context').textContent = scene.context || '';
-  $('g-scene').textContent = getText(scene, 'narrative');
+  // Markdown handling for Study Mode
+  let narrative = getText(scene, 'narrative');
+  if (gameData.mode === 'study') {
+    narrative = narrative.replace(/### (.*)/g, '<h3 style="font-size:1.1rem;margin:1.2rem 0 0.6rem;color:var(--gold)">$1</h3>')
+                        .replace(/\*\*(.*)\*\*/g, '<strong style="color:var(--gold)">$1</strong>')
+                        .replace(/`(.*)`/g, '<code style="background:var(--paper3);padding:2px 4px;border-radius:3px;font-family:var(--ff-mono);font-size:13px">$1</code>');
+    $('g-scene').innerHTML = narrative.replace(/\n/g, '<br>');
+  } else {
+    $('g-scene').textContent = narrative;
+  }
   $('orig-box').textContent = scene.original_excerpt || '';
   $('orig-box').classList.remove('show');
   $('orig-toggle').textContent = '원문 발췌 보기 ▾';
@@ -819,12 +1280,22 @@ function renderScene() {
   $('quiz-area').style.display = 'none';
   $('ending-area').style.display = 'none';
 
-  if (gameData.mode === 'quiz') {
+  if (gameData.mode === 'quiz' || (gameData.mode === 'study' && scene.quiz)) {
     $('quiz-area').style.display = 'block';
     renderQuiz(scene);
-  } else {
+  } else if (gameData.mode === 'adventure') {
     $('adventure-area').style.display = 'block';
     renderChoices(scene);
+  } else if (gameData.mode === 'study') {
+    // Study mode with no quiz: just a next button
+    $('adventure-area').style.display = 'block';
+    const cont = $('g-choices');
+    cont.innerHTML = '';
+    const btn = document.createElement('button');
+    btn.className = 'choice';
+    btn.textContent = '다음 개념으로 →';
+    btn.addEventListener('click', () => { curIdx++; renderScene(); });
+    cont.appendChild(btn);
   }
 }
 
@@ -882,6 +1353,7 @@ function renderQuiz(scene) {
 }
 
 function showEnding() {
+  clearProgress(); // 완독 시 저장 데이터 삭제
   $('adventure-area').style.display = 'none';
   $('quiz-area').style.display = 'none';
   $('ending-area').style.display = 'block';
@@ -891,10 +1363,50 @@ function showEnding() {
   $('ending-title').textContent = '완독';
   $('ending-sub').textContent = gameData.title_ko || gameData.title || bookTitle;
 
-  if (gameData.mode === 'quiz') {
+  if (gameData.mode === 'quiz' || (gameData.mode === 'study' && score > 0)) {
     $('ending-score').textContent = score + '점';
     $('ending-score').style.display = 'block';
+    $('ending-score-label').textContent = '최종 점수';
     $('ending-score-label').style.display = 'block';
+  }
+
+  // 플레이 통계 및 피드백 추가
+  const playTime = Math.round((Date.now() - gameStartTime) / 1000 / 60);
+  const feedbackHTML = `
+    <div style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center;">
+      <div style="font-size: 11px; color: var(--ink3); margin-bottom: 1.2rem; letter-spacing: 0.05em;">
+        ${playTime}분 동안의 독서 경험이 어떠셨나요?
+      </div>
+      <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 2rem;">
+        <button class="btn-ghost" onclick="this.textContent='✅ 감사합니다!'; this.disabled=true">😍 최고</button>
+        <button class="btn-ghost" onclick="this.textContent='✅ 감사합니다!'; this.disabled=true">😊 좋음</button>
+        <button class="btn-ghost" onclick="this.textContent='✅ 감사합니다!'; this.disabled=true">😐 보통</button>
+      </div>
+      <button class="btn-start" onclick="shareResults()" style="padding: 10px 20px; font-size: 11px;">
+        🔗 결과 공유하기
+      </button>
+    </div>
+  `;
+  
+  const endArea = $('ending-area');
+  if (!endArea.querySelector('.feedback-box')) {
+    const div = document.createElement('div');
+    div.className = 'feedback-box fadein';
+    div.innerHTML = feedbackHTML;
+    endArea.appendChild(div);
+  }
+}
+
+function shareResults() {
+  const shareText = `📖 READPLAY로 "${gameData.title_ko || gameData.title || bookTitle}" 완독!\n` +
+    `${gameData.mode === 'quiz' ? `점수: ${score}점` : '인터랙티브 독서 완료'}\n` +
+    `#READPLAY #인터랙티브독서 #AI독서`;
+  
+  if (navigator.share) {
+    navigator.share({ title: 'READPLAY 완독', text: shareText, url: window.location.href });
+  } else {
+    navigator.clipboard.writeText(shareText);
+    alert('결과가 클립보드에 복사되었습니다!');
   }
 }
 
@@ -904,11 +1416,27 @@ $('orig-toggle').addEventListener('click', () => {
 });
 
 $('btn-restart').addEventListener('click', () => {
-  epubText = ''; gameData = null;
+  epubText = ''; gameData = null; selectedGutenbergBook = null;
+  clearProgress();
   $('file-badge').classList.remove('show');
   $('file-input').value = '';
+  document.querySelectorAll('.gb-book-card').forEach(c => c.classList.remove('selected'));
   checkReady();
   showScreen('setup');
+});
+
+// --- ON LOAD ---
+window.addEventListener('load', () => {
+  if (loadProgress()) {
+    $('continue-section').style.display = 'block';
+  }
+});
+
+$('btn-continue').addEventListener('click', () => {
+  if (loadProgress()) {
+    showScreen('game');
+    renderScene();
+  }
 });
 </script>
 </body>

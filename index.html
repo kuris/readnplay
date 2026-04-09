@@ -1479,10 +1479,18 @@ ${fewShotExample}
     const data = await res.json();
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
-    let jsonText = raw;
-    if (raw.includes('```json')) jsonText = raw.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || raw;
-    else if (raw.includes('{')) jsonText = raw.match(/\{[\s\S]*\}/)?.[0] || raw;
+    // ── 강건한 JSON 추출 ──────────────────────────────
+    // 1) 코드블록 제거 (```json ... ``` 또는 ``` ... ```)
+    let jsonText = raw.trim()
+      .replace(/^```+(?:json)?\s*/i, '')   // 시작 코드펜스
+      .replace(/\s*```+\s*$/i, '')          // 끝 코드펜스
+      .trim();
 
+    // 2) 앞뒤에 JSON이 아닌 텍스트가 붙어있으면 { } 사이만 추출
+    const objMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (objMatch) jsonText = objMatch[0];
+
+    // 3) 파싱 시도
     // Stage 3: 게임 완성
     setStage(3);
     gameData = JSON.parse(jsonText);

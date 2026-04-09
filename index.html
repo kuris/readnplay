@@ -229,7 +229,7 @@ body::before {
 }
 
 /* ─── LOADING ─── */
-.loading-center { text-align: center; padding: 5rem 1rem; }
+.loading-center { text-align: center; padding: 4rem 1rem; }
 .book-anim {
   font-family: var(--ff-serif);
   font-size: 3rem;
@@ -239,13 +239,88 @@ body::before {
   margin-bottom: 1.5rem;
 }
 @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.95); } }
-.loading-h { font-family: var(--ff-serif); font-size: 1.4rem; color: var(--ink); margin-bottom: 2rem; }
+.loading-h { font-family: var(--ff-serif); font-size: 1.4rem; color: var(--ink); margin-bottom: 0.4rem; }
+.loading-sub { font-size: 11px; color: var(--ink3); margin-bottom: 2rem; letter-spacing: 0.08em; }
+
+/* STAGE PROGRESS */
+.stage-bar-wrap {
+  margin-bottom: 2rem;
+}
+.stage-bar-track {
+  height: 3px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+.stage-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stages {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+.stage-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.3;
+  transition: opacity 0.4s ease;
+}
+.stage-item.active { opacity: 1; }
+.stage-item.done { opacity: 0.6; }
+.stage-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border2);
+  background: var(--paper2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  transition: all 0.4s ease;
+}
+.stage-item.active .stage-dot {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--paper);
+  box-shadow: 0 0 10px rgba(184,134,11,0.4);
+  animation: stagePulse 1.2s ease-in-out infinite;
+}
+.stage-item.done .stage-dot {
+  border-color: #4caf78;
+  background: rgba(76,175,120,0.1);
+  color: #4caf78;
+}
+@keyframes stagePulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(184,134,11,0.4); }
+  50% { box-shadow: 0 0 16px rgba(184,134,11,0.7); }
+}
+.stage-label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  text-align: center;
+  line-height: 1.4;
+}
+.stage-item.active .stage-label { color: var(--gold); font-weight: 500; }
+.stage-item.done .stage-label { color: #4caf78; }
+
 .log-terminal {
   background: var(--ink);
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
   text-align: left;
-  max-height: 160px;
+  max-height: 130px;
   overflow-y: auto;
   font-size: 11px;
   line-height: 1.7;
@@ -753,6 +828,33 @@ body::before {
     <div class="loading-center">
       <span class="book-anim">📖</span>
       <div class="loading-h">Gemini가 책을 읽고 있어요</div>
+      <div class="loading-sub" id="loading-stage-text">준비 중...</div>
+
+      <!-- 단계별 진행 표시 -->
+      <div class="stage-bar-wrap">
+        <div class="stage-bar-track">
+          <div class="stage-bar-fill" id="stage-bar"></div>
+        </div>
+        <div class="stages">
+          <div class="stage-item" id="stage-0">
+            <div class="stage-dot">📥</div>
+            <div class="stage-label">책 불러오기</div>
+          </div>
+          <div class="stage-item" id="stage-1">
+            <div class="stage-dot">🔍</div>
+            <div class="stage-label">텍스트 분석</div>
+          </div>
+          <div class="stage-item" id="stage-2">
+            <div class="stage-dot">✨</div>
+            <div class="stage-label">AI 생성</div>
+          </div>
+          <div class="stage-item" id="stage-3">
+            <div class="stage-dot">🎮</div>
+            <div class="stage-label">게임 완성</div>
+          </div>
+        </div>
+      </div>
+
       <div class="log-terminal" id="log"></div>
     </div>
   </div>
@@ -832,6 +934,35 @@ let epubText = '', bookTitle = '', selectedSource = 'upload', selectedGutenbergB
 let gameStartTime = 0;
 
 const $ = id => document.getElementById(id);
+
+// --- STAGE ANIMATION ---
+const STAGE_TEXTS = ['책을 불러오는 중...', '텍스트를 분석하는 중...', 'AI가 게임을 생성하는 중...', '마지막 마무리 중...'];
+const STAGE_PROGRESS = [0, 30, 60, 90];
+
+function setStage(idx) {
+  for (let i = 0; i < 4; i++) {
+    const el = $('stage-' + i);
+    if (!el) continue;
+    el.classList.remove('active', 'done');
+    if (i < idx) el.classList.add('done');
+    else if (i === idx) el.classList.add('active');
+  }
+  const bar = $('stage-bar');
+  if (bar) bar.style.width = STAGE_PROGRESS[idx] + '%';
+  const txt = $('loading-stage-text');
+  if (txt) txt.textContent = STAGE_TEXTS[idx] || '';
+}
+
+function completeStages() {
+  for (let i = 0; i < 4; i++) {
+    const el = $('stage-' + i);
+    if (el) { el.classList.remove('active'); el.classList.add('done'); }
+  }
+  const bar = $('stage-bar');
+  if (bar) bar.style.width = '100%';
+  const txt = $('loading-stage-text');
+  if (txt) txt.textContent = '완료! 게임을 시작합니다...';
+}
 
 // --- GUTENBERG CONSTANTS ---
 const GUTENBERG_API = 'https://gutendex.com/books/';
@@ -1117,6 +1248,9 @@ async function generate(retryCount = 0) {
   showScreen('loading');
   const maxRetries = 2;
 
+  // Stage 0: 책 불러오기
+  setStage(0);
+
   // 1. Gutenberg fetch if needed
   if (selectedSource === 'gutenberg' && selectedGutenbergBook) {
     if (retryCount === 0) log('구텐베르크에서 책을 불러오는 중...');
@@ -1127,6 +1261,9 @@ async function generate(retryCount = 0) {
       return;
     }
   }
+
+  // Stage 1: 텍스트 분석
+  setStage(1);
 
   // 2. Chunking logic
   const lengthMap = { short: 15000, medium: 25000, long: 40000 };
@@ -1173,6 +1310,8 @@ ${processingText}
   "scenes": [...]
 }`;
 
+  // Stage 2: AI 생성
+  setStage(2);
   log('Gemini AI 호출 중 (시도 ' + (retryCount + 1) + ')...');
   
   try {
@@ -1205,10 +1344,13 @@ ${processingText}
     if (raw.includes('```json')) jsonText = raw.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || raw;
     else if (raw.includes('{')) jsonText = raw.match(/\{[\s\S]*\}/)?.[0] || raw;
 
+    // Stage 3: 게임 완성
+    setStage(3);
     gameData = JSON.parse(jsonText);
     gameStartTime = Date.now();
     log('게임 구성 완료 (' + gameData.scenes.length + ' 씬)', 'ok');
-    setTimeout(startGame, 600);
+    completeStages();
+    setTimeout(startGame, 900);
     
   } catch(e) {
     log('오류: ' + e.message, 'err');

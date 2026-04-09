@@ -1528,12 +1528,34 @@ function createBookCard(book) {
   return card;
 }
 
+// ── 구텐베르크 검색 캐시 (localStorage, TTL 7일) ──────────────
+const GB_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+
+function getSearchCache(query) {
+  try {
+    const raw = localStorage.getItem('gb_search_' + query);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > GB_CACHE_TTL) { localStorage.removeItem('gb_search_' + query); return null; }
+    return data;
+  } catch { return null; }
+}
+
+function setSearchCache(query, data) {
+  try { localStorage.setItem('gb_search_' + query, JSON.stringify({ data, ts: Date.now() })); } catch {}
+}
+
 async function searchGutenberg(query, page = 1) {
+  if (page === 1) {
+    const cached = getSearchCache(query);
+    if (cached) return { results: cached, fromCache: true };
+  }
   try {
     const res = await fetch(`${GUTENBERG_API}?search=${encodeURIComponent(query)}&page=${page}`);
     const data = await res.json();
-    return data.results;
-  } catch(e) { return []; }
+    if (page === 1 && data.results?.length) setSearchCache(query, data.results);
+    return { results: data.results || [], fromCache: false };
+  } catch(e) { return { results: [], fromCache: false }; }
 }
 
 async function fetchGutenbergBook(bookId) {
@@ -1572,9 +1594,9 @@ $('gb-search-btn').addEventListener('click', async () => {
   $('gb-loading').style.display = 'block';
   $('gb-books-grid').innerHTML = '';
   try {
-    const results = await searchGutenberg(query);
+    const { results, fromCache } = await searchGutenberg(query);
     $('gb-loading').style.display = 'none';
-    if (results.length === 0) {
+    if (!results || results.length === 0) {
       $('gb-books-grid').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink3);font-size:12px;">검색 결과가 없습니다</div>';
       return;
     }
@@ -1583,6 +1605,12 @@ $('gb-search-btn').addEventListener('click', async () => {
       lang: b.languages?.[0] || 'en', category: 'classic'
     }));
     renderBookList(mapped, $('gb-books-grid'));
+    if (fromCache) {
+      const notice = document.createElement('div');
+      notice.style.cssText = 'font-size:10px;color:var(--ink3);text-align:right;padding:4px 8px;opacity:0.6;';
+      notice.textContent = '⚡ 캐시된 결과 (7일)';
+      $('gb-books-grid').appendChild(notice);
+    }
   } catch(e) {
     $('gb-loading').style.display = 'none';
     alert('검색 중 오류 발생');

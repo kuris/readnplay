@@ -991,37 +991,43 @@ body.mode-vn .game-footer .copyright {
   display: none !important; 
 }
 
-/* Choices (플로팅 버튼 스타일) */
+/* Choices (중앙 가로 바 스타일) */
 body.mode-vn .choices-list {
-  position: absolute;
-  bottom: calc(100% + 1.5rem);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
+  position: fixed;
+  top: 45%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  z-index: 200;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  padding: 0;
 }
 body.mode-vn .choice {
-  background: rgba(40, 40, 50, 0.7);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 50px;
-  padding: 1rem 2rem;
-  font-size: 18px;
+  background: rgba(0, 0, 0, 0.75);
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0;
+  padding: 1.2rem 2rem;
+  font-size: 20px;
   color: #fff;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(8px);
   transition: all 0.3s cubic-bezier(0.2, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  text-align: center;
+  width: 100%;
 }
 body.mode-vn .choice:hover {
-  background: var(--gold);
-  color: #000;
-  transform: scale(1.05) translateY(-2px);
-  box-shadow: 0 10px 30px rgba(184, 134, 11, 0.4);
-  border-color: rgba(255,255,255,0.5);
+  background: rgba(184, 134, 11, 0.85);
+  color: #fff;
+  transform: scale(1.02);
+  box-shadow: 0 0 40px rgba(184, 134, 11, 0.4);
 }
-body.mode-vn .choice-main { font-weight: 600; }
-body.mode-vn .choice-hint { display: none; } /* VN에서는 힌트 숨기거나 연출 변경 */
+body.mode-vn .choice-main { font-weight: 500; letter-spacing: 0.05em; }
+body.mode-vn .choice-hint { display: none; }
+body.mode-vn .choices-header { display: none !important; }
 
 /* UI 숨기기 */
 body.mode-vn #orig-toggle,
@@ -1669,12 +1675,11 @@ async function generate(retryCount = 0) {
   const vnExtra = selectedMode === 'visual_novel' ? `
 [비주얼 노벨 모드 규칙]
 1단계: 주요 캐릭터 3-5명 추출 (id, name, personality, role, image_prompt)
- - image_prompt: 캐릭터의 외형을 묘사하는 정교한 영어 프롬프트 (화풍 명시)
+ - image_prompt: 영어 묘사 및 화풍 명시 (예: "anime style, medium shot")
 2단계: 시네마틱 스크립트 기반 스토리 생성
- - script: { speaker, text } 배열
- - bg_keyword: 상황을 나타내는 영어 배경 키워드 (예: "dark lab", "sunny garden")
- - choices: character_effects 필드 포함 ({ char_id: +10 })
- - endings: 조건(condition) 기반 멀티 엔딩` : '';
+ - scenes[].script: [ { "speaker": "char_id", "text": "대화내용" }, ... ]
+ - scenes[].bg_keyword: 장면 배경 키워드 (영어)
+ - 예시: {"speaker": "elon_1", "text": "화성에 가야만 합니다."}` : '';
 
   const adventureExtra = selectedMode === 'adventure' ? `
 [어드벤처 모드 규칙]
@@ -2002,7 +2007,8 @@ function renderScene() {
       }
       
       const line = scene.script[step];
-      const char = (gameData.characters || []).find(c => c.id === line.speaker);
+      // ID 매칭 시 안정성을 위해 toString() 사용
+      const char = (gameData.characters || []).find(c => String(c.id) === String(line.speaker));
       const name = char ? char.name : (line.speaker === 'narrator' ? '' : line.speaker);
       
       if (line.speaker !== 'narrator' && speakerTag) {
@@ -2040,9 +2046,17 @@ function renderScene() {
     // 첫번째 대사 즉시 출력
     renderStep();
   } else {
-    // ⚔️ 일반 모드들
+    // ⚔️ 일반 모드들 또는 script 누락 시 Fallback
     const ko = scene.narrative || '';
     const en = scene.en_narrative || '';
+    
+    // 비주얼 노벨 모드인데 script가 없는 경우 대화창 형태로 narrative 표시
+    if (selectedMode === 'visual_novel' && ko) {
+      sceneEl.innerHTML = `<div class="dialogue-line fadein is-narrator"><span>${ko}</span></div>`;
+      const choicesList = $('g-choices');
+      if (choicesList) choicesList.style.display = 'flex';
+      return;
+    }
 
     if (activeLang === 'bi' && ko && en) {
       sceneEl.innerHTML = `

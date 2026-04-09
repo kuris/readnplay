@@ -1847,6 +1847,7 @@ function repairJson(json) {
   if (inString) repaired += '"';
   while (stack.length > 0) repaired += stack.pop();
   return repaired;
+}
 
 /* ── GAME ── */
 function startGame() {

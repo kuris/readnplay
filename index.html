@@ -1643,8 +1643,14 @@ async function generate(retryCount = 0) {
                              (!cacheData.gameData.characters || !cacheData.gameData.characters[0].image_prompt);
           
           if (!isLegacyVN) {
-            log('✓ Vercel Blob에서 최신 컨텐츠 발견 (비용 $0)', 'ok');
+            log('✓ Vercel Blob에서 컨텐츠 발견. 캐릭터 일러스트 확인 중...');
             gameData = cacheData.gameData;
+            
+            // 캐시 데이터여도 이미지가 누락되어 있다면 실시간 생성 트리거
+            if (selectedMode === 'visual_novel' && gameData.characters) {
+              await ensureCharacterPortraits(gameData.characters);
+            }
+
             setStage(3);
             gameStartTime = Date.now();
             completeStages();

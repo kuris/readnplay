@@ -1779,6 +1779,18 @@ ${studyExtra}
       await ensureCharacterPortraits(gameData.characters);
     }
 
+    // ── 성공한 데이터를 서버에 캐시로 저장 ────────────────────
+    try {
+      log('스토리 캐시 저장 중...');
+      const bookIdStr = selectedGutenbergBook ? selectedGutenbergBook.id.toString() : 'custom_book';
+      const cacheKey = `${bookIdStr}_${selectedMode}_${selectedLang}_${selectedLength}`;
+      await fetch('/api/game-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cacheKey, gameData })
+      });
+    } catch(e) { console.warn('캐시 저장 실패', e); }
+
     setStage(3);
     gameStartTime = Date.now();
     completeStages();

@@ -1729,7 +1729,11 @@ ${studyExtra}
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 8192, temperature: 0.8 }
+        generationConfig: { 
+          maxOutputTokens: 8192, 
+          temperature: 0.7,
+          responseMimeType: "application/json"
+        }
       })
     });
 
@@ -1737,11 +1741,27 @@ ${studyExtra}
 
     const data = await res.json();
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    let jsonText = raw.trim().replace(/^```+(?:json)?\s*/i, '').replace(/\s*```+\s*$/i, '').trim();
-    const objMatch = jsonText.match(/\{[\s\S]*\}/);
-    if (objMatch) jsonText = objMatch[0];
+    let jsonText = raw.trim();
+    
+    // ── 강건한 JSON 추출 및 복구 ──────────────────────────────
+    // 1) 앞뒤 불필요 문자 제거
+    const startIdx = jsonText.indexOf('{');
+    const lastIdx = jsonText.lastIndexOf('}');
+    if (startIdx !== -1) {
+      if (lastIdx !== -1 && lastIdx > startIdx) {
+        jsonText = jsonText.substring(startIdx, lastIdx + 1);
+      } else {
+        // 닫는 중괄호가 없으면(잘림) 시작부터 끝까지 가져와서 복구 시도
+        jsonText = repairJson(jsonText.substring(startIdx));
+      }
+    }
 
-    gameData = JSON.parse(jsonText);
+    try {
+      gameData = JSON.parse(jsonText);
+    } catch (parseErr) {
+      console.error('Initial parse failed, attempting deep repair...');
+      gameData = JSON.parse(repairJson(jsonText));
+    }
     
     if (selectedMode === 'visual_novel' && gameData.characters) {
       log('캐릭터 로딩 중...');
@@ -1801,6 +1821,32 @@ async function ensureCharacterPortraits(characters) {
     }
   }
 }
+
+/**
+ * 말뭉치가 잘린 JSON을 최대한 복구합니다 (중괄호/대괄호 닫기)
+ */
+function repairJson(json) {
+  let stack = [];
+  let inString = false;
+  let escaped = false;
+  
+  for (let i = 0; i < json.length; i++) {
+    const char = json[i];
+    if (escaped) { escaped = false; continue; }
+    if (char === '\\') { escaped = true; continue; }
+    if (char === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    
+    if (char === '{' || char === '[') stack.push(char === '{' ? '}' : ']');
+    if (char === '}' || char === ']') {
+      if (stack.length > 0 && stack[stack.length - 1] === char) stack.pop();
+    }
+  }
+  
+  let repaired = json;
+  if (inString) repaired += '"';
+  while (stack.length > 0) repaired += stack.pop();
+  return repaired;
 
 /* ── GAME ── */
 function startGame() {

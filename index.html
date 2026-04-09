@@ -1672,7 +1672,7 @@ async function generate(retryCount = 0) {
 
   const vnExtra = selectedMode === 'visual_novel' ? `
 [비주얼 노벨 모드 — 시네마틱 스크립트 규칙]
-1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar_url(생성용 프롬프트), personality, role, image_prompt)
+1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, personality, role, image_prompt)
  - image_prompt: 해당 캐릭터의 전신/상반신 외형을 묘사하는 정교한 영어 프롬프트. 
    중요: 실루엣이나 아이콘 형태가 아닌, **완성된 일러스트** 형태여야 함.
    책의 시대적 배경과 장르에 어울리는 화풍(Art Style)을 프롬프트 처음에 명시해라.
@@ -1901,7 +1901,10 @@ async function ensureCharacterPortraits(characters) {
       const pollinationUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&nologo=true&seed=${seed}`;
       
       try {
-        // 서버를 통해 Blob에 저장
+        // 우선 실시간 생성 URL을 할당하여 즉각적으로 보이게 함
+        char.avatar_url = pollinationUrl;
+
+        // 서버를 통해 Blob에 저장 시도 (백그라운드로 처리해도 무방하나 일단 기다림)
         const fileName = `${char.id}_${Date.now()}.webp`;
         const saveRes = await fetch('/api/save-image', {
           method: 'POST',
@@ -1911,12 +1914,10 @@ async function ensureCharacterPortraits(characters) {
         
         if (saveRes.ok) {
           const resData = await saveRes.json();
-          char.avatar_url = resData.url;
-          console.log(`Portrait cached for ${char.name}: ${resData.url}`);
+          char.avatar_url = resData.url; // 서버 저장 성공 시 URL 업데이트
         }
       } catch (e) {
-        console.error(`Failed to cache portrait for ${char.name}`, e);
-        char.avatar_url = pollinationUrl;
+        console.warn(`Failed to cache portrait for ${char.name}, using direct URL`, e);
       }
     }
   });

@@ -11,9 +11,8 @@ export default async function handler(req, res) {
 
   const { contents, generationConfig } = req.body;
   
-  // ✅ 게임 생성용: API Key 호환 표준 Gemini 엔드포인트
-  // aiplatform.googleapis.com은 OAuth2 전용이므로 API Key 방식에는 이 엔드포인트 사용
-  const model = "gemini-2.0-flash";
+  // ✅ 게임 생성용: 가장 호환성이 높은 모델 사용 (403 방지)
+  const model = "gemini-1.5-flash";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   try {

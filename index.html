@@ -913,18 +913,29 @@ body.mode-vn .game-footer:hover { opacity: 1; }
   bottom: 0%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 50vh;
-  line-height: 1;
+  width: auto;
+  height: 85vh;
   z-index: -5;
   filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
-  transition: all 0.3s ease-in-out;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.vn-portrait-area img {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
 }
 body.mode-vn .vn-portrait-area {
-  display: block;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
 }
 body.mode-vn .vn-portrait-area.dim {
-  filter: drop-shadow(0 0 0 rgba(0,0,0,0)) brightness(0.4);
+  filter: drop-shadow(0 0 0 rgba(0,0,0,0)) brightness(0.2) grayscale(0.5);
   transform: translateX(-50%) scale(0.95);
+  opacity: 0.6;
 }
 
 /* Dialogue Box changes */
@@ -1636,7 +1647,11 @@ async function generate(retryCount = 0) {
 
   const vnExtra = selectedMode === 'visual_novel' ? `
 [비주얼 노벨 모드 — 시네마틱 스크립트 규칙]
-1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar(이모지), personality, role)
+1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar(이모지), personality, role, image_prompt)
+ - image_prompt: 해당 캐릭터의 외형을 묘사하는 정교한 영어 프롬프트. 
+   중요: 책의 시대적 배경과 장르(예: 공포, 로맨스, 고전, SF)에 가장 어울리는 화풍(Art Style)을 프롬프트 처음에 명시해라.
+   예시(클래식): "Classic oil painting style, regency era dress..."
+   예시(현대): "Modern webtoon style, soft cinematic lighting..."
 2단계: 캐릭터와 교류하며 관계가 변하는 스토리 생성
 
 [특수 규칙]
@@ -1814,6 +1829,12 @@ ${selectedMode === 'visual_novel' ? `
     
     if (retryCount === 0) {
       try {
+        // 비주얼 노벨 모드일 경우 캐릭터 이미지 실시간 생성 및 캐싱
+        if (selectedMode === 'visual_novel' && gameData.characters) {
+          log('캐릭터 일러스트 실시간 생성 및 클라우드 연동 중...');
+          await ensureCharacterPortraits(gameData.characters);
+        }
+
         await fetch('/api/game-save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1837,6 +1858,43 @@ ${selectedMode === 'visual_novel' ? `
       setTimeout(() => generate(retryCount + 1), 2000);
     } else {
       log('최종 실패. 다시 시작해주세요.', 'err');
+    }
+  }
+}
+
+async function ensureCharacterPortraits(characters) {
+  for (const char of characters) {
+    // 이미 Blob URL이거나 이미지가 있으면 스킵
+    if (char.avatar_url && char.avatar_url.includes('vercel-storage.com')) continue;
+    
+    // 이미지 프롬프트가 있으면 생성 시도
+    if (char.image_prompt) {
+      const seed = Math.floor(Math.random() * 1000000);
+      // 화풍은 AI가 생성한 image_prompt에 이미 포함되어 있으므로 그대로 사용 + 퀄리티 태그만 추가
+      const finalPrompt = `${char.image_prompt}, high quality, character design, full body, white background, no logo`;
+      const encodedPrompt = encodeURIComponent(finalPrompt);
+      const pollinationUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
+
+      
+      try {
+        // 서버를 통해 Blob에 저장
+        const fileName = `${char.id}_${Date.now()}.png`;
+        const saveRes = await fetch('/api/save-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: pollinationUrl, fileName })
+        });
+        
+        if (saveRes.ok) {
+          const resData = await saveRes.json();
+          char.avatar_url = resData.url; // 캐릭터 객체에 URL 업데이트
+          console.log(`Portrait cached for ${char.name}: ${resData.url}`);
+        }
+      } catch (e) {
+        console.error(`Failed to cache portrait for ${char.name}`, e);
+        // 실패 시 Pollinations URL이라도 임시로 사용
+        char.avatar_url = pollinationUrl;
+      }
     }
   }
 }
@@ -1957,8 +2015,13 @@ function renderScene() {
       
       const portraitArea = $('vn-portrait-area');
       if (portraitArea) {
-        if (char && char.avatar) {
-          portraitArea.textContent = char.avatar;
+        const avatarUrl = char ? (char.avatar_url || '') : '';
+        if (avatarUrl) {
+          portraitArea.innerHTML = `<img src="${avatarUrl}" class="fadein">`;
+          portraitArea.classList.remove('dim');
+        } else if (char && char.avatar) {
+          // 이모지 백업
+          portraitArea.innerHTML = `<span style="font-size:50vh">${char.avatar}</span>`;
           portraitArea.classList.remove('dim');
         } else if (line.speaker === 'narrator') {
           portraitArea.classList.add('dim');

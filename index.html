@@ -1760,8 +1760,18 @@ ${studyExtra}
     try {
       gameData = JSON.parse(jsonText);
     } catch (parseErr) {
-      console.error('Initial parse failed, attempting deep repair...');
-      gameData = JSON.parse(repairJson(jsonText));
+      console.warn('Initial parse failed, attempting deep repair...');
+      try {
+        gameData = JSON.parse(repairJson(jsonText));
+      } catch (repairErr) {
+        console.error('Repair failed:', repairErr);
+        throw new Error('AI 응답 데이터 복구 실패 (JSON 형식이 너무 많이 손상됨)');
+      }
+    }
+
+    if (!gameData.scenes || !Array.isArray(gameData.scenes)) {
+       console.error('Missing scenes in gameData:', gameData);
+       throw new Error('장면(scenes) 데이터가 생성되지 않았습니다.');
     }
     
     if (selectedMode === 'visual_novel' && gameData.characters) {
@@ -1936,6 +1946,11 @@ function getText(obj, field) {
 }
 
 function renderScene() {
+  if (!gameData || !gameData.scenes) {
+    log('오류: 게임 데이터가 손상되었습니다. 다시 시도해 주세요.', 'err');
+    showScreen('setup');
+    return;
+  }
   const scene = gameData.scenes[curIdx];
   if (!scene) { showEnding(); return; }
   

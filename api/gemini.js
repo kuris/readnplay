@@ -11,9 +11,9 @@ export default async function handler(req, res) {
 
   const { contents, generationConfig } = req.body;
   
-  // ✅ 게임 생성용: 사용자가 설정한 최신 모델 및 엔드포인트 사용
+  // ✅ 최신 모델 및 스트리밍 엔드포인트 사용
   const model = "gemini-2.5-flash-lite"; 
-  const endpoint = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent?key=${apiKey}`;
+  const endpoint = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:streamGenerateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(endpoint, {
@@ -22,15 +22,61 @@ export default async function handler(req, res) {
       body: JSON.stringify({ contents, generationConfig })
     });
 
-    const data = await response.json();
-    
     if (!response.ok) {
-      console.error("Gemini API Error:", data);
-      return res.status(response.status).json(data);
+      const errorData = await response.json();
+      console.error("Gemini API Error:", errorData);
+      return res.status(response.status).json(errorData);
     }
 
-    // 클라이언트 형식을 그대로 유지하며 결과 반환
-    return res.status(200).json(data);
+    // 스트리밍 응답 처리 (취합해서 한 번에 반환)
+    const reader = response.body.getReader();
+    let aggregatedData = { candidates: [{ content: { parts: [{ text: "" }] } }] };
+    let decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      
+      // JSON 객체 추출 로직 개선: 중괄호 { } 매칭을 시도하거나 정규표현식 사용
+      // aiplatform 스트림은 [ {..}, {..} ] 형태이므로 쉼표나 대괄호를 제거하며 처리
+      let startIndex = 0;
+      while (true) {
+        let openBrace = buffer.indexOf('{', startIndex);
+        if (openBrace === -1) break;
+
+        // 대략적인 객체 끝 찾기 (중첩 고려 필요할 수 있으나 단순 후보 검색)
+        let closeBrace = buffer.indexOf('}', openBrace);
+        if (closeBrace === -1) break;
+
+        // 유효한 JSON인지 확인하며 확장
+        let potentialJson = "";
+        let found = false;
+        for (let i = closeBrace; i < buffer.length; i++) {
+          if (buffer[i] === '}') {
+            potentialJson = buffer.substring(openBrace, i + 1);
+            try {
+              const chunk = JSON.parse(potentialJson);
+              if (chunk.candidates?.[0]?.content?.parts?.[0]?.text) {
+                aggregatedData.candidates[0].content.parts[0].text += chunk.candidates[0].content.parts[0].text;
+              }
+              startIndex = i + 1;
+              found = true;
+              break;
+            } catch (e) {
+              // 미완성 JSON임
+              continue;
+            }
+          }
+        }
+        if (!found) break; // 더 이상 처리할 완성된 객체 없음
+      }
+      buffer = buffer.substring(startIndex);
+    }
+
+    return res.status(200).json(aggregatedData);
     
   } catch (e) {
     console.error("Gemini Server Error:", e.message);

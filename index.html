@@ -858,145 +858,152 @@ body::before {
   padding: 3rem 1rem;
   display: none;
 }
-/* VISUAL NOVEL MODE (LANDSCAPE) */
-body.mode-vn { overflow: hidden; }
+/* VISUAL NOVEL MODE (PREMIUM LANDSCAPE) */
+body.mode-vn { overflow: hidden; background: #000; }
 body.mode-vn .page { 
   max-width: 100vw; 
   padding: 0; 
   height: 100vh; 
-  display: flex; 
-  flex-direction: column; 
+  position: relative;
+  overflow: hidden;
 }
 body.mode-vn #screen-game.active {
   flex: 1;
-  position: relative;
   display: flex;
   flex-direction: column;
+  position: relative;
+  height: 100vh;
 }
 body.mode-vn .game-backdrop {
   z-index: -10;
+  filter: brightness(0.6) contrast(1.1); /* 배경을 어둡게 하여 인물/대사 강조 */
+}
+body.mode-vn .game-backdrop::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.6) 100%);
+  pointer-events: none;
 }
 body.mode-vn .game-masthead, 
 body.mode-vn .progress-rail, 
-body.mode-vn .game-lang-pill,
-body.mode-vn .orig-toggle {
-  opacity: 0.2;
-  position: absolute;
-  top: 10px;
-  z-index: 50;
-  transition: opacity 0.3s;
+body.mode-vn .game-lang-pill {
+  opacity: 0.15;
+  transition: opacity 0.5s;
+  z-index: 100;
 }
 body.mode-vn .game-masthead:hover, 
-body.mode-vn .game-lang-pill:hover { opacity: 1; }
+body.mode-vn .game-lang-pill:hover { opacity: 0.9; }
 
-body.mode-vn .game-masthead { left: 10px; border: none; padding: 0; margin: 0; }
-body.mode-vn .game-masthead::after { display: none; }
-body.mode-vn .progress-rail { top: 40px; left: 10px; width: 200px; }
-body.mode-vn .game-lang-pill { right: 10px; top: 10px; border: none; }
-body.mode-vn .orig-toggle { display: none; }
-body.mode-vn #character-panel { display: none; }
-body.mode-vn .game-footer { 
-  position: absolute; 
-  top: 10px; 
-  left: 50%; 
-  transform: translateX(-50%); 
-  opacity: 0.2; 
-  z-index: 50; 
-  transition: opacity 0.3s;
-}
-body.mode-vn .game-footer:hover { opacity: 1; }
-
-/* Portrait Area */
+/* Portrait Area (중앙 상단 배치) */
 .vn-portrait-area {
   display: none;
   position: absolute;
-  bottom: 8vh; /* 중앙 위쪽으로 조금 더 올림 */
+  top: 45%; 
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   width: auto;
-  height: 80vh;
-  z-index: -5;
-  filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 85vh;
+  z-index: -2;
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 .vn-portrait-area img {
   height: 100%;
   width: auto;
   object-fit: contain;
-  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
+}
+.vn-portrait-area::after {
+  content: "";
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 15%;
+  background: linear-gradient(to top, #000 0%, transparent 100%);
+  opacity: 0.4;
 }
 body.mode-vn .vn-portrait-area {
   display: flex;
   justify-content: center;
-  align-items: flex-end;
+  align-items: center;
 }
 body.mode-vn .vn-portrait-area.dim {
-  filter: drop-shadow(0 0 0 rgba(0,0,0,0)) brightness(0.2) grayscale(0.5);
-  transform: translateX(-50%) scale(0.95);
-  opacity: 0.6;
+  filter: brightness(0.1) grayscale(1) blur(2px);
+  transform: translate(-50%, -48%) scale(0.98);
+  opacity: 0.5;
 }
 
-/* Dialogue Box changes */
+/* Dialogue Box (강화된 글래스모피즘) */
 body.mode-vn #adventure-area {
   margin-top: auto;
   position: absolute;
-  bottom: 2rem;
+  bottom: 2.5rem;
   left: 50%;
   transform: translateX(-50%);
-  width: 90%;
-  max-width: 1200px;
-  z-index: 10;
+  width: 94%;
+  max-width: 1400px;
+  z-index: 50;
 }
 body.mode-vn .scene-wrap {
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 12px;
-  padding: 1.5rem 2rem;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-body.mode-vn .scene-header { display: none; } 
-body.mode-vn .scene-body {
-  background: transparent;
-  border: none;
-  padding: 0;
-  color: #fff;
-  min-height: 100px;
+  background: linear-gradient(135deg, rgba(20, 20, 25, 0.85) 0%, rgba(5, 5, 10, 0.95) 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-top: 2px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+  padding: 1.8rem 2.5rem;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.02);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  min-height: 160px;
 }
 body.mode-vn .dialogue-line {
-  font-size: 22px;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-}
-body.mode-vn .dialogue-line.is-narrator {
-  color: #ccc;
-  font-size: 19px;
-  font-style: italic;
+  font-size: 24px;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  font-weight: 400;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 body.mode-vn .speaker-tag {
   background: transparent;
-  color: #f0d060;
-  font-size: 20px;
-  font-weight: 600;
-  top: -40px;
-  left: 0;
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-  box-shadow: none;
-  border-bottom: 2px solid #f0d060;
-  border-radius: 0;
-  padding: 0 10px 4px 0;
+  color: #f0c050;
+  font-size: 26px;
+  font-weight: 700;
+  top: -45px;
+  left: 10px;
+  border-bottom: 3px solid #f0c050;
+  padding: 0 20px 8px 0;
+  text-shadow: 0 0 10px rgba(240,192,80,0.3);
 }
-body.mode-vn .choices-header { display: none; }
+
+/* Choices (플로팅 버튼 스타일) */
 body.mode-vn .choices-list {
   position: absolute;
-  bottom: 100%;
+  bottom: calc(100% + 1.5rem);
   left: 50%;
   transform: translateX(-50%);
-  width: 80%;
-  margin-bottom: 1rem;
+  width: 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
+body.mode-vn .choice {
+  background: rgba(40, 40, 50, 0.7);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 50px;
+  padding: 1rem 2rem;
+  font-size: 18px;
+  color: #fff;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.2, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+body.mode-vn .choice:hover {
+  background: var(--gold);
+  color: #000;
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 10px 30px rgba(184, 134, 11, 0.4);
+  border-color: rgba(255,255,255,0.5);
+}
+body.mode-vn .choice-main { font-weight: 600; }
+body.mode-vn .choice-hint { display: none; } /* VN에서는 힌트 숨기거나 연출 변경 */
 </style>
 </head>
 <body>
@@ -1656,10 +1663,10 @@ async function generate(retryCount = 0) {
   const vnExtra = selectedMode === 'visual_novel' ? `
 [비주얼 노벨 모드 — 시네마틱 스크립트 규칙]
 1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar(이모지), personality, role, image_prompt)
- - image_prompt: 해당 캐릭터의 외형을 묘사하는 정교한 영어 프롬프트. 
-   중요: 책의 시대적 배경과 장르(예: 공포, 로맨스, 고전, SF)에 가장 어울리는 화풍(Art Style)을 프롬프트 처음에 명시해라.
-   예시(클래식): "Classic oil painting style, regency era dress..."
-   예시(현대): "Modern webtoon style, soft cinematic lighting..."
+ - image_prompt: 해당 캐릭터의 전신/상반신 외형을 묘사하는 정교한 영어 프롬프트. 
+   중요: 실루엣이나 아이콘 형태가 아닌, **완성된 일러스트** 형태여야 함.
+   책의 시대적 배경과 장르에 어울리는 화풍(Art Style)을 프롬프트 처음에 명시해라.
+   예시(클래식): "Digital painting of a handsome gentleman, 19th century suit, highly detailed, soft cinematic lighting, webtoon style, white background"
 2단계: 캐릭터와 교류하며 관계가 변하는 스토리 생성
 
 [특수 규칙]
@@ -2260,15 +2267,27 @@ function showEnding() {
 function updateBackdrop(keyword) {
   const bg = $('game-backdrop');
   if (!bg) return;
-  // loremflickr is a reliable alternative for random images by keyword
-  const url = `https://loremflickr.com/1280/720/${encodeURIComponent(keyword || 'landscape')}/all`;
+  
+  // 🎨 비주얼 노벨 모드일 경우 AI 배경 생성 연동
+  let url = `https://loremflickr.com/1280/720/${encodeURIComponent(keyword || 'landscape')}/all`;
+  
+  if (selectedMode === 'visual_novel') {
+    // 캐릭터들의 배경 프롬프트 중 첫번째 캐릭터가 있다면 이용하거나 직접 키워드 가공
+    const seed = Math.floor(Math.random() * 1000000);
+    const bgPrompt = `${keyword}, 19th century atmosphere, digital painting, cinematic lighting, conceptual art, background design, high quality, no people, wide shot`;
+    url = `https://image.pollinations.ai/prompt/${encodeURIComponent(bgPrompt)}?width=1280&height=720&nologo=true&seed=${seed}`;
+  }
   
   // 페이드 아웃 후 이미지 교체, 다시 페이드 인
-  bg.style.opacity = '0';
-  setTimeout(() => {
+  bg.style.opacity = '0.2'; // 완전히 끄지 않고 어둡게 유지
+  bg.style.transition = 'opacity 1s ease-in-out';
+  
+  const img = new Image();
+  img.src = url;
+  img.onload = () => {
     bg.style.backgroundImage = `url('${url}')`;
     bg.style.opacity = '1';
-  }, 1000);
+  };
 }
 
 function showRelationshipPopup(charId, effect) {

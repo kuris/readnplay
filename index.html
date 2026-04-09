@@ -1610,18 +1610,23 @@ async function generate(retryCount = 0) {
     visual_novel: '주요 캐릭터를 자동 추출하고, 캐릭터와의 관계도(Affection) 변화와 관계 기반 멀티 엔딩을 제공하는 고급 비주얼 노벨 모드.'
   };
 
-  let cachedCharacters = null;
   const bookIdStr = selectedGutenbergBook ? selectedGutenbergBook.id.toString() : 'custom_book';
+  const cacheKey = `${bookIdStr}_${selectedMode}_${selectedLang}_${selectedLength}`;
   
-  if (selectedMode === 'visual_novel' && retryCount === 0) {
+  if (retryCount === 0) {
     try {
-      log('서버에서 캐싱된 캐릭터 목록 확인 중...');
-      const cacheRes = await fetch('/api/characters?bookId=' + bookIdStr);
+      log('클라우드 Vercel Blob 캐시 조회 중...');
+      const cacheRes = await fetch('/api/game-save?cacheKey=' + cacheKey);
       if (cacheRes.ok) {
         const cacheData = await cacheRes.json();
-        if (cacheData.characters && cacheData.characters.length > 0) {
-          cachedCharacters = JSON.stringify(cacheData.characters);
-          log('캐싱된 캐릭터 발견, 재사용합니다. (비용 절감)');
+        if (cacheData.cached && cacheData.gameData) {
+          log('✓ Vercel Blob에서 100% 동일한 컨텐츠 발견 (비용 $0)', 'ok');
+          gameData = cacheData.gameData;
+          setStage(3);
+          gameStartTime = Date.now();
+          completeStages();
+          setTimeout(startGame, 900);
+          return; // 모델 호출 생략하고 즉시 시작!
         }
       }
     } catch(e) {
@@ -1631,7 +1636,8 @@ async function generate(retryCount = 0) {
 
   const vnExtra = selectedMode === 'visual_novel' ? `
 [비주얼 노벨 모드 — 시네마틱 스크립트 규칙]
-${cachedCharacters ? `이미 추출된 캐릭터 리스트가 있습니다. 이 캐릭터들만 사용하여 스토리를 전개하세요. 새로운 캐릭터를 추출하지 말고 반드시 다음 JSON을 characters 배열로 그대로 반환하세요:\n${cachedCharacters}` : `1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar(이모지), personality, role)\n2단계: 캐릭터와 교류하며 관계가 변하는 스토리 생성`}
+1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar(이모지), personality, role)
+2단계: 캐릭터와 교류하며 관계가 변하는 스토리 생성
 
 [특수 규칙]
 - script: narrative 대신 script 배열을 사용해라. 각 항목은 { "speaker": "char_id" 또는 "narrator", "text": "대사/서술" }
@@ -1806,15 +1812,16 @@ ${selectedMode === 'visual_novel' ? `
     setStage(3);
     gameData = JSON.parse(jsonText);
     
-    if (!cachedCharacters && gameData.characters && selectedMode === 'visual_novel' && retryCount === 0) {
+    if (retryCount === 0) {
       try {
-        await fetch('/api/characters', {
+        await fetch('/api/game-save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookId: bookIdStr, characters: gameData.characters })
+          body: JSON.stringify({ cacheKey, gameData })
         });
+        console.log('Vercel Blob 캐싱 완료');
       } catch(e) {
-        console.warn('캐시 저장 실패', e);
+        console.warn('캐시 업로드 실패', e);
       }
     }
 

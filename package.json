@@ -1,0 +1,24 @@
+{
+  "name": "readplay",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kuris/readnplay.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/kuris/readnplay/issues"
+  },
+  "homepage": "https://github.com/kuris/readnplay#readme",
+  "dependencies": {
+    "@vercel/blob": "^2.3.3"
+  }
+}

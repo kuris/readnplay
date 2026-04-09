@@ -530,6 +530,73 @@ body::before {
   font-family: var(--ff-serif);
 }
 
+/* BETA TAG */
+.beta-tag {
+  font-size: 8px; background: var(--gold); color: white;
+  padding: 1px 4px; border-radius: 4px; vertical-align: middle;
+  margin-left: 4px; letter-spacing: 0; font-weight: 700;
+}
+
+/* CHAR PANEL */
+.char-panel {
+  display: none; gap: 10px; margin-bottom: 1.5rem;
+  overflow-x: auto; padding-bottom: 8px;
+}
+.char-panel.show { display: flex; }
+.char-card {
+  background: var(--paper2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 14px; min-width: 100px;
+  text-align: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0; position: relative;
+}
+.char-card.active-in-scene {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(184, 134, 11, 0.25);
+  transform: translateY(-2px);
+}
+.char-avatar { font-size: 1.8rem; margin-bottom: 5px; filter: grayscale(1); transition: filter 0.3s; }
+.char-card.active-in-scene .char-avatar { filter: grayscale(0); }
+.char-name { font-size: 10px; color: var(--ink2); font-weight: 600; margin-bottom: 4px; font-family: var(--ff-mono); }
+.char-rel-bar {
+  height: 3px; background: var(--border); border-radius: 1.5px;
+  width: 100%; overflow: hidden;
+}
+.char-rel-fill {
+  height: 100%; background: var(--gold); transition: width 0.5s ease;
+}
+
+/* POPUP */
+.relationship-popup {
+  position: fixed; top: 100px; right: 20px;
+  background: var(--ink); color: var(--gold-light);
+  padding: 10px 16px; border-radius: 8px; font-size: 12px;
+  font-family: var(--ff-mono); z-index: 1000;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  animation: popupSlide 2s ease both;
+}
+@keyframes popupSlide {
+  0% { transform: translateX(300px); opacity: 0; }
+  15%, 85% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(300px); opacity: 0; }
+}
+
+/* FINAL RELATIONS */
+.final-relationships {
+  margin-top: 3rem; padding-top: 2rem;
+  border-top: 2px solid var(--border); animation: fadeIn 0.8s ease;
+}
+.fr-title {
+  font-family: var(--ff-serif); font-size: 18px; font-style: italic;
+  color: var(--ink); text-align: center; margin-bottom: 1.5rem;
+}
+.fr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; }
+.fr-card {
+  text-align: center; padding: 16px; background: var(--paper2);
+  border-radius: var(--radius); border: 1px solid var(--border);
+}
+.fr-avatar { font-size: 2.2rem; margin-bottom: 8px; }
+.fr-status { font-size: 13px; font-weight: 600; color: var(--gold); }
+
 /* QUIZ */
 .quiz-wrap {
   border: 1px solid var(--border2);
@@ -833,6 +900,10 @@ body::before {
           <div class="oc-title">📕 기술 학습</div>
           <div class="oc-desc">전문서적용 핵심 개념 및 실습</div>
         </div>
+        <div class="opt-card" data-mode="visual_novel">
+          <div class="oc-title">🎭 비주얼 노벨 <span class="beta-tag">BETA</span></div>
+          <div class="oc-desc">캐릭터 관계도 및 멀티 엔딩 시스템</div>
+        </div>
       </div>
     </div>
 
@@ -931,6 +1002,9 @@ body::before {
       <button class="glp-btn" id="glp-bi" onclick="switchLang('bi')">한/영</button>
     </div>
 
+    <!-- 캐릭터 패널 (비주얼 노벨 모드용) -->
+    <div id="character-panel" class="char-panel"></div>
+
     <button class="orig-toggle" id="orig-toggle">원문 발췌 보기 ▾</button>
     <div class="orig-box" id="orig-box"></div>
 
@@ -986,6 +1060,7 @@ let gameData = null, curIdx = 0, score = 0;
 let selectedMode = 'adventure', selectedLang = 'ko', activeLang = 'ko', selectedLength = 'medium';
 let epubText = '', bookTitle = '', selectedSource = 'upload', selectedGutenbergBook = null;
 let gameStartTime = 0;
+let characterRelationships = {}; // 캐릭터 호감도 데이터
 
 const $ = id => document.getElementById(id);
 
@@ -1354,8 +1429,20 @@ async function generate(retryCount = 0) {
   const modeExplain = {
     adventure: '주인공 시점의 스토리텔링. 선택지에 따라 분기 가능.',
     quiz: '본문 내용을 기반으로 한 4지선다형 독해 퀴즈.',
-    study: '기술/전문 지식 습득을 위한 핵심 개념 정리 및 확인 질문. narrative에는 핵심 개념(key_concept)과 실습 예제(practical_example)를 포함.'
+    study: '기술/전문 지식 습득을 위한 핵심 개념 정리 및 확인 질문. narrative에는 핵심 개념(key_concept)과 실습 예제(practical_example)를 포함.',
+    visual_novel: '주요 캐릭터를 자동 추출하고, 캐릭터와의 관계도(Affection) 변화와 관계 기반 멀티 엔딩을 제공하는 고급 비주얼 노벨 모드.'
   };
+
+  const vnExtra = selectedMode === 'visual_novel' ? `
+[비주얼 노벨 모드 — 선택지 3-아키타입 + 캐릭터 관계도]
+1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar(이모지), personality, role)
+2단계: 캐릭터와 교류하며 관계가 변하는 스토리 생성
+
+[특수 규칙]
+- choices 배열 각 항목에 character_effects 필드 추가: { "char_id": +10, "another_id": -5 } 형식
+- endings 배열 추가: 관계도 조건(condition)에 따른 멀티 엔딩 (최소 3개). condition 예: "char1 > 50 && char2 < 0"
+- current_characters: 각 씬에 등장하는 캐릭터 ID 배열 포함
+- affection_messages: 캐릭터별로 호감도 상태(low/mid/high)에 따른 메시지 포함` : '';
 
   const adventureExtra = selectedMode === 'adventure' ? `
 [어드벤처 모드 — 선택지 3-아키타입 규칙 (매우 중요!)]
@@ -1427,24 +1514,39 @@ ${processingText}
 5. 이모지 활용해서 생동감 있게
 ${adventureExtra}
 ${quizExtra}
+${vnExtra}
 ${fewShotExample}
+
+[비주얼 노벨 모드 특별 Few-shot 예시]
+${selectedMode === 'visual_novel' ? `
+{
+  "characters": [
+    { "id": "victor", "name": "빅터", "avatar": "🧑‍🔬", "role": "protagonist", "personality": "과학자", "initial_relationship": 10 },
+    { "id": "creature", "name": "괴물", "avatar": "👹", "role": "antagonist", "personality": "창조물", "initial_relationship": -20 }
+  ],
+  "scenes": [
+    {
+      "id": 1, "context": "첫 만남", "narrative": "그가 눈을 떴다.", "current_characters": ["victor", "creature"],
+      "choices": [
+        { "text": "🤝 손을 내민다", "character_effects": { "creature": 20, "victor": -10 }, "outcome": "괴물이 움찔한다.", "next": 2, "risk_level": "mid" }
+      ]
+    }
+  ],
+  "endings": [
+    { "id": "peace", "title": "평화의 연대", "emoji": "🤝", "condition": "creature > 50", "description": "진정한 이해에 도달했습니다." }
+  ]
+}` : ''}
 
 출력 JSON 구조 (반드시 JSON만 출력):
 {
   "title": "원제",
   "title_ko": "한국어 제목",
+  "genre": "자동 감지된 장르",
   "mode": "${selectedMode}",
   "lang": "${selectedLang}",
-  "scenes": [
-    {
-      "id": 1,
-      "context": "짧은 장면명",
-      "narrative": "짧고 강렬한 서술 (이모지 포함)",
-      "en_narrative": "English version",
-      "original_excerpt": "원문 핵심 문장",
-      "choices": [...]
-    }
-  ]
+  "characters": [...],
+  "scenes": [...],
+  "endings": [...]
 }
 
 씬 수: ${scenesCountMap[selectedLength]}개`;
@@ -1513,12 +1615,45 @@ ${fewShotExample}
 /* ── GAME ── */
 function startGame() {
   score = 0; curIdx = 0; activeLang = 'ko';
+  characterRelationships = {};
+  
   const title = selectedLang === 'en' ? gameData.title : (gameData.title_ko || gameData.title);
   $('g-title').textContent = title || bookTitle;
-  // 언단나 3탭 표시; 언어 모드에 따라 공백일 수 있지만 항상 보여줌
+  
+  // 비주얼 노벨 모드일 때 캐릭터 초기화
+  const charPanel = $('character-panel');
+  if (selectedMode === 'visual_novel' && gameData.characters) {
+    charPanel.classList.add('show');
+    gameData.characters.forEach(char => {
+      characterRelationships[char.id] = char.initial_relationship || 0;
+    });
+    renderCharacterPanel();
+  } else {
+    charPanel.classList.remove('show');
+  }
+
   updateLangTabs('ko');
   showScreen('game');
   renderScene();
+}
+
+function renderCharacterPanel() {
+  const cont = $('character-panel');
+  if (!gameData.characters) return;
+  cont.innerHTML = gameData.characters.map(char => {
+    const rel = characterRelationships[char.id] || 0;
+    // -100~100 범위를 0~100%로 변환 (UI용)
+    const displayRel = Math.max(0, Math.min(100, (rel + 100) / 2));
+    return `
+      <div class="char-card" id="char-card-${char.id}" data-char="${char.id}">
+        <div class="char-avatar">${char.avatar}</div>
+        <div class="char-name">${char.name}</div>
+        <div class="char-rel-bar">
+          <div class="char-rel-fill" style="width: ${displayRel}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function updateLangTabs(lang) {
@@ -1570,6 +1705,14 @@ function renderScene() {
     sceneEl.innerHTML = narrative.replace(/\n/g, '<br>');
   } else {
     sceneEl.textContent = activeLang === 'en' ? (en || ko) : ko;
+  }
+
+  // 비주얼 노벨 모드: 현재 씬 등장 캐릭터 하이라이트
+  if (selectedMode === 'visual_novel' && scene.current_characters) {
+    document.querySelectorAll('.char-card').forEach(card => {
+      const cid = card.dataset.char;
+      card.classList.toggle('active-in-scene', scene.current_characters.includes(cid));
+    });
   }
 
   $('orig-box').textContent = scene.original_excerpt || '';
@@ -1625,6 +1768,16 @@ function renderChoices(scene) {
       if (navigator.vibrate && c.risk_level === 'high') navigator.vibrate(200);
       // 점수 애니메이션
       if (c.score_impact) animateScore(c.score_impact);
+      
+      // 비주얼 노벨 모드: 캐릭터 호감도 처리
+      if (selectedMode === 'visual_novel' && c.character_effects) {
+        Object.entries(c.character_effects).forEach(([charId, effect]) => {
+          characterRelationships[charId] = (characterRelationships[charId] || 0) + effect;
+          showRelationshipPopup(charId, effect);
+        });
+        renderCharacterPanel(); // 패널 갱신
+      }
+
       const out = document.createElement('div');
       out.className = 'outcome';
       out.innerHTML = `<span>${c.score_impact > 0 ? '✨' : c.score_impact < 0 ? '⚠️' : '→'}</span> ${getText(c, 'outcome') || c.outcome || ''}`;
@@ -1708,8 +1861,21 @@ function showEnding() {
   $('g-prog').style.width = '100%';
   $('g-context').textContent = '完';
   $('g-scene').textContent = '';
-  $('ending-title').textContent = '완독';
-  $('ending-sub').textContent = gameData.title_ko || gameData.title || bookTitle;
+  
+  // 비주얼 노벨 모드: 최적 엔딩 찾기
+  let finalTitle = '완독';
+  let finalDesc = gameData.title_ko || gameData.title || bookTitle;
+
+  if (selectedMode === 'visual_novel' && gameData.endings) {
+    const bestEnding = gameData.endings.find(e => evaluateEndingCondition(e.condition));
+    if (bestEnding) {
+      finalTitle = bestEnding.emoji + ' ' + bestEnding.title;
+      finalDesc = bestEnding.description;
+    }
+  }
+
+  $('ending-title').textContent = finalTitle;
+  $('ending-sub').textContent = finalDesc;
 
   if (gameData.mode === 'quiz' || (gameData.mode === 'study' && score > 0)) {
     $('ending-score').textContent = score + '점';
@@ -1718,7 +1884,65 @@ function showEnding() {
     $('ending-score-label').style.display = 'block';
   }
 
+  // 비주얼 노벨 모드: 최종 관계도 표시
+  if (selectedMode === 'visual_novel' && gameData.characters) {
+    showFinalRelationships();
+  }
+
   injectFeedbackButtons();
+}
+
+function showRelationshipPopup(charId, effect) {
+  const char = (gameData.characters || []).find(c => c.id === charId);
+  if (!char) return;
+  const popup = document.createElement('div');
+  popup.className = 'relationship-popup';
+  const indicator = effect > 0 ? '▲' : '▼';
+  popup.textContent = `${char.avatar} ${char.name} 호감도 ${indicator} (${effect > 0 ? '+' : ''}${effect})`;
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 2000);
+}
+
+function evaluateEndingCondition(condition) {
+  if (!condition) return true; // 조건 없으면 기본 매칭
+  try {
+    // "creature > 50 && victor < 0" -> "characterRelationships['creature'] > 50 && characterRelationships['victor'] < 0"
+    const jsCondition = condition.replace(/([a-zA-Z0-9_]+)\s*([><]=?|==|!=)\s*(-?\d+)/g, 
+      (match, id, op, val) => `(characterRelationships['${id}'] || 0) ${op} ${val}`);
+    return eval(jsCondition);
+  } catch(e) {
+    console.error('Ending evaluation error:', e);
+    return false;
+  }
+}
+
+function showFinalRelationships() {
+  const endArea = $('ending-area');
+  const oldFinal = endArea.querySelector('.final-relationships');
+  if (oldFinal) oldFinal.remove();
+
+  const html = `
+    <div class="final-relationships">
+      <div class="fr-title">최종 인물 관계도</div>
+      <div class="fr-grid">
+        ${gameData.characters.map(char => {
+          const rel = characterRelationships[char.id] || 0;
+          const statusTxt = rel > 50 ? '운명적' : rel > 10 ? '우호적' : rel < -50 ? '적대적' : rel < -10 ? '냉담함' : '평범함';
+          const indicator = rel > 0 ? '💕' : rel < 0 ? '💢' : '😐';
+          return `
+            <div class="fr-card">
+              <div class="fr-avatar">${char.avatar}</div>
+              <div class="fr-name">${char.name}</div>
+              <div class="fr-status">${indicator} ${statusTxt}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  endArea.appendChild(div.firstElementChild);
 }
 
 function injectFeedbackButtons() {

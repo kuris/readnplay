@@ -11,9 +11,10 @@ export default async function handler(req, res) {
 
   const { contents, generationConfig } = req.body;
   
-  // ✅ 게임 생성용: Vertex AI (AI Platform) 표준 엔드포인트 사용
-  const model = "gemini-3.0-flash-lite"; 
-  const endpoint = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent?key=${apiKey}`;
+  // ✅ 게임 생성용: API Key 호환 표준 Gemini 엔드포인트
+  // aiplatform.googleapis.com은 OAuth2 전용이므로 API Key 방식에는 이 엔드포인트 사용
+  const model = "gemini-2.0-flash";
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(endpoint, {

@@ -858,6 +858,124 @@ body::before {
   padding: 3rem 1rem;
   display: none;
 }
+/* VISUAL NOVEL MODE (LANDSCAPE) */
+body.mode-vn { overflow: hidden; }
+body.mode-vn .page { 
+  max-width: 100vw; 
+  padding: 0; 
+  height: 100vh; 
+  display: flex; 
+  flex-direction: column; 
+}
+body.mode-vn #screen-game {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+body.mode-vn .game-backdrop {
+  z-index: -10;
+}
+body.mode-vn .game-masthead, 
+body.mode-vn .progress-rail, 
+body.mode-vn .game-lang-pill,
+body.mode-vn .orig-toggle {
+  opacity: 0.2;
+  position: absolute;
+  top: 10px;
+  z-index: 50;
+  transition: opacity 0.3s;
+}
+body.mode-vn .game-masthead:hover, 
+body.mode-vn .game-lang-pill:hover { opacity: 1; }
+
+body.mode-vn .game-masthead { left: 10px; border: none; padding: 0; margin: 0; }
+body.mode-vn .game-masthead::after { display: none; }
+body.mode-vn .progress-rail { top: 40px; left: 10px; width: 200px; }
+body.mode-vn .game-lang-pill { right: 10px; top: 10px; border: none; }
+body.mode-vn .orig-toggle { display: none; }
+body.mode-vn #character-panel { display: none; }
+
+/* Portrait Area */
+.vn-portrait-area {
+  display: none;
+  position: absolute;
+  bottom: 0%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 50vh;
+  line-height: 1;
+  z-index: -5;
+  filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+  transition: all 0.3s ease-in-out;
+}
+body.mode-vn .vn-portrait-area {
+  display: block;
+}
+body.mode-vn .vn-portrait-area.dim {
+  filter: drop-shadow(0 0 0 rgba(0,0,0,0)) brightness(0.4);
+  transform: translateX(-50%) scale(0.95);
+}
+
+/* Dialogue Box changes */
+body.mode-vn #adventure-area {
+  margin-top: auto;
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 1200px;
+  z-index: 10;
+}
+body.mode-vn .scene-wrap {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+body.mode-vn .scene-header { display: none; } 
+body.mode-vn .scene-body {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #fff;
+  min-height: 100px;
+}
+body.mode-vn .dialogue-line {
+  font-size: 22px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+body.mode-vn .dialogue-line.is-narrator {
+  color: #ccc;
+  font-size: 19px;
+  font-style: italic;
+}
+body.mode-vn .speaker-tag {
+  background: transparent;
+  color: #f0d060;
+  font-size: 20px;
+  font-weight: 600;
+  top: -40px;
+  left: 0;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+  box-shadow: none;
+  border-bottom: 2px solid #f0d060;
+  border-radius: 0;
+  padding: 0 10px 4px 0;
+}
+body.mode-vn .choices-header { display: none; }
+body.mode-vn .choices-list {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  margin-bottom: 1rem;
+}
 </style>
 </head>
 <body>
@@ -1026,8 +1144,9 @@ body::before {
 
   <!-- ── GAME ── -->
   <div id="screen-game" class="screen">
-    <!-- Cinematic Backdrop -->
+    <!-- Cinematic Backdrop & Portrait -->
     <div id="game-backdrop" class="game-backdrop"></div>
+    <div id="vn-portrait-area" class="vn-portrait-area"></div>
 
     <div class="game-masthead fadein">
       <div class="game-book-title" id="g-title">-</div>
@@ -1481,10 +1600,28 @@ async function generate(retryCount = 0) {
     visual_novel: '주요 캐릭터를 자동 추출하고, 캐릭터와의 관계도(Affection) 변화와 관계 기반 멀티 엔딩을 제공하는 고급 비주얼 노벨 모드.'
   };
 
+  let cachedCharacters = null;
+  const bookIdStr = selectedGutenbergBook ? selectedGutenbergBook.id.toString() : 'custom_book';
+  
+  if (selectedMode === 'visual_novel' && retryCount === 0) {
+    try {
+      log('서버에서 캐싱된 캐릭터 목록 확인 중...');
+      const cacheRes = await fetch('/api/characters?bookId=' + bookIdStr);
+      if (cacheRes.ok) {
+        const cacheData = await cacheRes.json();
+        if (cacheData.characters && cacheData.characters.length > 0) {
+          cachedCharacters = JSON.stringify(cacheData.characters);
+          log('캐싱된 캐릭터 발견, 재사용합니다. (비용 절감)');
+        }
+      }
+    } catch(e) {
+      console.warn('캐시 확인 실패', e);
+    }
+  }
+
   const vnExtra = selectedMode === 'visual_novel' ? `
 [비주얼 노벨 모드 — 시네마틱 스크립트 규칙]
-1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar(이모지), personality, role)
-2단계: 캐릭터와 교류하며 관계가 변하는 스토리 생성
+${cachedCharacters ? `이미 추출된 캐릭터 리스트가 있습니다. 이 캐릭터들만 사용하여 스토리를 전개하세요. 새로운 캐릭터를 추출하지 말고 반드시 다음 JSON을 characters 배열로 그대로 반환하세요:\n${cachedCharacters}` : `1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar(이모지), personality, role)\n2단계: 캐릭터와 교류하며 관계가 변하는 스토리 생성`}
 
 [특수 규칙]
 - script: narrative 대신 script 배열을 사용해라. 각 항목은 { "speaker": "char_id" 또는 "narrator", "text": "대사/서술" }
@@ -1658,6 +1795,19 @@ ${selectedMode === 'visual_novel' ? `
     // Stage 3: 게임 완성
     setStage(3);
     gameData = JSON.parse(jsonText);
+    
+    if (!cachedCharacters && gameData.characters && selectedMode === 'visual_novel' && retryCount === 0) {
+      try {
+        await fetch('/api/characters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookId: bookIdStr, characters: gameData.characters })
+        });
+      } catch(e) {
+        console.warn('캐시 저장 실패', e);
+      }
+    }
+
     gameStartTime = Date.now();
     log('게임 구성 완료 (' + gameData.scenes.length + ' 씬)', 'ok');
     completeStages();
@@ -1678,6 +1828,8 @@ ${selectedMode === 'visual_novel' ? `
 function startGame() {
   score = 0; curIdx = 0; activeLang = 'ko';
   characterRelationships = {};
+  
+  document.body.classList.toggle('mode-vn', selectedMode === 'visual_novel');
   
   const title = selectedLang === 'en' ? gameData.title : (gameData.title_ko || gameData.title);
   $('g-title').textContent = title || bookTitle;
@@ -1759,21 +1911,56 @@ function renderScene() {
   if (speakerTag) speakerTag.classList.remove('show');
 
   if (selectedMode === 'visual_novel' && scene.script) {
-    // 🎭 비주얼 노벨 모드: 스크립트 기반 렌더링
-    sceneEl.innerHTML = scene.script.map(line => {
+    // 🎭 비주얼 노벨 모드: 스텝 바이 스텝 (클릭 시 한 줄씩)
+    sceneEl.innerHTML = '';
+    let step = 0;
+    
+    // 선택지 숨김
+    const choicesList = $('g-choices');
+    if (choicesList) choicesList.style.display = 'none';
+
+    const renderStep = () => {
+      if (step >= scene.script.length) {
+        if (choicesList) choicesList.style.display = 'flex';
+        sceneEl.onclick = null;
+        sceneEl.style.cursor = 'default';
+        return;
+      }
+      
+      const line = scene.script[step];
       const char = (gameData.characters || []).find(c => c.id === line.speaker);
-      const name = char ? `${char.avatar} ${char.name}` : (line.speaker === 'narrator' ? '' : line.speaker);
+      const name = char ? char.name : (line.speaker === 'narrator' ? '' : line.speaker);
       
       if (line.speaker !== 'narrator' && speakerTag) {
         speakerTag.textContent = name;
         speakerTag.classList.add('show');
+      } else if (speakerTag) {
+        speakerTag.classList.remove('show');
+      }
+      
+      const portraitArea = $('vn-portrait-area');
+      if (portraitArea) {
+        if (char && char.avatar) {
+          portraitArea.textContent = char.avatar;
+          portraitArea.classList.remove('dim');
+        } else if (line.speaker === 'narrator') {
+          portraitArea.classList.add('dim');
+        }
       }
 
-      return `<div class="dialogue-line ${line.speaker === 'narrator' ? 'is-narrator' : ''}" style="margin-bottom:0.5rem">
-        ${name ? `<span style="color:var(--gold);font-weight:600;margin-right:8px">${name}:</span>` : ''}
+      sceneEl.innerHTML = `<div class="dialogue-line fadein ${line.speaker === 'narrator' ? 'is-narrator' : ''}">
         <span>${line.text}</span>
+        <div style="font-size:12px; margin-top:10px; opacity:0.5; text-align:right;">▼</div>
       </div>`;
-    }).join('');
+      
+      step++;
+    };
+
+    sceneEl.style.cursor = 'pointer';
+    sceneEl.onclick = renderStep;
+    
+    // 첫번째 대사 즉시 출력
+    renderStep();
   } else {
     // ⚔️ 일반 모드들
     const ko = scene.narrative || '';

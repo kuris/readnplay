@@ -966,15 +966,29 @@ body.mode-vn .dialogue-line {
   text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 body.mode-vn .speaker-tag {
-  background: transparent;
-  color: #f0c050;
-  font-size: 26px;
-  font-weight: 700;
-  top: -45px;
-  left: 10px;
-  border-bottom: 3px solid #f0c050;
-  padding: 0 20px 8px 0;
-  text-shadow: 0 0 10px rgba(240,192,80,0.3);
+  background: transparent !important;
+  color: #f0c050 !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  top: -45px !important;
+  left: 10px !important;
+  border-bottom: 3px solid #f0c050 !important;
+  padding: 0 20px 8px 0 !important;
+  text-shadow: 0 0 8px rgba(0,0,0,0.8) !important; /* 가독성을 위해 쉐도우 단순화 */
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  min-width: auto !important;
+  width: max-content !important;
+}
+
+/* 상단 책 제목 등 불필요한 클러터 숨기기 */
+body.mode-vn .header-book-info,
+body.mode-vn #book-title,
+body.mode-vn .orig-toggle,
+body.mode-vn #orig-toggle,
+body.mode-vn #orig-box,
+body.mode-vn .game-footer .copyright { 
+  display: none !important; 
 }
 
 /* Choices (플로팅 버튼 스타일) */
@@ -1008,6 +1022,12 @@ body.mode-vn .choice:hover {
 }
 body.mode-vn .choice-main { font-weight: 600; }
 body.mode-vn .choice-hint { display: none; } /* VN에서는 힌트 숨기거나 연출 변경 */
+
+/* UI 숨기기 */
+body.mode-vn #orig-toggle,
+body.mode-vn #orig-box,
+body.mode-vn .orig-toggle { display: none !important; }
+
 </style>
 </head>
 <body>

@@ -1135,10 +1135,28 @@ async function handleFile(file) {
 }
 
 // --- GUTENBERG LOGIC ---
+const INITIAL_BOOK_COUNT = 4;
+
+function renderBookList(books, grid) {
+  const initial = books.slice(0, INITIAL_BOOK_COUNT);
+  const rest = books.slice(INITIAL_BOOK_COUNT);
+  initial.forEach(book => grid.appendChild(createBookCard(book)));
+  if (rest.length > 0) {
+    const moreBtn = document.createElement('div');
+    moreBtn.style.cssText = 'grid-column:1/-1;';
+    moreBtn.innerHTML = `<button class="btn-ghost" style="width:100%;padding:10px;border-style:dashed;">┼ ${rest.length}권 더 보기</button>`;
+    moreBtn.querySelector('button').addEventListener('click', () => {
+      moreBtn.remove();
+      rest.forEach(book => grid.appendChild(createBookCard(book)));
+    });
+    grid.appendChild(moreBtn);
+  }
+}
+
 function renderFeaturedBooks() {
   const grid = $('gb-books-grid');
   grid.innerHTML = '';
-  FEATURED_BOOKS.forEach(book => grid.appendChild(createBookCard(book)));
+  renderBookList(FEATURED_BOOKS, grid);
 }
 
 function createBookCard(book) {
@@ -1212,12 +1230,11 @@ $('gb-search-btn').addEventListener('click', async () => {
       $('gb-books-grid').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink3);font-size:12px;">검색 결과가 없습니다</div>';
       return;
     }
-    results.slice(0, 12).forEach(book => {
-      $('gb-books-grid').appendChild(createBookCard({
-        id: book.id, title: book.title, author: book.authors?.[0]?.name || 'Unknown',
-        lang: book.languages?.[0] || 'en', category: 'classic'
-      }));
-    });
+    const mapped = results.slice(0, 16).map(b => ({
+      id: b.id, title: b.title, author: b.authors?.[0]?.name || 'Unknown',
+      lang: b.languages?.[0] || 'en', category: 'classic'
+    }));
+    renderBookList(mapped, $('gb-books-grid'));
   } catch(e) {
     $('gb-loading').style.display = 'none';
     alert('검색 중 오류 발생');

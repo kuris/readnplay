@@ -867,7 +867,7 @@ body.mode-vn .page {
   display: flex; 
   flex-direction: column; 
 }
-body.mode-vn #screen-game {
+body.mode-vn #screen-game.active {
   flex: 1;
   position: relative;
   display: flex;
@@ -895,6 +895,16 @@ body.mode-vn .progress-rail { top: 40px; left: 10px; width: 200px; }
 body.mode-vn .game-lang-pill { right: 10px; top: 10px; border: none; }
 body.mode-vn .orig-toggle { display: none; }
 body.mode-vn #character-panel { display: none; }
+body.mode-vn .game-footer { 
+  position: absolute; 
+  top: 10px; 
+  left: 50%; 
+  transform: translateX(-50%); 
+  opacity: 0.2; 
+  z-index: 50; 
+  transition: opacity 0.3s;
+}
+body.mode-vn .game-footer:hover { opacity: 1; }
 
 /* Portrait Area */
 .vn-portrait-area {
@@ -2002,7 +2012,7 @@ function renderScene() {
   if (gameData.mode === 'quiz' || (gameData.mode === 'study' && scene.quiz)) {
     $('quiz-area').style.display = 'block';
     renderQuiz(scene);
-  } else if (gameData.mode === 'adventure') {
+  } else if (gameData.mode === 'adventure' || gameData.mode === 'visual_novel') {
     $('adventure-area').style.display = 'block';
     renderChoices(scene);
   } else if (gameData.mode === 'study') {

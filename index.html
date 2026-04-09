@@ -1873,7 +1873,8 @@ async function ensureCharacterPortraits(characters) {
       // 화풍은 AI가 생성한 image_prompt에 이미 포함되어 있으므로 그대로 사용 + 퀄리티 태그만 추가
       const finalPrompt = `${char.image_prompt}, high quality, character design, full body, white background, no logo`;
       const encodedPrompt = encodeURIComponent(finalPrompt);
-      const pollinationUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
+      const pollinationUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&nologo=true&seed=${seed}`;
+
 
       
       try {

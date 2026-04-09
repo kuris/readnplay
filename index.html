@@ -910,11 +910,11 @@ body.mode-vn .game-footer:hover { opacity: 1; }
 .vn-portrait-area {
   display: none;
   position: absolute;
-  bottom: 0%;
+  bottom: 8vh; /* 중앙 위쪽으로 조금 더 올림 */
   left: 50%;
   transform: translateX(-50%);
   width: auto;
-  height: 85vh;
+  height: 80vh;
   z-index: -5;
   filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1631,13 +1631,21 @@ async function generate(retryCount = 0) {
       if (cacheRes.ok) {
         const cacheData = await cacheRes.json();
         if (cacheData.cached && cacheData.gameData) {
-          log('✓ Vercel Blob에서 100% 동일한 컨텐츠 발견 (비용 $0)', 'ok');
-          gameData = cacheData.gameData;
-          setStage(3);
-          gameStartTime = Date.now();
-          completeStages();
-          setTimeout(startGame, 900);
-          return; // 모델 호출 생략하고 즉시 시작!
+          // [중요] 예전 이모지 시절의 캐시 데이터인지 확인 (image_prompt가 없으면 구버전)
+          const isLegacyVN = selectedMode === 'visual_novel' && 
+                             (!cacheData.gameData.characters || !cacheData.gameData.characters[0].image_prompt);
+          
+          if (!isLegacyVN) {
+            log('✓ Vercel Blob에서 최신 컨텐츠 발견 (비용 $0)', 'ok');
+            gameData = cacheData.gameData;
+            setStage(3);
+            gameStartTime = Date.now();
+            completeStages();
+            setTimeout(startGame, 900);
+            return;
+          } else {
+            log('이전에 생성된 구버전 데이터를 발견했습니다. 최신 일러스트 기능을 위해 새로 생성합니다...');
+          }
         }
       }
     } catch(e) {

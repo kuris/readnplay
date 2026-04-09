@@ -11,9 +11,9 @@ export default async function handler(req, res) {
 
   const { contents, generationConfig } = req.body;
   
-  // ✅ 게임 생성용: 가장 호환성이 높은 모델 사용 (403 방지)
-  const model = "gemini-1.5-flash";
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  // ✅ 게임 생성용: 사용자가 설정한 최신 모델 및 엔드포인트 사용
+  const model = "gemini-2.5-flash-lite"; 
+  const endpoint = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(endpoint, {

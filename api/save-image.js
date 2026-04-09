@@ -16,22 +16,30 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Vercel Blob 토큰 확인
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('Missing BLOB_READ_WRITE_TOKEN');
+      return res.status(500).json({ error: 'Vercel Blob 토큰이 설정되지 않았습니다. 대시보드를 확인하세요.' });
+    }
+
     let buffer;
     let contentType = mimeType || 'image/jpeg'; // 기본값: JPEG (경량)
 
     if (imageBinary) {
-      // 1-A. 직접 전달된 base64 이미지 데이터 처리
+      // base64 데이터 유효성 검사 추가
+      if (typeof imageBinary !== 'string' || imageBinary.length < 100) {
+        throw new Error('전달된 이미지 데이터가 비정상적이거나 너무 짧습니다.');
+      }
       buffer = Buffer.from(imageBinary, 'base64');
     } else {
-      // 1-B. 외부 이미지 가져오기 (이전 방식 호환)
       const imgRes = await fetch(imageUrl);
-      if (!imgRes.ok) throw new Error(`Failed to fetch image: ${imgRes.status}`);
+      if (!imgRes.ok) throw new Error(`이미지 원본 주소 접근 실패: ${imgRes.status}`);
       const arrayBuffer = await imgRes.arrayBuffer();
       buffer = Buffer.from(arrayBuffer);
       contentType = imgRes.headers.get('content-type') || 'image/png';
     }
 
-    // 2. Vercel Blob에 업로드
+    // Vercel Blob에 업로드
     const blob = await put(`portraits/${fileName}`, buffer, {
       access: 'public',
       contentType: contentType,
@@ -40,7 +48,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, url: blob.url });
   } catch (e) {
-    console.error('Save image error:', e);
-    return res.status(500).json({ error: e.message });
+    console.error('Save image critical error:', e);
+    return res.status(500).json({ error: e.message, github_issue: 'check BLOB_READ_WRITE_TOKEN' });
   }
 }

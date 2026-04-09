@@ -11,7 +11,8 @@ export default async function handler(req, res) {
 
   const { contents, generationConfig } = req.body;
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  // AI Platform 엔드포인트 (aiplatform.googleapis.com) 사용
+  const endpoint = `https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(endpoint, {

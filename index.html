@@ -597,6 +597,47 @@ body::before {
 .fr-avatar { font-size: 2.2rem; margin-bottom: 8px; }
 .fr-status { font-size: 13px; font-weight: 600; color: var(--gold); }
 
+/* CINEMATIC BACKDROP */
+.game-backdrop {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: -1; pointer-events: none; opacity: 0; transition: opacity 1s ease;
+  background-size: cover; background-position: center;
+}
+.game-backdrop::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(245,240,232,0.6), rgba(245,240,232,0.95));
+}
+.screen.active .game-backdrop { opacity: 1; }
+
+/* DIALOGUE UI */
+.dialogue-container {
+  position: relative; margin-top: 1.5rem;
+}
+.speaker-tag {
+  display: none; position: absolute; top: -14px; left: 16px;
+  background: var(--ink); color: var(--gold-light);
+  font-size: 11px; font-family: var(--ff-mono);
+  padding: 4px 12px; border-radius: 4px; z-index: 10;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+.speaker-tag.show { display: block; }
+.scene-body {
+  font-family: var(--ff-serif); font-size: 17px; line-height: 1.8;
+  color: var(--ink); padding: 1.8rem 1.5rem 1.5rem;
+  background: rgba(255,255,255,0.45); backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border); border-radius: 12px;
+  min-height: 120px; position: relative;
+}
+.dialogue-line {
+  margin-bottom: 0.8rem;
+}
+.dialogue-line.is-narrator {
+  color: var(--ink3);
+  font-style: italic;
+  font-size: 15px;
+}
+
 /* QUIZ */
 .quiz-wrap {
   border: 1px solid var(--border2);
@@ -985,6 +1026,9 @@ body::before {
 
   <!-- ── GAME ── -->
   <div id="screen-game" class="screen">
+    <!-- Cinematic Backdrop -->
+    <div id="game-backdrop" class="game-backdrop"></div>
+
     <div class="game-masthead fadein">
       <div class="game-book-title" id="g-title">-</div>
       <div class="game-stats">
@@ -1008,15 +1052,19 @@ body::before {
     <button class="orig-toggle" id="orig-toggle">원문 발췌 보기 ▾</button>
     <div class="orig-box" id="orig-box"></div>
 
-    <div class="scene-wrap fadein">
-      <div class="scene-header">
-        <span id="g-context">장면</span>
-        <span id="g-chapter-label">chapter 1</span>
-      </div>
-      <div class="scene-body" id="g-scene">...</div>
-    </div>
-
     <div id="adventure-area">
+      <div class="scene-wrap fadein">
+        <div class="scene-header">
+          <span id="g-context">장면</span>
+          <span id="g-chapter-label">chapter 1</span>
+        </div>
+        
+        <!-- Cinematic Dialogue UI -->
+        <div class="dialogue-container">
+          <div id="speaker-tag" class="speaker-tag"></div>
+          <div class="scene-body" id="g-scene">게임을 불러오는 중...</div>
+        </div>
+      </div>
       <div class="choices-header">선택지</div>
       <div class="choices-list" id="g-choices"></div>
     </div>
@@ -1434,15 +1482,15 @@ async function generate(retryCount = 0) {
   };
 
   const vnExtra = selectedMode === 'visual_novel' ? `
-[비주얼 노벨 모드 — 선택지 3-아키타입 + 캐릭터 관계도]
+[비주얼 노벨 모드 — 시네마틱 스크립트 규칙]
 1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar(이모지), personality, role)
 2단계: 캐릭터와 교류하며 관계가 변하는 스토리 생성
 
 [특수 규칙]
-- choices 배열 각 항목에 character_effects 필드 추가: { "char_id": +10, "another_id": -5 } 형식
-- endings 배열 추가: 관계도 조건(condition)에 따른 멀티 엔딩 (최소 3개). condition 예: "char1 > 50 && char2 < 0"
-- current_characters: 각 씬에 등장하는 캐릭터 ID 배열 포함
-- affection_messages: 캐릭터별로 호감도 상태(low/mid/high)에 따른 메시지 포함` : '';
+- script: narrative 대신 script 배열을 사용해라. 각 항목은 { "speaker": "char_id" 또는 "narrator", "text": "대사/서술" }
+- bg_keyword: 매 씬마다 상황을 잘 나타내는 영어 배경 키워드 1개 (예: "dark gothic lab", "romantic library", "stormy sea")
+- choices 배열 각 항목에 character_effects 필드 추가: { "char_id": +15, "another_id": -10 } 형식
+- endings 배열 추가: 관계도 조건(condition)에 따른 멀티 엔딩 (최소 3개)` : '';
 
   const adventureExtra = selectedMode === 'adventure' ? `
 [어드벤처 모드 — 선택지 3-아키타입 규칙 (매우 중요!)]
@@ -1521,19 +1569,25 @@ ${fewShotExample}
 ${selectedMode === 'visual_novel' ? `
 {
   "characters": [
-    { "id": "victor", "name": "빅터", "avatar": "🧑‍🔬", "role": "protagonist", "personality": "과학자", "initial_relationship": 10 },
-    { "id": "creature", "name": "괴물", "avatar": "👹", "role": "antagonist", "personality": "창조물", "initial_relationship": -20 }
+    { "id": "victor", "name": "빅터", "avatar": "🧑‍🔬", "role": "protagonist", "personality": "과학자" },
+    { "id": "creature", "name": "괴물", "avatar": "👹", "role": "antagonist", "personality": "창조물" }
   ],
   "scenes": [
     {
-      "id": 1, "context": "첫 만남", "narrative": "그가 눈을 떴다.", "current_characters": ["victor", "creature"],
+      "id": 1, "context": "실험실의 눈동자", "bg_keyword": "dark scientist lab lightning",
+      "script": [
+        { "speaker": "narrator", "text": "천둥번개가 친다. ⚡" },
+        { "speaker": "creature", "text": "으으... 내가... 누구지? 👁️" },
+        { "speaker": "victor", "text": "맙소사, 정말로 살아났구나!" }
+      ],
+      "current_characters": ["victor", "creature"],
       "choices": [
-        { "text": "🤝 손을 내민다", "character_effects": { "creature": 20, "victor": -10 }, "outcome": "괴물이 움찔한다.", "next": 2, "risk_level": "mid" }
+        { "text": "🤝 손을 내민다", "character_effects": { "creature": 20, "victor": -10 }, "outcome": "괴물이 당신의 손을 잡습니다.", "next": 2 }
       ]
     }
   ],
   "endings": [
-    { "id": "peace", "title": "평화의 연대", "emoji": "🤝", "condition": "creature > 50", "description": "진정한 이해에 도달했습니다." }
+    { "id": "friend", "title": "진정한 우정", "emoji": "🤝", "condition": "creature > 50", "description": "당신은 괴물과 친구가 되었습니다." }
   ]
 }` : ''}
 
@@ -1541,11 +1595,19 @@ ${selectedMode === 'visual_novel' ? `
 {
   "title": "원제",
   "title_ko": "한국어 제목",
-  "genre": "자동 감지된 장르",
+  "genre": "장르",
   "mode": "${selectedMode}",
-  "lang": "${selectedLang}",
   "characters": [...],
-  "scenes": [...],
+  "scenes": [
+    {
+      "id": 1,
+      "context": "장면명",
+      "bg_keyword": "...",
+      "script": [{ "speaker": "...", "text": "..." }],
+      "current_characters": [...],
+      "choices": [...]
+    }
+  ],
   "endings": [...]
 }
 
@@ -1687,24 +1749,51 @@ function renderScene() {
   $('g-score').textContent = score;
   $('g-context').textContent = scene.context || '';
 
-  const ko = scene.narrative || '';
-  const en = scene.en_narrative || '';
-  const sceneEl = $('g-scene');
+  // Cinematic Backdrop Update
+  if (selectedMode === 'visual_novel' && scene.bg_keyword) {
+    updateBackdrop(scene.bg_keyword);
+  }
 
-  if (activeLang === 'bi' && ko && en) {
-    sceneEl.innerHTML = `
-      <div class="bilingual-scene">
-        <div class="bi-col"><span class="bi-col-label">KO</span>${ko}</div>
-        <div class="bi-col"><span class="bi-col-label">EN</span>${en}</div>
+  const sceneEl = $('g-scene');
+  const speakerTag = $('speaker-tag');
+  if (speakerTag) speakerTag.classList.remove('show');
+
+  if (selectedMode === 'visual_novel' && scene.script) {
+    // 🎭 비주얼 노벨 모드: 스크립트 기반 렌더링
+    sceneEl.innerHTML = scene.script.map(line => {
+      const char = (gameData.characters || []).find(c => c.id === line.speaker);
+      const name = char ? `${char.avatar} ${char.name}` : (line.speaker === 'narrator' ? '' : line.speaker);
+      
+      if (line.speaker !== 'narrator' && speakerTag) {
+        speakerTag.textContent = name;
+        speakerTag.classList.add('show');
+      }
+
+      return `<div class="dialogue-line ${line.speaker === 'narrator' ? 'is-narrator' : ''}" style="margin-bottom:0.5rem">
+        ${name ? `<span style="color:var(--gold);font-weight:600;margin-right:8px">${name}:</span>` : ''}
+        <span>${line.text}</span>
       </div>`;
-  } else if (gameData.mode === 'study') {
-    let narrative = activeLang === 'en' ? (en || ko) : ko;
-    narrative = narrative.replace(/### (.*)/g, '<h3 style="font-size:1.1rem;margin:1.2rem 0 0.6rem;color:var(--gold)">$1</h3>')
-                        .replace(/\*\*(.*)\*\*/g, '<strong style="color:var(--gold)">$1</strong>')
-                        .replace(/`(.*)`/g, '<code style="background:var(--paper3);padding:2px 4px;border-radius:3px;font-family:var(--ff-mono);font-size:13px">$1</code>');
-    sceneEl.innerHTML = narrative.replace(/\n/g, '<br>');
+    }).join('');
   } else {
-    sceneEl.textContent = activeLang === 'en' ? (en || ko) : ko;
+    // ⚔️ 일반 모드들
+    const ko = scene.narrative || '';
+    const en = scene.en_narrative || '';
+
+    if (activeLang === 'bi' && ko && en) {
+      sceneEl.innerHTML = `
+        <div class="bilingual-scene">
+          <div class="bi-col"><span class="bi-col-label">KO</span>${ko}</div>
+          <div class="bi-col"><span class="bi-col-label">EN</span>${en}</div>
+        </div>`;
+    } else if (gameData.mode === 'study') {
+      let narrative = activeLang === 'en' ? (en || ko) : ko;
+      narrative = narrative.replace(/### (.*)/g, '<h3 style="font-size:1.1rem;margin:1.2rem 0 0.6rem;color:var(--gold)">$1</h3>')
+                          .replace(/\*\*(.*)\*\*/g, '<strong style="color:var(--gold)">$1</strong>')
+                          .replace(/`(.*)`/g, '<code style="background:var(--paper3);padding:2px 4px;border-radius:3px;font-family:var(--ff-mono);font-size:13px">$1</code>');
+      sceneEl.innerHTML = narrative.replace(/\n/g, '<br>');
+    } else {
+      sceneEl.textContent = activeLang === 'en' ? (en || ko) : ko;
+    }
   }
 
   // 비주얼 노벨 모드: 현재 씬 등장 캐릭터 하이라이트
@@ -1890,6 +1979,20 @@ function showEnding() {
   }
 
   injectFeedbackButtons();
+}
+
+function updateBackdrop(keyword) {
+  const bg = $('game-backdrop');
+  if (!bg) return;
+  // loremflickr is a reliable alternative for random images by keyword
+  const url = `https://loremflickr.com/1280/720/${encodeURIComponent(keyword || 'landscape')}/all`;
+  
+  // 페이드 아웃 후 이미지 교체, 다시 페이드 인
+  bg.style.opacity = '0';
+  setTimeout(() => {
+    bg.style.backgroundImage = `url('${url}')`;
+    bg.style.opacity = '1';
+  }, 1000);
 }
 
 function showRelationshipPopup(charId, effect) {

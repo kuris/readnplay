@@ -1666,31 +1666,59 @@ async function generate(retryCount = 0) {
     bilingual: 'narrative는 한국어로 작성하고 en_narrative 필드에 영어 원문도 포함. choices도 text는 한국어, en_text는 영어.'
   };
 
-  const bookIdStr = selectedGutenbergBook ? selectedGutenbergBook.id.toString() : 'custom_book';
-  const cacheKey = `${bookIdStr}_${selectedMode}_${selectedLang}_${selectedLength}`;
-  
-  if (retryCount === 0) {
-    try {
-      log('캐시 조회 중...');
-      const cacheRes = await fetch('/api/game-save?cacheKey=' + cacheKey);
-      if (cacheRes.ok) {
-        const cacheData = await cacheRes.json();
-        if (cacheData.cached && cacheData.gameData) {
-          gameData = cacheData.gameData;
-          if (selectedMode === 'visual_novel' && gameData.characters) {
-            await ensureCharacterPortraits(gameData.characters);
-          }
-          setStage(3);
-          gameStartTime = Date.now();
-          completeStages();
-          setTimeout(startGame, 900);
-          return;
-        }
-      }
-    } catch(e) { console.warn('캐시 확인 실패', e); }
-  }
+  const vnExtra = selectedMode === 'visual_novel' ? `
+[비주얼 노벨 모드 규칙]
+1단계: 주요 캐릭터 3-5명 추출 (id, name, personality, role, image_prompt)
+ - image_prompt: 캐릭터의 외형을 묘사하는 정교한 영어 프롬프트 (화풍 명시)
+2단계: 시네마틱 스크립트 기반 스토리 생성
+ - script: { speaker, text } 배열
+ - bg_keyword: 상황을 나타내는 영어 배경 키워드 (예: "dark lab", "sunny garden")
+ - choices: character_effects 필드 포함 ({ char_id: +10 })
+ - endings: 조건(condition) 기반 멀티 엔딩` : '';
 
-  const prompt = `아래 텍스트를 기반으로 JSON 데이터를 만들어라. 독점 모드: ${selectedMode}. 텍스트: ${processingText.slice(0, 5000)}...`;
+  const adventureExtra = selectedMode === 'adventure' ? `
+[어드벤처 모드 규칙]
+- 선택지 3개: 대담함(high risk), 신중함(low risk), 인간적(mid risk)
+- 각 choice: text, outcome, score_impact, risk_level` : '';
+
+  const studyExtra = selectedMode === 'study' ? `
+[학습 모드 규칙]
+- narrative에 핵심 개념(key_concept)과 예제 포함
+- 퀴즈(quiz) 필수 포함` : '';
+
+  const prompt = `당신은 세계 최고의 게임 디자이너다. 아래 텍스트를 바탕으로 '${selectedMode}' 모드의 인터랙티브 게임을 JSON으로 설계하라.
+
+[텍스트 원문]
+${processingText.slice(0, 8000)}
+
+[필수 요구사항]
+1. 언어: ${langMap[selectedLang]}
+2. 분량: ${scenesCountMap[selectedLength]} 씬
+3. 구조: 
+   {
+     "title_ko": "한국어 제목",
+     "title": "English Title",
+     "characters": [...],
+     "scenes": [
+       {
+         "id": 1,
+         "context": "장면 요약(10자 이내)",
+         "narrative": "서술형 본문",
+         "en_narrative": "English Narrative (필요시)",
+         "original_excerpt": "원문 발췌",
+         "choices": [...],
+         "quiz": {...},
+         "bg_keyword": "background keyword" (비주얼노벨용),
+         "script": [...] (비주얼노벨용)
+       }
+     ],
+     "endings": [...]
+   }
+${vnExtra}
+${adventureExtra}
+${studyExtra}
+
+지루한 요약이 아니라, 플레이어가 몰입할 수 있는 긴장감 넘치는 스토리를 만들어라. JSON 데이터만 출력해라.`;
 
   setStage(2);
   log('AI 생성 시작...');
@@ -1701,7 +1729,7 @@ async function generate(retryCount = 0) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 8192, temperature: 0.75 }
+        generationConfig: { maxOutputTokens: 8192, temperature: 0.8 }
       })
     });
 
@@ -1727,7 +1755,10 @@ async function generate(retryCount = 0) {
     
   } catch(e) {
     log('오류: ' + e.message, 'err');
-    if (retryCount < maxRetries) setTimeout(() => generate(retryCount + 1), 2000);
+    if (retryCount < maxRetries) {
+      log('재시도 중...', 'warn');
+      setTimeout(() => generate(retryCount + 1), 2000);
+    }
   }
 }
 

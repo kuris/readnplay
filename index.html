@@ -554,8 +554,12 @@ body::before {
   box-shadow: 0 0 12px rgba(184, 134, 11, 0.25);
   transform: translateY(-2px);
 }
-.char-avatar { font-size: 1.8rem; margin-bottom: 5px; filter: grayscale(1); transition: filter 0.3s; }
-.char-card.active-in-scene .char-avatar { filter: grayscale(0); }
+.char-avatar { 
+  width: 50px; height: 50px; margin: 0 auto 5px;
+  border-radius: 50%; overflow: hidden; background: var(--border);
+}
+.char-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.char-card.active-in-scene .char-avatar { border: 2px solid var(--gold); }
 .char-name { font-size: 10px; color: var(--ink2); font-weight: 600; margin-bottom: 4px; font-family: var(--ff-mono); }
 .char-rel-bar {
   height: 3px; background: var(--border); border-radius: 1.5px;
@@ -594,7 +598,7 @@ body::before {
   text-align: center; padding: 16px; background: var(--paper2);
   border-radius: var(--radius); border: 1px solid var(--border);
 }
-.fr-avatar { font-size: 2.2rem; margin-bottom: 8px; }
+.fr-avatar { width: 60px; height: 60px; margin: 0 auto 8px; border-radius: 50%; overflow: hidden; }
 .fr-status { font-size: 13px; font-weight: 600; color: var(--gold); }
 
 /* CINEMATIC BACKDROP */
@@ -1668,7 +1672,7 @@ async function generate(retryCount = 0) {
 
   const vnExtra = selectedMode === 'visual_novel' ? `
 [비주얼 노벨 모드 — 시네마틱 스크립트 규칙]
-1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar(이모지), personality, role, image_prompt)
+1단계: 주요 캐릭터 3-5명 자동 추출 (id, name, avatar_url(생성용 프롬프트), personality, role, image_prompt)
  - image_prompt: 해당 캐릭터의 전신/상반신 외형을 묘사하는 정교한 영어 프롬프트. 
    중요: 실루엣이나 아이콘 형태가 아닌, **완성된 일러스트** 형태여야 함.
    책의 시대적 배경과 장르에 어울리는 화풍(Art Style)을 프롬프트 처음에 명시해라.
@@ -1758,15 +1762,15 @@ ${fewShotExample}
 ${selectedMode === 'visual_novel' ? `
 {
   "characters": [
-    { "id": "victor", "name": "빅터", "avatar": "🧑‍🔬", "role": "protagonist", "personality": "과학자" },
-    { "id": "creature", "name": "괴물", "avatar": "👹", "role": "antagonist", "personality": "창조물" }
+    { "id": "victor", "name": "빅터", "image_prompt": "handsome scientist, 19th century", "role": "protagonist", "personality": "과학자" },
+    { "id": "creature", "name": "괴물", "image_prompt": "monstrous creature, stitched skin, dark atmosphere", "role": "antagonist", "personality": "창조물" }
   ],
   "scenes": [
     {
       "id": 1, "context": "실험실의 눈동자", "bg_keyword": "dark scientist lab lightning",
       "script": [
-        { "speaker": "narrator", "text": "천둥번개가 친다. ⚡" },
-        { "speaker": "creature", "text": "으으... 내가... 누구지? 👁️" },
+        { "speaker": "narrator", "text": "천둥번개가 친다." },
+        { "speaker": "creature", "text": "으으... 내가... 누구지?" },
         { "speaker": "victor", "text": "맙소사, 정말로 살아났구나!" }
       ],
       "current_characters": ["victor", "creature"],
@@ -1776,7 +1780,7 @@ ${selectedMode === 'visual_novel' ? `
     }
   ],
   "endings": [
-    { "id": "friend", "title": "진정한 우정", "emoji": "🤝", "condition": "creature > 50", "description": "당신은 괴물과 친구가 되었습니다." }
+    { "id": "friend", "title": "진정한 우정", "condition": "creature > 50", "description": "당신은 괴물과 친구가 되었습니다." }
   ]
 }` : ''}
 
@@ -1957,7 +1961,9 @@ function renderCharacterPanel() {
     const displayRel = Math.max(0, Math.min(100, (rel + 100) / 2));
     return `
       <div class="char-card" id="char-card-${char.id}" data-char="${char.id}">
-        <div class="char-avatar">${char.avatar}</div>
+        <div class="char-avatar">
+          ${char.avatar_url ? `<img src="${char.avatar_url}">` : `<div style="padding-top:15px;color:rgba(255,255,255,0.3)">?</div>`}
+        </div>
         <div class="char-name">${char.name}</div>
         <div class="char-rel-bar">
           <div class="char-rel-fill" style="width: ${displayRel}%"></div>
@@ -2041,12 +2047,11 @@ function renderScene() {
         if (avatarUrl) {
           portraitArea.innerHTML = `<img src="${avatarUrl}" class="fadein">`;
           portraitArea.classList.remove('dim');
-        } else if (char && char.avatar) {
-          // 이모지 백업
-          portraitArea.innerHTML = `<span style="font-size:50vh">${char.avatar}</span>`;
-          portraitArea.classList.remove('dim');
         } else if (line.speaker === 'narrator') {
           portraitArea.classList.add('dim');
+        } else {
+          portraitArea.innerHTML = '';
+          portraitArea.classList.remove('dim');
         }
       }
 
@@ -2247,7 +2252,7 @@ function showEnding() {
   if (selectedMode === 'visual_novel' && gameData.endings) {
     const bestEnding = gameData.endings.find(e => evaluateEndingCondition(e.condition));
     if (bestEnding) {
-      finalTitle = bestEnding.emoji + ' ' + bestEnding.title;
+      finalTitle = bestEnding.title;
       finalDesc = bestEnding.description;
     }
   }
@@ -2278,14 +2283,12 @@ function updateBackdrop(keyword) {
   let url = `https://loremflickr.com/1280/720/${encodeURIComponent(keyword || 'landscape')}/all`;
   
   if (selectedMode === 'visual_novel') {
-    // 캐릭터들의 배경 프롬프트 중 첫번째 캐릭터가 있다면 이용하거나 직접 키워드 가공
     const seed = Math.floor(Math.random() * 1000000);
     const bgPrompt = `${keyword}, 19th century atmosphere, digital painting, cinematic lighting, conceptual art, background design, high quality, no people, wide shot`;
     url = `https://image.pollinations.ai/prompt/${encodeURIComponent(bgPrompt)}?width=1280&height=720&nologo=true&seed=${seed}`;
   }
   
-  // 페이드 아웃 후 이미지 교체, 다시 페이드 인
-  bg.style.opacity = '0.2'; // 완전히 끄지 않고 어둡게 유지
+  bg.style.opacity = '0.2';
   bg.style.transition = 'opacity 1s ease-in-out';
   
   const img = new Image();
@@ -2302,15 +2305,18 @@ function showRelationshipPopup(charId, effect) {
   const popup = document.createElement('div');
   popup.className = 'relationship-popup';
   const indicator = effect > 0 ? '▲' : '▼';
-  popup.textContent = `${char.avatar} ${char.name} 호감도 ${indicator} (${effect > 0 ? '+' : ''}${effect})`;
+  popup.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;">
+      ${char.avatar_url ? `<img src="${char.avatar_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : ''}
+      <span>${char.name} 호감도 ${indicator} (${effect > 0 ? '+' : ''}${effect})</span>
+    </div>`;
   document.body.appendChild(popup);
   setTimeout(() => popup.remove(), 2000);
 }
 
 function evaluateEndingCondition(condition) {
-  if (!condition) return true; // 조건 없으면 기본 매칭
+  if (!condition) return true;
   try {
-    // "creature > 50 && victor < 0" -> "characterRelationships['creature'] > 50 && characterRelationships['victor'] < 0"
     const jsCondition = condition.replace(/([a-zA-Z0-9_]+)\s*([><]=?|==|!=)\s*(-?\d+)/g, 
       (match, id, op, val) => `(characterRelationships['${id}'] || 0) ${op} ${val}`);
     return eval(jsCondition);
@@ -2329,15 +2335,16 @@ function showFinalRelationships() {
     <div class="final-relationships">
       <div class="fr-title">최종 인물 관계도</div>
       <div class="fr-grid">
-        ${gameData.characters.map(char => {
-          const rel = characterRelationships[char.id] || 0;
+        ${gameData.characters.map(f => {
+          const rel = characterRelationships[f.id] || 0;
           const statusTxt = rel > 50 ? '운명적' : rel > 10 ? '우호적' : rel < -50 ? '적대적' : rel < -10 ? '냉담함' : '평범함';
-          const indicator = rel > 0 ? '💕' : rel < 0 ? '💢' : '😐';
           return `
             <div class="fr-card">
-              <div class="fr-avatar">${char.avatar}</div>
-              <div class="fr-name">${char.name}</div>
-              <div class="fr-status">${indicator} ${statusTxt}</div>
+              <div class="fr-avatar">
+                ${f.avatar_url ? `<img src="${f.avatar_url}" style="width:100%;height:100%;object-fit:cover;">` : ''}
+              </div>
+              <div class="fr-name">${f.name}</div>
+              <div class="fr-status">${statusTxt} (${rel})</div>
             </div>
           `;
         }).join('')}

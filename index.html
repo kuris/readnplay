@@ -1528,6 +1528,7 @@ function showEnding() {
 
   // 플레이 통계 및 피드백 추가
   const playTime = Math.round((Date.now() - gameStartTime) / 1000 / 60);
+  const title = gameData.title_ko || gameData.title || bookTitle;
   const feedbackHTML = `
     <div style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center;">
       <div style="font-size: 11px; color: var(--ink3); margin-bottom: 1.2rem; letter-spacing: 0.05em;">
@@ -1538,9 +1539,14 @@ function showEnding() {
         <button class="btn-ghost" onclick="this.textContent='✅ 감사합니다!'; this.disabled=true">😊 좋음</button>
         <button class="btn-ghost" onclick="this.textContent='✅ 감사합니다!'; this.disabled=true">😐 보통</button>
       </div>
-      <button class="btn-start" onclick="shareResults()" style="padding: 10px 20px; font-size: 11px;">
-        🔗 결과 공유하기
-      </button>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn-start" onclick="saveGameAsHTML()" style="padding: 10px 20px; font-size: 11px; flex:1; min-width:140px;">
+          💾 HTML로 저장
+        </button>
+        <button class="btn-ghost" onclick="shareResults()" style="padding: 10px 20px; font-size: 11px; flex:1; min-width:140px;">
+          🔗 결과 공유
+        </button>
+      </div>
     </div>
   `;
   
@@ -1551,6 +1557,140 @@ function showEnding() {
     div.innerHTML = feedbackHTML;
     endArea.appendChild(div);
   }
+}
+
+function saveGameAsHTML() {
+  const title = gameData.title_ko || gameData.title || bookTitle;
+  const safeTitle = title.replace(/[\\/:*?"<>|]/g, '_');
+  const modeLabel = { adventure: '주인공 빙의', quiz: '독해 퀴즈', study: '기술 학습' }[gameData.mode] || gameData.mode;
+  const scoreHTML = (gameData.mode === 'quiz' || score > 0)
+    ? `<div class="score-badge">${score}점</div>` : '';
+
+  // 씬 요약 생성
+  const scenesHTML = gameData.scenes.map((scene, i) => `
+    <div class="scene-card">
+      <div class="scene-num">SCENE ${scene.id}</div>
+      <div class="scene-ctx">${scene.context || ''}</div>
+      <div class="scene-text">${scene.narrative || scene.en_narrative || ''}</div>
+      ${scene.original_excerpt ? `<div class="scene-orig">"${scene.original_excerpt}"</div>` : ''}
+      ${scene.quiz ? `<div class="scene-quiz">📝 퀴즈: ${scene.quiz.question}</div>` : ''}
+    </div>
+  `).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title} — READPLAY 완독 기록</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink: #1a1714; --ink2: #4a4540; --ink3: #8a837a;
+  --paper: #f5f0e8; --paper2: #ede8de; --paper3: #e3ddd2;
+  --gold: #b8860b; --gold-light: #f0d060; --green: #1a5c3a;
+  --border: rgba(26,23,20,0.15); --border2: rgba(26,23,20,0.25);
+  --ff-serif: 'Playfair Display', Georgia, serif;
+  --ff-mono: 'IBM Plex Mono', monospace;
+  --radius: 4px;
+}
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--ff-mono); min-height: 100vh;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(26,23,20,0.04) 28px);
+}
+.page { max-width: 680px; margin: 0 auto; padding: 3rem 1.5rem; }
+.complete-banner {
+  text-align: center; padding: 2rem 1rem;
+  border-bottom: 1px solid var(--border2); margin-bottom: 2.5rem;
+  position: relative;
+}
+.complete-banner::after {
+  content: '◆'; position: absolute; bottom: -0.6rem; left: 50%;
+  transform: translateX(-50%); background: var(--paper);
+  padding: 0 0.75rem; color: var(--gold); font-size: 12px;
+}
+.badge {
+  display: inline-block; background: var(--ink); color: var(--gold-light);
+  font-family: var(--ff-mono); font-size: 10px; letter-spacing: 0.2em;
+  text-transform: uppercase; padding: 4px 12px; border-radius: 20px;
+  margin-bottom: 1rem;
+}
+.book-title {
+  font-family: var(--ff-serif); font-size: 2rem;
+  color: var(--ink); margin-bottom: 0.4rem; line-height: 1.2;
+}
+.meta { font-size: 11px; color: var(--ink3); letter-spacing: 0.08em; margin-bottom: 1rem; }
+.score-badge {
+  font-family: var(--ff-serif); font-size: 2.5rem;
+  color: var(--gold); font-weight: 600; margin-top: 1rem;
+}
+.section-label {
+  font-size: 10px; color: var(--ink3); letter-spacing: 0.2em;
+  text-transform: uppercase; margin-bottom: 1rem;
+  padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
+}
+.scene-card {
+  border: 1px solid var(--border2); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 1rem; background: var(--paper2);
+}
+.scene-num {
+  background: var(--ink); color: var(--gold-light);
+  font-size: 10px; letter-spacing: 0.2em; padding: 6px 14px;
+}
+.scene-ctx {
+  font-size: 10px; color: var(--ink3); letter-spacing: 0.12em;
+  text-transform: uppercase; padding: 8px 14px 0; 
+}
+.scene-text {
+  font-family: var(--ff-serif); font-size: 14px; line-height: 1.9;
+  color: var(--ink); padding: 0.75rem 1.25rem;
+}
+.scene-orig {
+  font-family: var(--ff-serif); font-style: italic; font-size: 12px;
+  color: var(--ink2); border-left: 3px solid var(--gold);
+  padding: 0.5rem 1rem; margin: 0 1rem 1rem; opacity: 0.8;
+}
+.scene-quiz {
+  font-size: 11px; color: var(--ink3); padding: 0 1.25rem 1rem;
+}
+.footer {
+  text-align: center; margin-top: 3rem; padding-top: 2rem;
+  border-top: 1px solid var(--border2); font-size: 10px;
+  color: var(--ink3); letter-spacing: 0.1em;
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="complete-banner">
+    <div class="badge">✦ READPLAY — 게임 완료</div>
+    <div class="book-title">${title}</div>
+    <div class="meta">${modeLabel} · ${gameData.scenes.length}씬 완료</div>
+    ${scoreHTML}
+  </div>
+
+  <div class="section-label">플레이 기록 — 전체 ${gameData.scenes.length}씬</div>
+  ${scenesHTML}
+
+  <div class="footer">
+    READPLAY — readnplay.vercel.app<br>
+    Generated on ${new Date().toLocaleDateString('ko-KR')}
+  </div>
+</div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `READPLAY_${safeTitle}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function shareResults() {

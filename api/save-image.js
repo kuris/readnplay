@@ -10,19 +10,18 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { imageUrl, imageBinary, fileName } = req.body;
+  const { imageUrl, imageBinary, fileName, mimeType } = req.body;
   if ((!imageUrl && !imageBinary) || !fileName) {
     return res.status(400).json({ error: 'imageUrl or imageBinary and fileName are required' });
   }
 
   try {
     let buffer;
-    let contentType = 'image/png';
+    let contentType = mimeType || 'image/jpeg'; // 기본값: JPEG (경량)
 
     if (imageBinary) {
       // 1-A. 직접 전달된 base64 이미지 데이터 처리
       buffer = Buffer.from(imageBinary, 'base64');
-      contentType = 'image/png'; // Imagen 3 기본값
     } else {
       // 1-B. 외부 이미지 가져오기 (이전 방식 호환)
       const imgRes = await fetch(imageUrl);

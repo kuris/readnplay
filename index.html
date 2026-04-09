@@ -1951,12 +1951,12 @@ async function ensureCharacterPortraits(characters) {
         const genData = await genRes.json();
         const base64Data = genData.imageBinary;
 
-        // B. 생성된 데이터를 Vercel Blob에 즉시 영구 저장
-        const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.png`;
+        // B. 생성된 데이터를 Vercel Blob에 즉시 영구 저장 (JPEG, 경량)
+        const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
         const saveRes = await fetch('/api/save-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBinary: base64Data, fileName })
+          body: JSON.stringify({ imageBinary: base64Data, fileName, mimeType: 'image/jpeg' })
         });
         
         if (saveRes.ok) {

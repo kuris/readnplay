@@ -28,8 +28,12 @@ export default async function handler(req, res) {
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
           { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
         ],
-        aspect_ratio: aspectRatio,
-        person_generation: "ALLOW_ADULT"
+        aspect_ratio: aspectRatio,    // 1:1 유지
+        person_generation: "ALLOW_ADULT",
+        output_options: {
+          mime_type: "image/jpeg",    // PNG보다 가벼운 JPEG 사용
+          compression_quality: 75     // 웹 표시용 최적 품질 (파일 크기↓ 속도↑)
+        }
       })
     });
 

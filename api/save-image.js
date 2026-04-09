@@ -10,21 +10,32 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { imageUrl, fileName } = req.body;
-  if (!imageUrl || !fileName) return res.status(400).json({ error: 'imageUrl and fileName are required' });
+  const { imageUrl, imageBinary, fileName } = req.body;
+  if ((!imageUrl && !imageBinary) || !fileName) {
+    return res.status(400).json({ error: 'imageUrl or imageBinary and fileName are required' });
+  }
 
   try {
-    // 1. 외부 이미지 가져오기 (Pollinations 등)
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) throw new Error(`Failed to fetch image: ${imgRes.status}`);
-    
-    const arrayBuffer = await imgRes.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    let buffer;
+    let contentType = 'image/png';
 
-    // 2. Vercel Blob에 업로드 (중복 방지를 위해 addRandomSuffix: false 권장)
+    if (imageBinary) {
+      // 1-A. 직접 전달된 base64 이미지 데이터 처리
+      buffer = Buffer.from(imageBinary, 'base64');
+      contentType = 'image/png'; // Imagen 3 기본값
+    } else {
+      // 1-B. 외부 이미지 가져오기 (이전 방식 호환)
+      const imgRes = await fetch(imageUrl);
+      if (!imgRes.ok) throw new Error(`Failed to fetch image: ${imgRes.status}`);
+      const arrayBuffer = await imgRes.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+      contentType = imgRes.headers.get('content-type') || 'image/png';
+    }
+
+    // 2. Vercel Blob에 업로드
     const blob = await put(`portraits/${fileName}`, buffer, {
       access: 'public',
-      contentType: imgRes.headers.get('content-type') || 'image/png',
+      contentType: contentType,
       addRandomSuffix: false
     });
 

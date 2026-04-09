@@ -1870,7 +1870,21 @@ ${selectedMode === 'visual_novel' ? `
     // 3) 파싱 시도
     // Stage 3: 게임 완성
     setStage(3);
+    
+    // 💾 [영속성] 기존 캐릭터 이미지 정보 백업
+    const oldChars = (gameData && gameData.characters) ? [...gameData.characters] : [];
+    
     gameData = JSON.parse(jsonText);
+    
+    // 🤝 [영속성] 기존에 생성된 이미지가 있다면 새 데이터에 병합 (재사용)
+    if (gameData.characters && oldChars.length > 0) {
+      gameData.characters.forEach(newChar => {
+        const match = oldChars.find(oc => oc.name === newChar.name);
+        if (match && match.avatar_url && match.avatar_url.includes('vercel-storage.com')) {
+          newChar.avatar_url = match.avatar_url;
+        }
+      });
+    }
     
     if (retryCount === 0) {
       try {
@@ -1908,42 +1922,58 @@ ${selectedMode === 'visual_novel' ? `
 }
 
 async function ensureCharacterPortraits(characters) {
-  // 병렬 처리를 위해 프로미스 배열 생성
-  const tasks = characters.map(async (char) => {
-    // 이미 Blob URL이거나 이미지가 있으면 스킵
-    if (char.avatar_url && char.avatar_url.includes('vercel-storage.com')) return;
+  const total = characters.length;
+  
+  for (let i = 0; i < total; i++) {
+    const char = characters[i];
     
-    // 이미지 프롬프트가 있으면 생성 시도
+    // 1. 이미 Blob URL이 있으면 재생성 방지
+    if (char.avatar_url && char.avatar_url.includes('vercel-storage.com')) {
+      log(`[${i + 1}/${total}] ${char.name} (이미 클라우드에 저장됨)`, 'ok');
+      continue;
+    }
+    
+    // 2. 이미지가 없고 프롬프트가 있으면 고화질 생성 시도
     if (char.image_prompt) {
-      const seed = Math.floor(Math.random() * 1000000);
-      const finalPrompt = `${char.image_prompt}, high quality, character design, full body, white background, no logo`;
-      const encodedPrompt = encodeURIComponent(finalPrompt);
-      const pollinationUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&nologo=true&seed=${seed}`;
+      log(`[${i + 1}/${total}] ${char.name} 고화질 일러스트 그리는 중...`);
       
       try {
-        // 우선 실시간 생성 URL을 할당하여 즉각적으로 보이게 함
-        char.avatar_url = pollinationUrl;
+        // A. Vertex AI Imagen 3 호출 (신규 API)
+        const genRes = await fetch('/api/imagen', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            prompt: `${char.image_prompt}, high quality, beautiful character illustration, concept art, clear background` 
+          })
+        });
+        
+        if (!genRes.ok) throw new Error('Imagen 생성 실패');
+        const genData = await genRes.json();
+        const base64Data = genData.imageBinary;
 
-        // 서버를 통해 Blob에 저장 시도 (백그라운드로 처리해도 무방하나 일단 기다림)
-        const fileName = `${char.id}_${Date.now()}.webp`;
+        // B. 생성된 데이터를 Vercel Blob에 즉시 영구 저장
+        const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.png`;
         const saveRes = await fetch('/api/save-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: pollinationUrl, fileName })
+          body: JSON.stringify({ imageBinary: base64Data, fileName })
         });
         
         if (saveRes.ok) {
           const resData = await saveRes.json();
-          char.avatar_url = resData.url; // 서버 저장 성공 시 URL 업데이트
+          char.avatar_url = resData.url; // 클라우드 주소로 확정
+          log(`[${i + 1}/${total}] ${char.name} 저장 완료!`, 'ok');
+        } else {
+          // 저장 실패 시 임시로 base64라도 보여줌
+          char.avatar_url = `data:image/png;base64,${base64Data}`;
+          log(`[${i + 1}/${total}] ${char.name} 생성 성공 (저장 대기 중)`, 'warn');
         }
       } catch (e) {
-        console.warn(`Failed to cache portrait for ${char.name}, using direct URL`, e);
+        console.error(e);
+        log(`[${i + 1}/${total}] ${char.name} 생성 실패. 기본값 사용`, 'err');
       }
     }
-  });
-
-  // 모든 태스크를 병렬로 실행하여 대기 시간 대폭 단축
-  await Promise.all(tasks);
+  }
 }
 
 /* ── GAME ── */

@@ -7,24 +7,33 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY 환경변수가 설정되지 않았습니다.' });
+  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY가 없습니다.' });
 
   const { contents, generationConfig } = req.body;
-
-  // AI Platform 엔드포인트 (aiplatform.googleapis.com) 사용
-  const endpoint = `https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
+  
+  // ✅ 게임 생성용: Vertex AI (AI Platform) 표준 엔드포인트 사용
+  const model = "gemini-3.0-flash-lite"; 
+  const endpoint = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents, generationConfig })
     });
 
     const data = await response.json();
-    if (!response.ok) return res.status(response.status).json(data);
+    
+    if (!response.ok) {
+      console.error("Gemini API Error:", data);
+      return res.status(response.status).json(data);
+    }
+
+    // 클라이언트 형식을 그대로 유지하며 결과 반환
     return res.status(200).json(data);
+    
   } catch (e) {
+    console.error("Gemini Server Error:", e.message);
     return res.status(500).json({ error: e.message });
   }
 }

@@ -1314,7 +1314,7 @@ ${processingText}
 [규칙]
 - ${scenesCountMap[selectedLength]}개 씬 구성
 - 각 씬 공통 필드: id(1~), context(10자내), narrative(200자내), original_excerpt(원문핵심문장)
-- adventure 모드: 각 씬에 choices 배열 (text, en_text, next, outcome)
+- adventure 모드: 각 씬에 choices 배열 (text, en_text, next, outcome). next는 반드시 현재 씬 id보다 큰 숫자여야 함 (같거나 작으면 무한루프 발생)
 - quiz 모드: 각 씬에 quiz 객체 (question, choices[4], answer_idx, explanation)
 - study 모드: 각 씬 narrative에 markdown 형식의 개념 설명 포함. quiz 객체도 선택적으로 포함 가능.
 - 반드시 JSON만 출력.
@@ -1466,7 +1466,10 @@ function renderChoices(scene) {
       out.textContent = '→ ' + (getText(c, 'outcome') || c.outcome || '');
       cont.appendChild(out);
       setTimeout(() => {
-        curIdx = c.next ? Math.min(c.next - 1, gameData.scenes.length - 1) : Math.min(curIdx + 1, gameData.scenes.length - 1);
+        // c.next는 1-based 씬 ID. 현재 씬보다 앞으로만 이동 (루프 방지)
+        const rawNext = c.next ? c.next - 1 : curIdx + 1;
+        curIdx = Math.min(Math.max(rawNext, curIdx + 1), gameData.scenes.length - 1);
+
         renderScene();
       }, 1200);
     });

@@ -1259,7 +1259,7 @@ document.querySelectorAll('.gb-cat-btn').forEach(btn => {
 });
 
 /* ── GENERATE ── */
-$('btn-start').addEventListener('click', generate);
+$('btn-start').addEventListener('click', () => generate(0));
 
 async function generate(retryCount = 0) {
   showScreen('loading');

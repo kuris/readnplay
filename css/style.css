@@ -1047,14 +1047,15 @@ body.mode-vn .choice-main { font-weight: 500; letter-spacing: 0.05em; }
 body.mode-vn .choice-hint { display: none; }
 body.mode-vn .choices-header { display: none !important; }
 
-/* Portrait optimization for mode-vn */
+/* Portrait optimization for mode-vn (모바일 세로 모드 지원) */
 @media (max-width: 768px) and (orientation: portrait) {
-  #landscape-prompt { display: none !important; }
+  /* VN 모드에서는 가로 모드 유도를 강제로 끕니다 */
+  body.mode-vn #landscape-prompt { display: none !important; }
   
   body.mode-vn .vn-portrait-area {
-    height: 35vh;
+    height: 32vh;
     left: 50%;
-    top: 22%;
+    top: 20%; /* 대사창과 겹치지 않게 약간 위로 */
     transform: translateX(-50%);
   }
   
@@ -1065,36 +1066,45 @@ body.mode-vn .choices-header { display: none !important; }
 
   body.mode-vn .choices-list {
     top: auto;
-    bottom: 30vh; /* 모바일 세로모드에서는 하단 대사창 위쪽 유지 */
-    right: 50%;
-    transform: translateX(50%);
+    bottom: 30vh; /* 하단 대사창 위쪽 */
+    left: 50%;    /* 중앙 정렬 수정 */
+    right: auto;
+    transform: translateX(-50%);
     align-items: center;
     width: 94%;
     gap: 8px;
+    background: rgba(0,0,0,0.1); /* 미세한 영역 구분 */
+    padding: 10px 0;
+    border-radius: 12px;
   }
   
   body.mode-vn .choice {
     padding: 0.8rem 1rem;
     font-size: 16px;
-    width: 100%;
+    width: 90%;
     text-align: center;
-    border-right: 1px solid rgba(255,255,255,0.15);
+    border-left: 1px solid rgba(255,255,255,0.15); /* 세로모드에선 포인트바 단순화 */
   }
   
   body.mode-vn .scene-wrap {
-    padding: 1rem 1.2rem;
-    min-height: 140px;
+    padding: 0.8rem 1rem;
+    min-height: 130px;
     max-height: 32vh;
   }
 }
 
 /* 모바일 대응: 가로 모드 유도 및 레이아웃 최적화 */
+@media screen and (orientation: portrait) {
+  #landscape-prompt { display: flex; }
+}
+
 #landscape-prompt {
   display: none;
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: #000; z-index: 9999;
+  background: rgba(0, 0, 0, 0.95); z-index: 9999;
   flex-direction: column; align-items: center; justify-content: center;
   color: #fff; text-align: center; padding: 20px;
+  backdrop-filter: blur(10px);
 }
 #landscape-prompt .icon {
   font-size: 50px; margin-bottom: 20px;

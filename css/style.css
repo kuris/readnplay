@@ -986,6 +986,7 @@ body.mode-vn .orig-toggle,
 body.mode-vn #orig-toggle,
 body.mode-vn #orig-box,
 body.mode-vn .scene-header, /* 장면 컨텍스트 및 번호 숨김 (겹침 방지) */
+body.mode-vn #character-panel, /* 캐릭터 관계도 패널 제거 */
 body.mode-vn .game-footer .copyright { 
   display: none !important; 
 }
@@ -993,30 +994,34 @@ body.mode-vn .game-footer .copyright {
 /* Choices (중앙 가로 바 스타일) */
 body.mode-vn .choices-list {
   position: fixed;
-  top: 30%; /* 위치를 조금 더 위로 조정 */
+  top: 45%; 
   left: 0;
   width: 100%;
   transform: translateY(-50%);
-  z-index: 200;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 1.5px; /* 선택지 사이의 얇은 구분선 효과 */
   padding: 0;
+  pointer-events: none;
 }
+body.mode-vn .choices-list > .choice { pointer-events: auto; }
 body.mode-vn .choice {
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.65); /* 참고 이미지와 같은 반투명 검정 */
   border: none;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
   border-radius: 0;
-  padding: 1.2rem 2rem;
+  padding: 1rem 0;
   font-size: 20px;
   color: #fff;
-  backdrop-filter: blur(8px);
-  transition: all 0.3s cubic-bezier(0.2, 0, 0.2, 1);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  transition: background 0.2s ease;
   text-align: center;
   width: 100%;
+  box-shadow: none;
+}
+body.mode-vn .choice:hover {
+  background: rgba(40, 40, 40, 0.85); /* 호버 시 약간 밝아짐 */
 }
 body.mode-vn .choice:hover {
   background: rgba(184, 134, 11, 0.85);

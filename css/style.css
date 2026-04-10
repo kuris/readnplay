@@ -687,13 +687,13 @@ body.is-ending .game-backdrop::after {
   position: fixed;
   inset: 0;
   display: none;
-  align-items: center;
-  justify-content: center; /* 중앙 정렬 복구 */
+  align-items: flex-end;   /* 가로 우측 정렬 */
+  justify-content: flex-start; /* 세로 상단 정렬 */
   z-index: 9000;
   overflow-y: auto;
-  padding: 4rem 1rem;      /* 기본 패딩으로 복구 */
-  flex-direction: column;  /* 수직 정렬 */
-  gap: 2rem;
+  padding: 5vh 5% 5vh 1rem; /* 우측/상단 여백 확보 */
+  flex-direction: column;
+  gap: 1.5rem;
 }
 body.is-ending #ending-area { display: flex; }
 

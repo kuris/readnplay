@@ -528,10 +528,6 @@ export function showEnding() {
     }
   }
 
-  if (state.selectedMode === 'visual_novel' && state.gameData.characters) {
-    showFinalRelationships();
-  }
-
   injectFeedbackButtons();
 
   // 스크롤 탑
@@ -587,8 +583,8 @@ function injectFeedbackButtons() {
     // 윈도우 객체에 바인딩된 글로벌 함수들 사용 (main.js에서 정의 예정)
     const playTime = Math.round((Date.now() - state.gameStartTime) / 1000 / 60);
     const feedbackHTML = `
-      <div style="margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--border); text-align: center;">
-        <div style="font-size: 11px; color: var(--ink3); margin-bottom: 1.2rem; letter-spacing: 0.05em;">
+      <div class="feedback-inner">
+        <div class="feedback-msg">
           ${playTime > 0 ? `${playTime}분 동안의 독서 체험이 어떠셨나요?` : '이번 독서 체험이 어떠셨나요?'}
         </div>
         <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 2rem;">

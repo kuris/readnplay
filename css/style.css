@@ -688,11 +688,12 @@ body.is-ending .game-backdrop::after {
   inset: 0;
   display: none;
   align-items: center;
-  justify-content: flex-end; /* 우측 정렬 */
-  padding-right: 8%;         /* 우측 여백 */
+  justify-content: center; /* 중앙 정렬 복구 */
   z-index: 9000;
   overflow-y: auto;
-  padding-bottom: 250px;     /* 하단 관계도 공간 확보 */
+  padding: 4rem 1rem;      /* 기본 패딩으로 복구 */
+  flex-direction: column;  /* 수직 정렬 */
+  gap: 2rem;
 }
 body.is-ending #ending-area { display: flex; }
 
@@ -712,20 +713,16 @@ body.is-ending #character-panel {
 
 .ending-wrap { 
   text-align: center; 
-  max-width: 500px; /* 우측 패널로 기능하도록 너비 제한 */
+  max-width: 800px; /* 다시 중앙 패널로 크기 확장 */
   width: 100%;
-  padding: 2.5rem;
+  padding: 3rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 20px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow: 0 40px 100px rgba(0,0,0,0.8);
-  animation: slideInRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(50px); }
-  to { opacity: 1; transform: translateX(0); }
+  animation: fadeIn 1s ease both; /* 중앙 페이드인으로 변경 */
 }
 .ending-mark {
   font-family: var(--ff-serif);
@@ -766,22 +763,8 @@ body.is-ending #character-panel {
   margin-bottom: 3rem;
 }
 
-/* FINAL RELATIONS */
-.final-relationships {
-  position: fixed;   /* 화면 하단 고정 */
-  bottom: 50px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 1200px;
-  padding: 0 20px;
-  z-index: 9100;
-  animation: fadeInUp 1s ease both;
-}
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translate(-50%, 30px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
-}
+/* 삭제된 관계도 스타일 정리 */
+.final-relationships { display: none !important; }
 .fr-title {
   font-family: var(--ff-mono);
   font-size: 10px;
@@ -1251,7 +1234,57 @@ body.mode-vn .choices-header { display: none !important; }
   body.mode-vn .game-masthead { font-size: 12px; }
 }
 
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
   50% { transform: translateY(5px); }
+  100% { transform: translateY(0); }
 }
+
+/* 엔딩 피드백 및 내보내기 버튼 구역 최적화 */
+.feedback-box {
+  width: 100%;
+  max-width: 800px;
+  animation: fadeIn 1.2s ease both;
+}
+
+.feedback-inner {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2.5rem;
+  border-radius: 20px;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  text-align: center;
+}
+
+.feedback-msg {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.feedback-box .btn-ghost {
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  background: rgba(255,255,255,0.03) !important;
+  color: rgba(255,255,255,0.8) !important;
+}
+
+.feedback-box .btn-ghost:hover {
+  background: rgba(255,255,255,0.1) !important;
+  border-color: var(--gold) !important;
+  color: #fff !important;
+  transform: translateY(-2px);
+}
+
+.feedback-box .btn-start {
+  background: var(--gold) !important;
+  border: none !important;
+  transition: all 0.2s ease;
+}
+
+.feedback-box .btn-start:hover {
+  background: var(--gold-light) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(184, 134, 11, 0.3);
+}
+

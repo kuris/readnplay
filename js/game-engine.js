@@ -152,14 +152,34 @@ export function renderScene() {
       }
 
       if (step >= scene.script.length) {
-        if (choicesList) {
-          choicesList.style.display = 'flex';
-        }
-        if (advArea) {
-          advArea.onclick = null;
-          advArea.style.cursor = 'default';
-          // 선택지가 나타나면 하위 버튼 클릭을 방해하지 않도록 pointer-events를 none으로 설정
-          advArea.style.pointerEvents = 'none'; 
+        const hasChoices = scene.choices && scene.choices.length > 0;
+        if (hasChoices) {
+          if (choicesList) {
+            choicesList.style.display = 'flex';
+          }
+          if (advArea) {
+            advArea.onclick = null;
+            advArea.style.cursor = 'default';
+            advArea.style.pointerEvents = 'none'; 
+          }
+        } else {
+          // 선택지가 없는 경우 (마지막 장면이거나 단순 전개인 경우)
+          // 한 번 더 클릭하면 다음으로 넘어가도록 유도
+          const sceneEl = $('g-scene');
+          if (sceneEl && !sceneEl.querySelector('.next-hint')) {
+            const hint = document.createElement('div');
+            hint.className = 'next-hint fadein';
+            hint.style = 'font-size:12px; margin-top:10px; opacity:0.6; text-align:right; color:var(--gold);';
+            hint.innerHTML = '클릭하여 계속... ▾';
+            sceneEl.appendChild(hint);
+          }
+          
+          if (advArea) {
+            advArea.onclick = () => {
+              state.curIdx++;
+              renderScene();
+            };
+          }
         }
         return;
       }

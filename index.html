@@ -1004,14 +1004,14 @@ body.mode-vn .game-footer .copyright {
 /* Choices (중앙 가로 바 스타일) */
 body.mode-vn .choices-list {
   position: fixed;
-  top: 45%;
+  top: 38%; /* 조금 더 위쪽으로 조정하여 대화창과의 간격 확보 */
   left: 0;
   width: 100%;
   transform: translateY(-50%);
   z-index: 200;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   padding: 0;
 }
 body.mode-vn .choice {
@@ -1891,6 +1891,46 @@ ${studyExtra}
   }
 }
 
+/* ── IMAGE QUEUE & STABILITY (429 대응) ── */
+let imageTaskQueue = Promise.resolve();
+
+async function safeFetchImagen(params, retryCount = 0) {
+  return new Promise((resolve) => {
+    imageTaskQueue = imageTaskQueue.then(async () => {
+      try {
+        // 기본 5초 대기 (할당량 방어)
+        await sleep(5000);
+        
+        const res = await fetch('/api/imagen', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(params)
+        });
+        
+        if (res.status === 429) {
+          if (retryCount < 3) {
+            const waitTime = (retryCount + 1) * 10000;
+            log(`할당량 초과. ${waitTime/1000}초 후 다시 시도합니다...`, 'warn');
+            await sleep(waitTime);
+            resolve(await safeFetchImagen(params, retryCount + 1));
+          } else {
+            log('이미지 생성 최대 재시도 횟수 초과', 'err');
+            resolve(null);
+          }
+          return;
+        }
+        
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        resolve(data);
+      } catch (e) {
+        console.error('safeFetchImagen error:', e);
+        resolve(null);
+      }
+    });
+  });
+}
+
 async function ensureCharacterPortraits(characters) {
   const total = characters.length;
   for (let i = 0; i < total; i++) {
@@ -1898,24 +1938,16 @@ async function ensureCharacterPortraits(characters) {
     if (char.avatar_url && char.avatar_url.includes('vercel-storage.com')) continue;
     
     if (char.image_prompt) {
-      log(`[${i + 1}/${total}] ${char.name} 인물화 생성 중...`);
+      log(`[${i + 1}/${total}] ${char.name} 인물화 생성 대기 중...`);
       
-      const tryGenerate = async (retriesLeft = 1) => {
-        // 429 할당량 초과 방지를 위한 지연 시간
-        if (i > 0 || retriesLeft === 0) await sleep(5000); 
-
+      const tryGenerate = async (retriesInner = 1) => {
         try {
-          const genRes = await fetch('/api/imagen', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              prompt: `${char.image_prompt}, character illustration, white background, high quality, standalone character`,
-              aspectRatio: "1:1", numImages: 1
-            })
+          const genData = await safeFetchImagen({ 
+            prompt: `${char.image_prompt}, character illustration, white background, high quality, standalone character`,
+            aspectRatio: "1:1", numImages: 1
           });
           
-          if (genRes.ok) {
-            const genData = await genRes.json();
+          if (genData) {
             const base64Data = genData.imageBinary || (genData.images && genData.images[0]);
             if (!base64Data) throw new Error('No image data');
 
@@ -1929,21 +1961,16 @@ async function ensureCharacterPortraits(characters) {
             if (saveRes.ok) {
               const resData = await saveRes.json();
               char.avatar_url = resData.url;
+              log(`${char.name} 생성 완료!`);
               return true;
-            } else {
-              const errData = await saveRes.json();
-              console.error('Save failed:', errData);
             }
-          } else {
-            console.warn(`Imagen API attempt failed (${genRes.status})`);
           }
         } catch (e) {
           console.error(`Generation error for ${char.name}:`, e.message);
         }
 
-        if (retriesLeft > 0) {
-          log(`[재시도] ${char.name} 이미지 생성 다시 시도 중...`, 'warn');
-          return await tryGenerate(retriesLeft - 1);
+        if (retriesInner > 0) {
+          return await tryGenerate(retriesInner - 1);
         }
         return false;
       };
@@ -2490,18 +2517,13 @@ async function updateBackdrop(keyword) {
     const bgPrompt = `${keyword}, cinematic lighting, atmospheric, high quality background, art style matched to 19th century, no characters, wide shot`;
     
     try {
-      const res = await fetch('/api/imagen', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: bgPrompt,
-          aspectRatio: "16:9",
-          numImages: 1
-        })
+      const data = await safeFetchImagen({
+        prompt: bgPrompt,
+        aspectRatio: "16:9",
+        numImages: 1
       });
       
-      if (res.ok) {
-        const data = await res.json();
+      if (data) {
         const base64 = data.imageBinary || (data.images && data.images[0]);
         if (base64) {
           url = `data:image/jpeg;base64,${base64}`;

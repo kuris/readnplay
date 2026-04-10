@@ -98,12 +98,13 @@ export function renderScene() {
   }
   const choicesList = $('g-choices');
   if (choicesList) choicesList.style.display = 'flex';
+
+  if (state.selectedMode === 'visual_novel' && scene.script) {
     // 🎭 비주얼 노벨 모드: 스텝 바이 스텝 (클릭 시 한 줄씩)
     if (sceneEl) sceneEl.innerHTML = '';
     let step = 0;
     
     // 선택지 숨김
-    const choicesList = $('g-choices');
     if (choicesList) choicesList.style.display = 'none';
 
     const renderStep = () => {

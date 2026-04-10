@@ -1,5 +1,4 @@
-import { state } from './state.js';
-import { $, STAGE_PROGRESS, STAGE_TEXTS } from './utils.js'; // Note: utils.js doesn't have STAGE_PROGRESS, it's in constants.js
+import { $ } from './utils.js';
 import { STAGE_PROGRESS as SP, STAGE_TEXTS as ST } from './constants.js';
 
 /**

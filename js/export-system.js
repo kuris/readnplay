@@ -142,7 +142,7 @@ export function saveGameAsHTML() {
       <div class="scene-quiz">
         <span class="lang-tag quiz-tag">QUIZ</span> ${scene.quiz.question}
         <div class="quiz-choices">${(scene.quiz.choices || []).map((ch, i) =>
-          `<span class="quiz-opt">${'①②③④'[ci]} ${ch}</span>`).join('')}
+          `<span class="quiz-opt">${'①②③④'[i]} ${ch}</span>`).join('')}
         </div>
       </div>` : '';
 

@@ -2384,6 +2384,7 @@ async function downloadGameZip() {
             const res = await fetch(char.avatar_url);
             const blob = await res.blob();
             const ext = char.avatar_url.split('.').pop().split('?')[0] || 'jpg';
+            char.temp_ext = ext; // 뷰어용 확장자 임시 저장
             imgFolder.file(`${char.id}.${ext}`, blob);
           } catch (e) {
             console.error(`Failed to fetch image for ${char.name}`, e);
@@ -2406,8 +2407,8 @@ async function downloadGameZip() {
     .scene { background: #fff; border: 1px solid #e0d8cc; border-radius: 8px; margin-bottom: 20px; overflow: hidden; }
     .scene-header { background: #1a1714; color: #f2e9dc; padding: 8px 15px; font-size: 13px; }
     .scene-body { padding: 20px; line-height: 1.8; }
-    .character-list { display: flex; gap: 15px; margin: 20px 0; }
-    .char-card { text-align: center; font-size: 12px; }
+    .character-list { display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
+    .char-card { text-align: center; font-size: 12px; width: 80px; }
     .char-card img { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #b8860b; object-fit: cover; }
   </style>
 </head>
@@ -2418,8 +2419,8 @@ async function downloadGameZip() {
   <div class="character-list">
     ${(gameData.characters || []).map(c => `
       <div class="char-card">
-        <img src="images/${c.id}.jpg" onerror="this.src='https://via.placeholder.com/60'">
-        <div>${c.name}</div>
+        <img src="images/${c.id}.${c.temp_ext || 'jpg'}" onerror="this.src='https://via.placeholder.com/60'">
+        <div style="margin-top:5px; font-weight:bold;">${c.name}</div>
       </div>
     `).join('')}
   </div>

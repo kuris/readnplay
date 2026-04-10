@@ -77,6 +77,15 @@ function initEventListeners() {
     });
   });
 
+  /* ── CACHE STRATEGY TOGGLE ── */
+  $('cache-row').querySelectorAll('.lang-opt').forEach(b => {
+    b.addEventListener('click', () => {
+      $('cache-row').querySelectorAll('.lang-opt').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel');
+      state.cacheStrategy = b.dataset.strategy;
+    });
+  });
+
   /* ── FILE DROP ── */
   const dz = $('drop-zone');
   if (dz) {

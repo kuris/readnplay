@@ -36,10 +36,10 @@ export async function generate(retryCount = 0) {
     : `custom_${getStringHash(state.epubText)}`;
   const cacheKey = `${bookIdStr}_${state.selectedMode}_${state.selectedLang}_${state.selectedLength}`;
 
-  if (retryCount === 0) {
+  if (retryCount === 0 && state.cacheStrategy === 'use') {
     const cachedData = await getGameCache(cacheKey);
     if (cachedData && cachedData.cached && cachedData.gameData) {
-      log('저장된 데이터를 불러왔습니다.');
+      log('기존 생성 데이터를 불러왔습니다.');
       state.gameData = cachedData.gameData;
       
       if (state.selectedMode === 'visual_novel' && state.gameData.characters) {

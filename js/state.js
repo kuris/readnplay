@@ -13,5 +13,6 @@ export const state = {
   selectedGutenbergBook: null,
   gameStartTime: 0,
   characterRelationships: {},
+  cacheStrategy: 'use', // 'use' or 'refresh'
   imageTaskQueue: Promise.resolve() // 이미지 생성 큐
 };

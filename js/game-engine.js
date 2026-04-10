@@ -89,7 +89,15 @@ export function renderScene() {
   const speakerTag = $('speaker-tag');
   if (speakerTag) speakerTag.classList.remove('show');
 
-  if (state.selectedMode === 'visual_novel' && scene.script) {
+  // 상호작용 초기화: 이전 씬이나 다른 모드에서의 설정을 리셋
+  const advArea = $('adventure-area');
+  if (advArea) {
+    advArea.onclick = null;
+    advArea.style.cursor = 'default';
+    advArea.style.pointerEvents = 'auto';
+  }
+  const choicesList = $('g-choices');
+  if (choicesList) choicesList.style.display = 'flex';
     // 🎭 비주얼 노벨 모드: 스텝 바이 스텝 (클릭 시 한 줄씩)
     if (sceneEl) sceneEl.innerHTML = '';
     let step = 0;

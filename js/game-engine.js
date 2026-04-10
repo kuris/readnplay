@@ -108,7 +108,7 @@ export function renderScene() {
         if (advArea) {
           advArea.onclick = null;
           advArea.style.cursor = 'default';
-          advArea.style.pointerEvents = 'none';
+          advArea.style.pointerEvents = 'auto'; // Fix: Ensure buttons inside are clickable
         }
         return;
       }

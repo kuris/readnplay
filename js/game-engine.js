@@ -99,7 +99,11 @@ export function renderScene() {
   const choicesList = $('g-choices');
   if (choicesList) choicesList.style.display = 'flex';
 
-  if (state.selectedMode === 'visual_novel' && scene.script) {
+  if (state.selectedMode === 'visual_novel' && (scene.script || scene.narrative)) {
+    // scene.script가 없으면 narrative를 단일 스크립트로 변환하여 페이징 혜택을 받게 함
+    if (!scene.script || scene.script.length === 0) {
+      scene.script = [{ speaker: 'narrator', text: scene.narrative }];
+    }
     // 🎭 비주얼 노벨 모드: 스텝 바이 스텝 (클릭 시 한 줄씩)
     if (sceneEl) sceneEl.innerHTML = '';
     let step = 0;
@@ -154,7 +158,8 @@ export function renderScene() {
         if (advArea) {
           advArea.onclick = null;
           advArea.style.cursor = 'default';
-          advArea.style.pointerEvents = 'auto'; 
+          // 선택지가 나타나면 하위 버튼 클릭을 방해하지 않도록 pointer-events를 none으로 설정
+          advArea.style.pointerEvents = 'none'; 
         }
         return;
       }
@@ -217,17 +222,10 @@ export function renderScene() {
     // 첫번째 대사 즉시 출력
     renderStep();
   } else {
-    // ⚔️ 일반 모드들 또는 script 누락 시 Fallback
+    // ⚔️ 일반 모드들 Fallback (비주얼 노벨 모드는 위에서 script 통합 처리됨)
     const ko = scene.narrative || '';
     const en = scene.en_narrative || '';
     
-    if (state.selectedMode === 'visual_novel' && ko) {
-      if (sceneEl) sceneEl.innerHTML = `<div class="dialogue-line fadein is-narrator"><span>${ko}</span></div>`;
-      const choicesList = $('g-choices');
-      if (choicesList) choicesList.style.display = 'flex';
-      return;
-    }
-
     if (state.activeLang === 'bi' && ko && en) {
       if (sceneEl) sceneEl.innerHTML = `
         <div class="bilingual-scene">

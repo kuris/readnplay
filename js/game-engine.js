@@ -560,7 +560,9 @@ export function showFinalRelationships() {
     <div class="final-relationships">
       <div class="fr-title">최종 인물 관계도</div>
       <div class="fr-grid">
-        ${state.gameData.characters.map(f => {
+        ${state.gameData.characters
+          .filter(f => !f.name.includes('나')) // 플레이어 본인은 리포트에서 제외
+          .map(f => {
           const rel = state.characterRelationships[f.id] || 0;
           const statusTxt = rel > 50 ? '운명적' : rel > 10 ? '우호적' : rel < -50 ? '적대적' : rel < -10 ? '냉담함' : '평범함';
           return `

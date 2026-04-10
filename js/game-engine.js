@@ -11,6 +11,7 @@ export function startGame() {
   state.characterRelationships = {};
   
   document.body.classList.toggle('mode-vn', state.selectedMode === 'visual_novel');
+  document.body.classList.remove('is-ending');
   
   const rawTitle = state.selectedLang === 'en' ? state.gameData.title : (state.gameData.title_ko || state.gameData.title);
   const titleEl = $('g-title');
@@ -469,6 +470,7 @@ export function showEnding() {
   import('./storage.js').then(m => m.saveToHistory());
   
   clearProgress();
+  document.body.classList.add('is-ending');
 
   // 모든 게임 구역 숨기기
   const hideList = [

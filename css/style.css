@@ -901,7 +901,7 @@ body.mode-vn .game-lang-pill:hover { opacity: 1; }
   left: 50%;
   transform: translate(-50%, -50%);
   width: auto;
-  height: 85vh;
+  height: 80vh;
   z-index: -2;
   transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
@@ -1034,6 +1034,29 @@ body.mode-vn .choice-main { font-weight: 500; letter-spacing: 0.05em; }
 body.mode-vn .choice-hint { display: none; }
 body.mode-vn .choices-header { display: none !important; }
 
+/* Portrait optimization for mode-vn */
+@media (max-width: 768px) and (orientation: portrait) {
+  body.mode-vn #landscape-prompt { display: none !important; }
+  body.mode-vn .vn-portrait-area {
+    height: 55vh;
+    top: 35%;
+  }
+  body.mode-vn .choices-list {
+    bottom: 30vh;
+  }
+  body.mode-vn .choice {
+    padding: 0.8rem 1rem;
+    font-size: 16px;
+  }
+  body.mode-vn .scene-wrap {
+    padding: 1.2rem 1.5rem;
+    min-height: 120px;
+    max-height: 30vh;
+  }
+  body.mode-vn .dialogue-line { font-size: 18px; }
+  body.mode-vn .speaker-tag { font-size: 20px !important; top: -35px !important; }
+}
+
 /* 모바일 대응: 가로 모드 유도 및 레이아웃 최적화 */
 #landscape-prompt {
   display: none;
@@ -1052,24 +1075,22 @@ body.mode-vn .choices-header { display: none !important; }
   100% { transform: rotate(0deg); }
 }
 
-@media (max-width: 900px) and (orientation: portrait) {
-  body.mode-vn #landscape-prompt { display: flex; }
-}
+/* (Removed portrait block) */
 
 @media (max-height: 500px) and (orientation: landscape) {
-  body.mode-vn .vn-portrait-area { height: 95vh; top: 50%; }
+  body.mode-vn .vn-portrait-area { height: 75vh; top: 45%; }
   body.mode-vn #adventure-area { bottom: 0.5rem; width: 98%; }
   body.mode-vn .scene-wrap { 
-    padding: 1.2rem 2.5rem; 
-    min-height: 120px; 
-    max-height: 250px; 
+    padding: 0.8rem 2rem; 
+    min-height: 100px; 
+    max-height: 200px; 
     overflow-y: auto;
     border-radius: 12px; 
   }
-  body.mode-vn .dialogue-line { font-size: 18px; line-height: 1.4; }
-  body.mode-vn .speaker-tag { font-size: 20px !important; top: -35px !important; }
-  body.mode-vn .choice { padding: 0.8rem 1.5rem; font-size: 16px; }
-  body.mode-vn .choices-list { gap: 5px; top: 40%; }
+  body.mode-vn .dialogue-line { font-size: 17px; line-height: 1.4; }
+  body.mode-vn .speaker-tag { font-size: 19px !important; top: -30px !important; }
+  body.mode-vn .choice { padding: 0.6rem 1.2rem; font-size: 15px; }
+  body.mode-vn .choices-list { gap: 4px; bottom: 33vh; }
   body.mode-vn .game-masthead { font-size: 12px; }
 }
 

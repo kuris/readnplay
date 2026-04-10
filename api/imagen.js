@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const { prompt, aspectRatio = "1:1", numImages = 1 } = req.body;
   
   // ✅ 최신 Imagen 3 모델 및 Vertex AI 엔드포인트 스타일 (API Key 사용)
-  const model = "imagen-3.0-generate-001";
+  const model = "imagen-3.0-fast-generate-001";
   const endpoint = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:predict?key=${apiKey}`;
 
   try {

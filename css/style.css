@@ -994,32 +994,32 @@ body.mode-vn .game-footer .copyright {
 
 /* Choices (중앙 가로 바 스타일) */
 body.mode-vn .choices-list {
-  position: absolute;
-  bottom: 38vh; /* 대사창(35vh) 바로 위쪽 배치 */
-  left: 0;
-  width: 100%;
+  bottom: 38vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 600px;
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
   padding: 0;
   pointer-events: none;
-  transform: none;
 }
 body.mode-vn .choices-list > .choice { pointer-events: auto; }
 body.mode-vn .choice {
-  background: rgba(0, 0, 0, 0.65); /* 참고 이미지와 같은 반투명 검정 */
-  border: none;
-  border-radius: 0;
-  padding: 1rem 0;
-  font-size: 20px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  font-size: 18px;
   color: #fff;
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   transition: background 0.2s ease;
   text-align: center;
   width: 100%;
-  box-shadow: none;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
 }
 body.mode-vn .choice:hover {
   background: rgba(40, 40, 40, 0.85); /* 호버 시 약간 밝아짐 */
@@ -1042,7 +1042,7 @@ body.mode-vn .choices-header { display: none !important; }
     top: 35%;
   }
   body.mode-vn .choices-list {
-    bottom: 30vh;
+    bottom: 32vh;
   }
   body.mode-vn .choice {
     padding: 0.8rem 1rem;
@@ -1090,7 +1090,7 @@ body.mode-vn .choices-header { display: none !important; }
   body.mode-vn .dialogue-line { font-size: 17px; line-height: 1.4; }
   body.mode-vn .speaker-tag { font-size: 19px !important; top: -30px !important; }
   body.mode-vn .choice { padding: 0.6rem 1.2rem; font-size: 15px; }
-  body.mode-vn .choices-list { gap: 4px; bottom: 33vh; }
+  body.mode-vn .choices-list { gap: 4px; bottom: 120px; }
   body.mode-vn .game-masthead { font-size: 12px; }
 }
 

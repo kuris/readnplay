@@ -963,7 +963,8 @@ body.mode-vn .dialogue-line {
   line-height: 1.6;
   letter-spacing: -0.01em;
   font-weight: 400;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  color: rgba(255, 255, 255, 0.95); /* 흰색 계열로 변경 */
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 1px rgba(0,0,0,1); /* 그림자 강화 */
 }
 body.mode-vn .speaker-tag {
   background: transparent !important;
@@ -1696,8 +1697,9 @@ async function generate(retryCount = 0) {
 
   const vnExtra = selectedMode === 'visual_novel' ? `
 [비주얼 노벨 모드 규칙]
-1단계: 주요 캐릭터 3-5명 추출 (id, name, personality, role, image_prompt)
- - image_prompt: 영어 묘사 및 화풍 명시 (예: "anime style, medium shot")
+1단계: 텍스트 원문에서 중요 인물을 유동적으로 추출 (3~8명 사이)
+ - id, name, personality, role, image_prompt 필드 포함
+ - image_prompt: 영어 묘사 및 화풍 명시 (예: "anime style, medium shot, brown hair, vintage suit"). 각 인물마다 고유한 개성이 드러나게 구체적으로 작성.
 2단계: 시네마틱 스크립트 기반 스토리 생성
  - scenes[].script: [ { "speaker": "char_id", "text": "대화내용" }, ... ]
  - scenes[].bg_keyword: 장면 배경 키워드 (영어)
@@ -1839,50 +1841,57 @@ async function ensureCharacterPortraits(characters) {
     if (char.avatar_url && char.avatar_url.includes('vercel-storage.com')) continue;
     
     if (char.image_prompt) {
-      log(`[${i + 1}/${total}] ${char.name} 캐릭터 생성 중...`);
+      log(`[${i + 1}/${total}] ${char.name} 인물화 생성 중...`);
       
-      // 429 할당량 초과 방지를 위한 지연 시간 (첫 번째 캐릭터 제외)
-      if (i > 0) await sleep(4000); 
+      const tryGenerate = async (retriesLeft = 1) => {
+        // 429 할당량 초과 방지를 위한 지연 시간
+        if (i > 0 || retriesLeft === 0) await sleep(5000); 
 
-      try {
-        const genRes = await fetch('/api/imagen', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            prompt: `${char.image_prompt}, character illustration, white background, high quality, standalone character`,
-            aspectRatio: "1:1", numImages: 1
-          })
-        });
-        
-        if (genRes.ok) {
-          const genData = await genRes.json();
-          const base64Data = genData.imageBinary || (genData.images && genData.images[0]);
-          if (!base64Data) continue;
-
-          const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
-          const saveRes = await fetch('/api/save-image', {
+        try {
+          const genRes = await fetch('/api/imagen', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageBinary: base64Data, fileName, mimeType: 'image/jpeg' })
+            body: JSON.stringify({ 
+              prompt: `${char.image_prompt}, character illustration, white background, high quality, standalone character`,
+              aspectRatio: "1:1", numImages: 1
+            })
           });
           
-          if (saveRes.ok) {
-            const resData = await saveRes.json();
-            char.avatar_url = resData.url;
+          if (genRes.ok) {
+            const genData = await genRes.json();
+            const base64Data = genData.imageBinary || (genData.images && genData.images[0]);
+            if (!base64Data) throw new Error('No image data');
+
+            const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
+            const saveRes = await fetch('/api/save-image', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ imageBinary: base64Data, fileName, mimeType: 'image/jpeg' })
+            });
+            
+            if (saveRes.ok) {
+              const resData = await saveRes.json();
+              char.avatar_url = resData.url;
+              return true;
+            } else {
+              const errData = await saveRes.json();
+              console.error('Save failed:', errData);
+            }
           } else {
-            const errData = await saveRes.json();
-            console.error('Save failed:', errData);
-            log(`이미지 저장 실패 (${char.name}): ${errData.error || 'Unknown'}`, 'warn');
+            console.warn(`Imagen API attempt failed (${genRes.status})`);
           }
-        } else {
-          const errData = await genRes.json();
-          console.error('Imagen failed:', errData);
-          log(`이미지 생성 실패 (${char.name}): ${errData.error || 'Quotas/Auth error'}`, 'warn');
+        } catch (e) {
+          console.error(`Generation error for ${char.name}:`, e.message);
         }
-      } catch (e) { 
-        console.error(e);
-        log(`네트워크 오류 (${char.name}): ${e.message}`, 'err');
-      }
+
+        if (retriesLeft > 0) {
+          log(`[재시도] ${char.name} 이미지 생성 다시 시도 중...`, 'warn');
+          return await tryGenerate(retriesLeft - 1);
+        }
+        return false;
+      };
+
+      await tryGenerate();
     }
   }
 }

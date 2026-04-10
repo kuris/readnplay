@@ -1424,6 +1424,16 @@ function getStringHash(str) {
   return Math.abs(hash).toString(16);
 }
 
+function ensureString(val, fallback = '') {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object') {
+    // 중첩된 객체(예: {ko: '제목'}) 대응
+    return val.ko || val.text || val.name || val.title || JSON.stringify(val);
+  }
+  return String(val);
+}
+
 // --- UTILS ---
 function chunkTextIntoSegments(chapters, maxChars) {
   const segments = [];
@@ -1857,22 +1867,26 @@ ${studyExtra}
     }
 
     try {
+      jsonText = repairJson(jsonText);
       gameData = JSON.parse(jsonText);
-    } catch (parseErr) {
-      console.warn('Initial parse failed, attempting deep repair...');
-      try {
-        jsonText = repairJson(jsonText);
-        gameData = JSON.parse(jsonText);
-      } catch (repairErr) {
-        console.error('Repair failed:', repairErr);
-        throw new Error('AI 응답 데이터 복구 실패 (JSON 형식이 너무 많이 손상됨)');
-      }
+    } catch (repairErr) {
+      console.error('Repair failed:', repairErr);
+      throw new Error('AI 응답 데이터 복구 실패 (JSON 형식이 너무 많이 손상됨)');
     }
+  }
 
-    // ── 데이터 무결성 강제 확보 ─────────────────────────────
-    gameData.mode = selectedMode; // 모드 필드 강제 할당 (대화창 증발 방지)
-    
-    if (!gameData.scenes || !Array.isArray(gameData.scenes)) {
+  // ── 데이터 데이터 정규화 (객체 필드 처리) ────────────────
+  if (gameData) {
+    gameData.title_ko = ensureString(gameData.title_ko);
+    gameData.title = ensureString(gameData.title);
+    if (gameData.scenes) {
+      gameData.scenes.forEach(s => { s.context = ensureString(s.context); });
+    }
+    // 모드 강제 할당 (대화창 증발 방지)
+    gameData.mode = selectedMode;
+  }
+  
+  if (!gameData || !gameData.scenes || !Array.isArray(gameData.scenes)) {
        console.error('Missing scenes in gameData:', gameData);
        throw new Error('장면(scenes) 데이터가 생성되지 않았습니다.');
     }
@@ -2001,12 +2015,20 @@ async function ensureCharacterPortraits(characters) {
  * 말뭉치가 잘린 JSON을 최대한 복구합니다 (중괄호/대괄호 닫기)
  */
 function repairJson(json) {
+  let cleaned = json.trim();
+  // 마크다운 코드 블록 제거
+  if (cleaned.includes('```')) {
+    cleaned = cleaned.replace(/```(json)?/g, '').replace(/```/g, '').trim();
+  }
+  // 유효하지 않은 제어 문자 제거
+  cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, " ");
+
   let stack = [];
   let inString = false;
   let escaped = false;
   
-  for (let i = 0; i < json.length; i++) {
-    const char = json[i];
+  for (let i = 0; i < cleaned.length; i++) {
+    const char = cleaned[i];
     if (escaped) { escaped = false; continue; }
     if (char === '\\') { escaped = true; continue; }
     if (char === '"') { inString = !inString; continue; }
@@ -2018,7 +2040,7 @@ function repairJson(json) {
     }
   }
   
-  let repaired = json;
+  let repaired = cleaned;
   if (inString) repaired += '"';
   while (stack.length > 0) repaired += stack.pop();
   return repaired;
@@ -2035,8 +2057,8 @@ function startGame() {
   
   document.body.classList.toggle('mode-vn', selectedMode === 'visual_novel');
   
-  const title = selectedLang === 'en' ? gameData.title : (gameData.title_ko || gameData.title);
-  $('g-title').textContent = title || bookTitle;
+  const rawTitle = selectedLang === 'en' ? gameData.title : (gameData.title_ko || gameData.title);
+  $('g-title').textContent = ensureString(rawTitle || bookTitle);
   
   // 비주얼 노벨 모드일 때 캐릭터 초기화
   const charPanel = $('character-panel');
@@ -2109,9 +2131,9 @@ function renderScene() {
   const total = gameData.scenes.length;
   $('g-prog').style.width = Math.round(((curIdx + 1) / total) * 100) + '%';
   $('g-chap').textContent = (curIdx + 1) + ' / ' + total;
-  $('g-chapter-label').textContent = 'scene ' + scene.id;
+  $('g-chapter-label').textContent = 'scene ' + ensureString(scene.id);
   $('g-score').textContent = score;
-  $('g-context').textContent = scene.context || '';
+  $('g-context').textContent = ensureString(scene.context);
 
   // Cinematic Backdrop Update
   if (selectedMode === 'visual_novel' && scene.bg_keyword) {

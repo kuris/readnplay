@@ -68,26 +68,6 @@ export function saveToHistory() {
 }
 
 /**
- * 완료된 게임 기록을 히스토리에 저장합니다.
- */
-export function saveToHistory() {
-  if (!state.gameData) return;
-  try {
-    const history = JSON.parse(localStorage.getItem('readplay_history') || '[]');
-    const record = {
-      title: state.gameData.title_ko || state.gameData.title || state.bookTitle,
-      mode: state.selectedMode,
-      score: state.score,
-      timestamp: Date.now(),
-      sceneCount: state.gameData.scenes?.length || 0
-    };
-    // 최근 20개까지만 유지
-    history.unshift(record);
-    localStorage.setItem('readplay_history', JSON.stringify(history.slice(0, 20)));
-  } catch(e) { console.error('History save failed', e); }
-}
-
-/**
  * 업로드된 EPUB 파일을 처리하여 텍스트를 추출합니다.
  */
 export async function handleFile(file) {

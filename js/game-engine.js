@@ -394,7 +394,20 @@ export function renderQuiz(scene) {
   const cont = $('q-choices');
   if (!cont) return;
   cont.innerHTML = '';
-  quiz.choices.forEach((ch, i) => {
+  const choices = Array.isArray(quiz.choices) ? quiz.choices : [];
+  if (choices.length === 0) {
+    const btn = document.createElement('button');
+    btn.className = 'choice';
+    btn.textContent = '확인했습니다 (계속하기) →';
+    btn.addEventListener('click', () => {
+      state.curIdx++;
+      renderScene();
+    });
+    cont.appendChild(btn);
+    return;
+  }
+
+  choices.forEach((ch, i) => {
     const btn = document.createElement('button');
     btn.className = 'choice';
     btn.textContent = ['①','②','③','④'][i] + ' ' + ch;

@@ -30,12 +30,15 @@ export async function safeFetchImagen(params) {
   return new Promise((resolve) => {
     state.imageTaskQueue = state.imageTaskQueue.then(async () => {
       let retryCount = 0;
-      const maxRetries = 3;
+      const maxRetries = 5;
+      let baseDelay = 5000;
       
       while (retryCount <= maxRetries) {
         try {
-          // 기본 5초 대기 (할당량 방어용)
-          await sleep(5000);
+          // 호출 간 간격 유지
+          const currentDelay = retryCount === 0 ? baseDelay : baseDelay * Math.pow(2, retryCount);
+          if (retryCount > 0) log(`재시도 대기 중 (${currentDelay/1000}초)...`, 'warn');
+          await sleep(currentDelay);
           
           const res = await fetch('/api/imagen', {
             method: 'POST',
@@ -43,17 +46,10 @@ export async function safeFetchImagen(params) {
             body: JSON.stringify(params)
           });
           
-          if (res.status === 429) {
+          if (res.status === 429 || res.status >= 500) {
             if (retryCount < maxRetries) {
-              const waitTime = (retryCount + 1) * 10000;
-              log(`할당량 초과. ${waitTime/1000}초 후 다시 시도합니다... (${retryCount + 1}/${maxRetries})`, 'warn');
-              await sleep(waitTime);
-              retryCount++;
-              continue; 
-            } else {
-              log('이미지 생성 최대 재시도 횟수 초과', 'err');
-              resolve(null);
-              return;
+               retryCount++;
+               continue; 
             }
           }
           
@@ -62,9 +58,14 @@ export async function safeFetchImagen(params) {
           resolve(data);
           return; 
         } catch (e) {
-          console.error('safeFetchImagen error:', e);
-          resolve(null);
-          return;
+          console.error(`safeFetchImagen retry ${retryCount}:`, e);
+          if (retryCount < maxRetries) {
+            retryCount++;
+          } else {
+            log('이미지 생성 최대 재시도 횟수 초과', 'err');
+            resolve(null);
+            return;
+          }
         }
       }
     });
@@ -86,7 +87,7 @@ export async function ensureCharacterPortraits(characters) {
       const tryGenerate = async (retriesInner = 1) => {
         try {
           const genData = await safeFetchImagen({ 
-            prompt: `${char.image_prompt}, character illustration, white background, high quality, standalone character`,
+            prompt: `${char.image_prompt}, character illustration, standalone portrait, pure solid white background, high quality, studio lighting, masterpiece`,
             aspectRatio: "1:1", numImages: 1
           });
           

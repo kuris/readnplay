@@ -11,8 +11,17 @@ import { startGame } from './game-engine.js';
 function validateAndRepairGameData(data) {
   if (!data || !data.scenes || !Array.isArray(data.scenes)) return data;
 
+  log('스토리 데이터 구조 정밀 검사 중...');
   const sceneCount = data.scenes.length;
-  const validCharIds = new Set((data.characters || []).map(c => c.id));
+  const validCharIds = new Set((data.characters || []).map(c => String(c.id)));
+
+  // 0. 캐릭터 데이터 기본 검증
+  if (data.characters) {
+    data.characters.forEach(c => {
+      c.id = String(c.id);
+      c.name = c.name || "등장인물";
+    });
+  }
 
   data.scenes.forEach((scene, idx) => {
     const currentSceneNum = idx + 1;
@@ -20,9 +29,10 @@ function validateAndRepairGameData(data) {
     // 1. 비주얼 노벨 모드 스크립트 검증
     if (scene.script && Array.isArray(scene.script)) {
       scene.script.forEach(line => {
-        if (line.speaker && !validCharIds.has(line.speaker)) {
-          // 캐릭터가 없으면 가장 유사한 ID를 찾거나 무시 (여기서는 로그만 남김)
-          console.warn(`Validation: Scene ${currentSceneNum} references unknown character ${line.speaker}`);
+        line.speaker = String(line.speaker);
+        if (line.speaker !== 'system' && line.speaker !== 'narrator' && !validCharIds.has(line.speaker)) {
+          console.warn(`Validation: Scene ${currentSceneNum} unknown speaker ${line.speaker}`);
+          line.speaker = 'system'; // 폴백
         }
       });
     }
@@ -30,26 +40,37 @@ function validateAndRepairGameData(data) {
     // 2. 선택지 분기 보정 (루프 방지 및 유효성 체크)
     if (scene.choices && Array.isArray(scene.choices)) {
       scene.choices.forEach(choice => {
-        if (choice.next) {
+        if (choice.next !== undefined) {
           const nextIdx = Number(choice.next);
           // 선형 진행 게임이므로 현재보다 이전 혹은 자기 자신으로 돌아가는 루프 방지
-          // 단, 마지막 장면이 아닌데 비정상적인 값이면 다음 장면으로 유도
+          // 0이거나 sceneCount보다 큰 경우도 보정
           if (isNaN(nextIdx) || nextIdx <= currentSceneNum || nextIdx > sceneCount) {
-             choice.next = currentSceneNum + 1;
+             choice.next = (currentSceneNum < sceneCount) ? currentSceneNum + 1 : null;
           }
         }
       });
     }
 
-    // 3. 장면 자체의 차기 인덱스 보정 (퀴즈 등에서 사용)
-    if (scene.next) {
+    // 3. 장면 자체의 차기 인덱스 보정
+    if (scene.next !== undefined) {
        const nextIdx = Number(scene.next);
        if (isNaN(nextIdx) || nextIdx <= currentSceneNum || nextIdx > sceneCount) {
-         scene.next = currentSceneNum + 1;
+         scene.next = (currentSceneNum < sceneCount) ? currentSceneNum + 1 : null;
        }
     }
     
-    // 4. 필수 필드 보강
+    // 4. 퀴즈 데이터 보정 (Study 모드 대응)
+    if (scene.quiz) {
+      if (!scene.quiz.question) scene.quiz.question = "학습한 내용을 확인해봅시다.";
+      if (!scene.quiz.choices || !Array.isArray(scene.quiz.choices) || scene.quiz.choices.length === 0) {
+        scene.quiz.choices = ["확인했습니다"];
+        scene.quiz.answer = 0;
+      }
+      if (scene.quiz.answer === undefined || isNaN(scene.quiz.answer)) scene.quiz.answer = 0;
+    }
+
+    // 5. 필수 필드 보강
+    scene.id = currentSceneNum;
     scene.narrative = scene.narrative || scene.context || "이야기가 계속됩니다.";
     if (data.mode === 'visual_novel' && (!scene.script || scene.script.length === 0)) {
        scene.script = [{ speaker: "system", text: scene.narrative }];
@@ -135,7 +156,7 @@ export async function generate(retryCount = 0) {
   const studyExtra = state.selectedMode === 'study' ? `
 [학습 모드 규칙]
 - narrative에 핵심 개념(key_concept)과 예제 포함
-- 퀴즈(quiz) 필수 포함` : '';
+- 퀴즈(quiz) 필수 포함: { "question": "질문", "choices": ["보기1", "보기2", "보기3", "보기4"], "answer": 0, "explanation": "해설" }` : '';
 
   const prompt = `당신은 세계 최고의 게임 디자이너다. 아래 텍스트를 바탕으로 '${state.selectedMode}' 모드의 인터랙티브 게임을 JSON으로 설계하라.
 

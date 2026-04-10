@@ -910,7 +910,8 @@ body.mode-vn .game-lang-pill:hover { opacity: 1; }
   height: 100%;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
+  filter: url(#chroma-key-white) drop-shadow(0 0 20px rgba(0,0,0,0.5));
+  transition: opacity 0.5s ease;
 }
 .vn-portrait-area::after {
   content: "";

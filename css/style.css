@@ -993,17 +993,17 @@ body.mode-vn .game-footer .copyright {
 
 /* Choices (중앙 가로 바 스타일) */
 body.mode-vn .choices-list {
-  position: fixed;
-  top: 45%; 
+  position: absolute;
+  bottom: 38vh; /* 대사창(35vh) 바로 위쪽 배치 */
   left: 0;
   width: 100%;
-  transform: translateY(-50%);
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  gap: 1.5px; /* 선택지 사이의 얇은 구분선 효과 */
+  gap: 2px;
   padding: 0;
   pointer-events: none;
+  transform: none;
 }
 body.mode-vn .choices-list > .choice { pointer-events: auto; }
 body.mode-vn .choice {
@@ -1070,4 +1070,9 @@ body.mode-vn .choices-header { display: none !important; }
   body.mode-vn .choice { padding: 0.8rem 1.5rem; font-size: 16px; }
   body.mode-vn .choices-list { gap: 5px; top: 40%; }
   body.mode-vn .game-masthead { font-size: 12px; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
 }

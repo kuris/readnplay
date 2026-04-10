@@ -103,26 +103,69 @@ export function renderScene() {
     // 🎭 비주얼 노벨 모드: 스텝 바이 스텝 (클릭 시 한 줄씩)
     if (sceneEl) sceneEl.innerHTML = '';
     let step = 0;
+    let subStep = 0;
+    let currentChunks = [];
+
+    // 텍스트 분할 함수 (helper)
+    const splitText = (text, maxLength = 180) => {
+      if (!text) return [];
+      const chunks = [];
+      let temp = text;
+      while (temp.length > 0) {
+        if (temp.length <= maxLength) {
+          chunks.push(temp);
+          break;
+        }
+        let splitIdx = temp.lastIndexOf('.', maxLength);
+        if (splitIdx < maxLength * 0.7) splitIdx = temp.lastIndexOf(' ', maxLength);
+        if (splitIdx < maxLength * 0.5) splitIdx = maxLength;
+        chunks.push(temp.substring(0, splitIdx).trim());
+        temp = temp.substring(splitIdx).trim();
+      }
+      return chunks;
+    };
     
     // 선택지 숨김
     if (choicesList) choicesList.style.display = 'none';
 
     const renderStep = () => {
+      const advArea = $('adventure-area');
+      
+      // 현재 대사의 남은 페이지가 있는지 확인
+      if (currentChunks.length > 0 && subStep < currentChunks.length) {
+        const chunk = currentChunks[subStep];
+        const sceneEl = $('g-scene');
+        if (sceneEl) sceneEl.innerHTML = `<div class="dialogue-line fadein">${chunk}</div>`;
+        subStep++;
+        return;
+      }
+
+      // 다음 스테이지로 이동
+      if (currentChunks.length > 0 && subStep >= currentChunks.length) {
+        step++;
+        subStep = 0;
+        currentChunks = [];
+      }
+
       if (step >= scene.script.length) {
         if (choicesList) {
           choicesList.style.display = 'flex';
-          // Fix: Ensure choicesList exists before display:flex
         }
-        const advArea = $('adventure-area');
         if (advArea) {
           advArea.onclick = null;
           advArea.style.cursor = 'default';
-          advArea.style.pointerEvents = 'auto'; // Fix: Ensure buttons inside are clickable
+          advArea.style.pointerEvents = 'auto'; 
         }
         return;
       }
       
       const line = scene.script[step];
+      const text = ensureString(line.content || line.text || '');
+      currentChunks = splitText(text);
+      subStep = 0;
+      
+      // 첫 번째 페이지 렌더링
+      const firstChunk = currentChunks[subStep] || '';
       const char = (state.gameData.characters || []).find(c => String(c.id) === String(line.speaker));
       const name = ensureString(char ? char.name : (line.speaker === 'narrator' ? '' : line.speaker));
       
@@ -133,8 +176,24 @@ export function renderScene() {
         speakerTag.classList.remove('show');
       }
       
+      // 렌더링
+      const sceneEl = $('g-scene');
+      if (sceneEl) {
+        const chunk = currentChunks[subStep] || '';
+        const isNextPage = subStep < currentChunks.length - 1;
+        sceneEl.innerHTML = `
+          <div class="dialogue-line fadein ${line.speaker === 'narrator' ? 'is-narrator' : ''}">
+            <span>${chunk}</span>
+            ${isNextPage ? '<div style="font-size:12px; margin-top:10px; opacity:0.5; text-align:right;">▼</div>' : ''}
+          </div>
+        `;
+      }
+      subStep++;
+
+      // 얼굴 이미지 처리 (첫 페이지에서만 또는 매 페이지 업데이트)
       const portraitArea = $('vn-portrait-area');
       if (portraitArea) {
+        const char = (state.gameData.characters || []).find(c => String(c.id) === String(line.speaker));
         const avatarUrl = char ? (char.avatar_url || '') : '';
         if (avatarUrl) {
           portraitArea.innerHTML = `<img src="${avatarUrl}" class="fadein">`;
@@ -146,15 +205,6 @@ export function renderScene() {
           portraitArea.classList.remove('dim');
         }
       }
-
-      if (sceneEl) {
-        sceneEl.innerHTML = `<div class="dialogue-line fadein ${line.speaker === 'narrator' ? 'is-narrator' : ''}">
-          <span>${line.text}</span>
-          <div style="font-size:12px; margin-top:10px; opacity:0.5; text-align:right;">▼</div>
-        </div>`;
-      }
-      
-      step++;
     };
 
     const advArea = $('adventure-area');

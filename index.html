@@ -1873,6 +1873,13 @@ ${studyExtra}
       console.error('Repair failed:', repairErr);
       throw new Error('AI 응답 데이터 복구 실패 (JSON 형식이 너무 많이 손상됨)');
     }
+    } catch(e) {
+      log('오류: ' + e.message, 'err');
+      if (retryCount < maxRetries) {
+        log('재시도 중...', 'warn');
+        setTimeout(() => generate(retryCount + 1), 2000);
+      }
+    }
   }
 
   // ── 데이터 데이터 정규화 (객체 필드 처리) ────────────────

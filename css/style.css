@@ -893,42 +893,47 @@ body.mode-vn .game-masthead .score {
 body.mode-vn .game-masthead:hover, 
 body.mode-vn .game-lang-pill:hover { opacity: 1; }
 
-/* Portrait Area (중앙 상단 배치) */
+/* Portrait Area (인물 카드 스타일 - 왼쪽 배치) */
 .vn-portrait-area {
-  display: none !important; /* 기본적으로 숨김 */
+  display: none !important;
   position: absolute;
-  top: 45%; 
-  left: 50%;
-  transform: translate(-50%, -50%);
+  left: 6%; 
+  top: 42%;
+  transform: translateY(-50%);
   width: auto;
-  height: 80vh;
-  z-index: -2;
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  height: 50vh; /* 조금 작게 조정 */
+  z-index: 100;
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
+  background: #fff; /* 흰 배경 강조 */
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1);
 }
 .vn-portrait-area img {
   height: 100%;
   width: auto;
   object-fit: contain;
-  filter: url(#chroma-key-white) drop-shadow(0 0 20px rgba(0,0,0,0.5));
+  /* 크로마키 제거: 흰 배경을 디자인 요소로 활용 */
+  filter: brightness(1.05) contrast(1.02); 
   transition: opacity 0.5s ease;
 }
 .vn-portrait-area::after {
   content: "";
   position: absolute;
-  bottom: 0; left: 0; right: 0; height: 15%;
-  background: linear-gradient(to top, #000 0%, transparent 100%);
-  opacity: 0.4;
+  inset: 0;
+  border: 1px solid rgba(0,0,0,0.05);
+  pointer-events: none;
 }
 body.mode-vn .vn-portrait-area {
-  display: flex !important; /* VN 모드에서만 강제 표시 */
+  display: flex !important;
   justify-content: center;
   align-items: center;
 }
 body.mode-vn .vn-portrait-area.dim {
-  filter: brightness(0.1) grayscale(1) blur(2px);
-  transform: translate(-50%, -48%) scale(0.98);
-  opacity: 0.5;
+  filter: brightness(0.4) grayscale(0.5);
+  transform: translateY(-48%) scale(0.96);
+  opacity: 0.7;
 }
 
 /* Dialogue Box (강화된 글래스모피즘) */
@@ -992,17 +997,17 @@ body.mode-vn .game-footer .copyright {
   display: none !important; 
 }
 
-/* Choices (대사창 상단 배치) */
+/* Choices (레이아웃 균형을 위한 조정) */
 body.mode-vn .choices-list {
-  bottom: calc(35vh + 3rem); /* 대사창(35vh) 위쪽으로 배치 */
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  max-width: 800px;
+  bottom: calc(35vh + 3rem);
+  left: 55%; /* 왼쪽 인물 카드와 겹치지 않게 약간 오른쪽으로 이동 */
+  transform: translateX(-40%);
+  width: 85%;
+  max-width: 900px;
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   padding: 0;
   pointer-events: none;
 }
@@ -1037,12 +1042,13 @@ body.mode-vn .choices-header { display: none !important; }
 
 /* Portrait optimization for mode-vn */
 @media (max-width: 768px) and (orientation: portrait) {
-  /* 가로 모드 유도 문구가 나타나지 않도록 VN 모드와 일반 모드 모두에서 우선순위 높게 가림 */
   #landscape-prompt { display: none !important; }
   
   body.mode-vn .vn-portrait-area {
-    height: 58vh; /* 캐릭터가 세로 화면에서 더 돋보이도록 높이 조정 */
-    top: 38%;     /* 수직 중앙보다 약간 위로 배치 */
+    height: 38vh; /* 모바일에서는 더 작게 */
+    left: 50%;    /* 모바일 세로모드에서는 중앙 상단 배치 */
+    top: 25%;
+    transform: translateX(-50%);
   }
   
   body.mode-vn #adventure-area {
@@ -1051,33 +1057,22 @@ body.mode-vn .choices-header { display: none !important; }
   }
 
   body.mode-vn .choices-list {
-    bottom: 30vh; /* 대사창 바로 위에 선택지 배치 */
-    width: 92%;
-    gap: 6px;
+    bottom: 28vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 94%;
+    gap: 8px;
   }
   
   body.mode-vn .choice {
-    padding: 0.7rem 1rem;
-    font-size: 15px;
-    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    font-size: 16px;
   }
   
   body.mode-vn .scene-wrap {
     padding: 1.2rem 1.4rem;
     min-height: 140px;
-    max-height: 28vh;
-    border-radius: 14px;
-  }
-  
-  body.mode-vn .dialogue-line { 
-    font-size: 19px; 
-    line-height: 1.5;
-  }
-  
-  body.mode-vn .speaker-tag { 
-    font-size: 22px !important; 
-    top: -40px !important;
-    padding-bottom: 4px !important;
+    max-height: 30vh;
   }
 }
 

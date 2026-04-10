@@ -5,7 +5,7 @@ import { generate } from './story-generator.js';
 import { startGame, renderScene } from './game-engine.js';
 import { loadProgress, clearProgress, handleFile } from './storage.js';
 import { renderFeaturedBooks, searchGutenberg, renderBookList } from './gutenberg.js';
-import { downloadGameZip, shareResults } from './export-system.js';
+import { downloadGameZip, shareResults, saveGameAsHTML, saveGameAsText } from './export-system.js';
 
 // --- 전역 접근이 필요한 함수들 (HTML inline 이벤트 호환용) ---
 window.switchLang = (lang) => {
@@ -193,6 +193,8 @@ function initEventListeners() {
   document.addEventListener('click', (e) => {
     if (e.target.id === 'btn-zip-export') downloadGameZip();
     if (e.target.id === 'btn-share-results') shareResults();
-    // HTML/TXT 저장은 추후 구현 필요
+    if (e.target.id === 'btn-save-html') saveGameAsHTML();
+    if (e.target.id === 'btn-save-txt') saveGameAsText();
+    if (e.target.id === 'btn-go-home') location.reload(); // 가장 확실한 초기화 방법
   });
 }

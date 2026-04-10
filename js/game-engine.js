@@ -432,6 +432,9 @@ export function showGameOver(reason) {
 }
 
 export function showEnding() {
+  // 진행 상황 삭제 전 히스토리에 기록 (엔딩 도달 기념)
+  import('./storage.js').then(m => m.saveToHistory());
+  
   clearProgress();
   $('adventure-area').style.display = 'none';
   $('quiz-area').style.display = 'none';
@@ -552,6 +555,11 @@ function injectFeedbackButtons() {
         <div style="margin-top: 1rem;">
              <button class="btn-ghost" id="btn-zip-export" style="width:100%; background: var(--gold); color: #fff;">
                 📂 전체 기록 ZIP 다운로드
+             </button>
+        </div>
+        <div style="margin-top: 1.5rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
+             <button class="btn-ghost" id="btn-go-home" style="width:100%; border-color: var(--gold); color: var(--gold);">
+                🏠 메인 화면으로 돌아가기
              </button>
         </div>
       </div>

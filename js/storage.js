@@ -41,13 +41,50 @@ export function loadProgress() {
   } catch(e) { return false; }
 }
 
-/**
- * 저장된 세션을 삭제합니다.
- */
 export function clearProgress() {
   localStorage.removeItem('readplay_save');
   const contSec = $('continue-section');
   if (contSec) contSec.style.display = 'none';
+}
+
+/**
+ * 완료된 게임 기록을 히스토리에 저장합니다.
+ */
+export function saveToHistory() {
+  if (!state.gameData) return;
+  try {
+    const history = JSON.parse(localStorage.getItem('readplay_history') || '[]');
+    const record = {
+      title: state.gameData.title_ko || state.gameData.title || state.bookTitle,
+      mode: state.selectedMode,
+      score: state.score,
+      timestamp: Date.now(),
+      sceneCount: state.gameData.scenes?.length || 0
+    };
+    // 최근 20개까지만 유지
+    history.unshift(record);
+    localStorage.setItem('readplay_history', JSON.stringify(history.slice(0, 20)));
+  } catch(e) { console.error('History save failed', e); }
+}
+
+/**
+ * 완료된 게임 기록을 히스토리에 저장합니다.
+ */
+export function saveToHistory() {
+  if (!state.gameData) return;
+  try {
+    const history = JSON.parse(localStorage.getItem('readplay_history') || '[]');
+    const record = {
+      title: state.gameData.title_ko || state.gameData.title || state.bookTitle,
+      mode: state.selectedMode,
+      score: state.score,
+      timestamp: Date.now(),
+      sceneCount: state.gameData.scenes?.length || 0
+    };
+    // 최근 20개까지만 유지
+    history.unshift(record);
+    localStorage.setItem('readplay_history', JSON.stringify(history.slice(0, 20)));
+  } catch(e) { console.error('History save failed', e); }
 }
 
 /**

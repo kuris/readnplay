@@ -618,13 +618,15 @@ function injectFeedbackButtons() {
     
     const endArea = $('ending-area');
     if (!endArea) return;
-    const oldFeedback = endArea.querySelector('.feedback-box');
+    const wrap = endArea.querySelector('.ending-wrap');
+    if (!wrap) return;
+    const oldFeedback = wrap.querySelector('.feedback-box');
     if (oldFeedback) oldFeedback.remove();
 
     const div = document.createElement('div');
     div.className = 'feedback-box fadein';
     div.innerHTML = feedbackHTML;
-    endArea.appendChild(div);
+    wrap.appendChild(div);
     
     // 이벤트 리스너 나중에 바인딩 (main.js)
 }

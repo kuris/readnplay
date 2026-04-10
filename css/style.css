@@ -687,15 +687,20 @@ body.is-ending .game-backdrop::after {
   position: fixed;
   inset: 0;
   display: none;
-  align-items: flex-end;   /* 가로 우측 정렬 */
-  justify-content: flex-start; /* 세로 상단 정렬 */
+  grid-template-columns: 1fr 450px; /* 좌측: 인물 감상 영역, 우측: 정보 대시보드 */
   z-index: 9000;
-  overflow-y: auto;
-  padding: 5vh 5% 5vh 1rem; /* 우측/상단 여백 확보 */
-  flex-direction: column;
-  gap: 1.5rem;
+  overflow: hidden;
 }
-body.is-ending #ending-area { display: flex; }
+body.is-ending #ending-area { display: grid; }
+
+/* 모바일 대응: 세로 모드에서는 1컬러로 전환 */
+@media (max-width: 900px) {
+  #ending-area {
+    display: none;
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+}
 
 /* 엔딩 시 게임 UI 숨김 */
 body.is-ending .vn-portrait-area,
@@ -712,17 +717,25 @@ body.is-ending #character-panel {
 }
 
 .ending-wrap { 
+  grid-column: 2; /* 그리드 우측 열에 배치 */
+  height: 100vh;
+  overflow-y: auto;
   text-align: center; 
-  max-width: 800px; /* 다시 중앙 패널로 크기 확장 */
   width: 100%;
-  padding: 3rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 40px 100px rgba(0,0,0,0.8);
-  animation: fadeIn 1s ease both; /* 중앙 페이드인으로 변경 */
+  padding: 5rem 3rem;
+  background: rgba(0, 0, 0, 0.4);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  box-shadow: -20px 0 50px rgba(0,0,0,0.5);
+  animation: slideInRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
 }
 .ending-mark {
   font-family: var(--ff-serif);
@@ -734,33 +747,33 @@ body.is-ending #character-panel {
 }
 .ending-h {
   font-family: var(--ff-serif);
-  font-size: 2.4rem;
+  font-size: 2.8rem;
   color: #fff;
   margin-bottom: 0.8rem;
   letter-spacing: 0.05em;
+  line-height: 1.2;
 }
 .ending-sub { 
-  font-size: 15px; 
-  color: rgba(255,255,255,0.6); 
-  margin-bottom: 2.5rem; 
+  font-size: 14px; 
+  color: rgba(255,255,255,0.5); 
+  margin-bottom: 3rem; 
   line-height: 1.7; 
   letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 .ending-score {
   font-family: var(--ff-serif);
-  font-size: 3.5rem;
+  font-size: 4rem;
   color: var(--gold-light);
   font-weight: 600;
   display: block;
   margin-bottom: 0.5rem;
 }
 .ending-score-label { 
-  font-size: 12px; 
+  font-size: 11px; 
   color: rgba(255,255,255,0.4); 
-  letter-spacing: 0.3em; 
+  letter-spacing: 0.4em; 
   text-transform: uppercase; 
-  margin-bottom: 3rem;
+  margin-bottom: 4rem;
 }
 
 /* 삭제된 관계도 스타일 정리 */
@@ -1238,53 +1251,80 @@ body.mode-vn .choices-header { display: none !important; }
   100% { transform: translateY(0); }
 }
 
-/* 엔딩 피드백 및 내보내기 버튼 구역 최적화 */
+/* 엔딩 피드백 및 통합 컨트롤 패널 */
 .feedback-box {
   width: 100%;
-  max-width: 800px;
+  margin-top: 2rem;
   animation: fadeIn 1.2s ease both;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 3rem;
 }
 
 .feedback-inner {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 2.5rem;
-  border-radius: 20px;
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
   text-align: center;
 }
 
 .feedback-msg {
-  font-size: 13px;
-  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
   margin-bottom: 1.5rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.feedback-box .btn-ghost {
+/* 버튼 그리드 시스템 */
+.feedback-box .btn-ghost, .feedback-box .btn-start {
   border: 1px solid rgba(255,255,255,0.1) !important;
   background: rgba(255,255,255,0.03) !important;
   color: rgba(255,255,255,0.8) !important;
+  font-size: 13px !important;
+  padding: 12px 20px !important;
+  border-radius: 8px !important;
+  height: auto !important;
 }
 
 .feedback-box .btn-ghost:hover {
   background: rgba(255,255,255,0.1) !important;
   border-color: var(--gold) !important;
   color: #fff !important;
-  transform: translateY(-2px);
 }
 
 .feedback-box .btn-start {
   background: var(--gold) !important;
+  color: #fff !important;
   border: none !important;
-  transition: all 0.2s ease;
 }
 
-.feedback-box .btn-start:hover {
-  background: var(--gold-light) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(184, 134, 11, 0.3);
+/* 내보내기 버튼들 그리드 배치 */
+#btn-save-html, #btn-save-txt, #btn-share-results {
+  flex: 1;
+  margin: 0 !important;
+}
+
+#btn-zip-export {
+  margin-top: 1rem !important;
+  width: 100% !important;
+  background: var(--gold) !important;
+  color: #fff !important;
+}
+
+#btn-go-home {
+  margin-top: 2rem !important;
+  width: 100% !important;
+  border: 1px solid var(--gold) !important;
+  color: var(--gold) !important;
+  font-weight: 600 !important;
+}
+
+@media (max-width: 900px) {
+  .ending-wrap {
+    grid-column: 1;
+    height: auto;
+    padding: 3rem 1.5rem;
+    border-left: none;
+    border-radius: 20px;
+    margin: 2rem 1rem;
+    backdrop-filter: blur(20px);
+  }
 }
 

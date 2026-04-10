@@ -46,14 +46,24 @@ export async function safeFetchImagen(params) {
             body: JSON.stringify(params)
           });
           
-          if (res.status === 429 || res.status >= 500) {
-            if (retryCount < maxRetries) {
-               retryCount++;
-               continue; 
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            console.error('Imagen API 호출 실패:', {
+              status: res.status,
+              error: errorData.error,
+              details: errorData.details || errorData.message,
+              raw: errorData
+            });
+
+            // 429(Rate Limit)나 500대 에러만 재시도
+            if ((res.status === 429 || res.status >= 500) && retryCount < maxRetries) {
+              retryCount++;
+              continue;
             }
+            
+            throw new Error(errorData.error || `HTTP ${res.status}`);
           }
           
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
           resolve(data);
           return; 

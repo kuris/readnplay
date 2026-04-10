@@ -45,32 +45,52 @@ export default async function handler(req, res) {
     const allImages = [];
 
     for (const response of responses) {
-      const data = await response.json();
       if (!response.ok) {
-        console.error("Imagen API Error:", data);
-        return res.status(response.status).json(data);
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Imagen Upstream Error:", errorData);
+        return res.status(response.status).json({
+          error: "Imagen API 업스트림 에러",
+          details: errorData,
+          status: response.status
+        });
       }
       
+      const data = await response.json();
+      
       // Vertex AI / AI Platform 응답 형식에서 이미지 추출
-      const images = data.predictions || data.images || [];
-      images.forEach(img => {
-        const binary = img.bytesBase64Encoded || img.imageBinary || img.image?.imageBinary;
+      const predictions = data.predictions || [];
+      
+      if (predictions.length === 0) {
+        // 결과가 없으면 세이프티 필터링 가능성 체크
+        console.warn("No predictions returned. Possible safety filter trigger.", data);
+      }
+
+      predictions.forEach(img => {
+        // 여러 가능한 필드명 체크 (bytesBase64Encoded가 표준)
+        const binary = img.bytesBase64Encoded || img.imageBinary || img.image?.imageBinary || img.bytes;
         if (binary) allImages.push(binary);
       });
     }
 
     if (allImages.length === 0) {
-      throw new Error("이미지 데이터 생성 실패");
+      return res.status(400).json({ 
+        error: "이미지 데이터가 생성되지 않았습니다 (Safety filter?).",
+        rawResponse: responses[0] ? await (async () => { try { return await responses[0].clone().json(); } catch(e) { return "Parse Error"; } })() : null
+      });
     }
 
     return res.status(200).json({ 
       success: true,
-      images: allImages, // 여러 장을 배열로 반환
-      imageBinary: allImages[0] // 하위 호환성을 위해 첫 번째 이미지 추가
+      images: allImages,
+      imageBinary: allImages[0]
     });
     
   } catch (e) {
-    console.error("Imagen Server Error:", e.message);
-    return res.status(500).json({ error: e.message });
+    console.error("Imagen Handler Critical Error:", e);
+    return res.status(500).json({ 
+      error: "내부 서버 에러",
+      message: e.message,
+      stack: process.env.NODE_ENV === 'development' ? e.stack : undefined
+    });
   }
 }

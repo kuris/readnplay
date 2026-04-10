@@ -456,15 +456,33 @@ export function showEnding() {
   import('./storage.js').then(m => m.saveToHistory());
   
   clearProgress();
-  $('adventure-area').style.display = 'none';
-  $('quiz-area').style.display = 'none';
+
+  // 모든 게임 구역 숨기기
+  const hideList = [
+    'adventure-area', 'quiz-area', 'game-masthead', 'progress-rail', 
+    'lang-pill', 'character-panel', 'vn-portrait-area', 
+    'orig-toggle', 'orig-box', 'landscape-prompt'
+  ];
+  hideList.forEach(id => {
+    const el = $(id);
+    if (el) el.style.display = 'none';
+  });
+
+  // 텍스트 영역 초기화
+  const speakerTag = $('speaker-tag');
+  if (speakerTag) speakerTag.classList.remove('show');
+  const gScene = $('g-scene');
+  if (gScene) gScene.innerHTML = '';
+  const gChoices = $('g-choices');
+  if (gChoices) gChoices.innerHTML = '';
+
+  // 엔딩 영역 표시
   $('ending-area').style.display = 'block';
+  
   const progFill = $('g-prog');
   if (progFill) progFill.style.width = '100%';
   const ctxEl = $('g-context');
   if (ctxEl) ctxEl.textContent = '完';
-  const sceneEl = $('g-scene');
-  if (sceneEl) sceneEl.textContent = '';
   
   let finalTitle = '완독';
   let finalDesc = state.gameData.title_ko || state.gameData.title || state.bookTitle;
@@ -501,8 +519,8 @@ export function showEnding() {
 
   injectFeedbackButtons();
 
-  // ZIP 다운로드 버튼 추가
-  const actBar = document.querySelector('.feedback-box'); // feedback box 안에 추가하는걸로 변경되거나 Main에서 처리
+  // 스크롤 탑
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function evaluateEndingCondition(condition) {

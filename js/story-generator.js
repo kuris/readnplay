@@ -31,7 +31,7 @@ function validateAndRepairGameData(data) {
       scene.script.forEach(line => {
         line.speaker = String(line.speaker);
         if (line.speaker !== 'system' && line.speaker !== 'narrator' && !validCharIds.has(line.speaker)) {
-          console.warn(`Validation: Scene ${currentSceneNum} unknown speaker ${line.speaker}`);
+          console.warn(`Validation: Unknown speaker ID [${line.speaker}] in Scene ${currentSceneNum}. Falling back to 'system'.`);
           line.speaker = 'system'; // 폴백
         }
       });

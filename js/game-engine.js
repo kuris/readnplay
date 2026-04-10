@@ -221,12 +221,16 @@ export function renderScene() {
       if (portraitArea) {
         const char = (state.gameData.characters || []).find(c => String(c.id) === String(line.speaker));
         const avatarUrl = char ? (char.avatar_url || '') : '';
+        
         if (avatarUrl) {
-          portraitArea.innerHTML = `<img src="${avatarUrl}" class="fadein">`;
+          portraitArea.style.display = 'flex';
+          portraitArea.innerHTML = `<img src="${avatarUrl}" class="fadein" onerror="this.parentElement.style.display='none'">`;
           portraitArea.classList.remove('dim');
         } else if (line.speaker === 'narrator') {
+          portraitArea.style.display = 'block';
           portraitArea.classList.add('dim');
         } else {
+          portraitArea.style.display = 'none';
           portraitArea.innerHTML = '';
           portraitArea.classList.remove('dim');
         }

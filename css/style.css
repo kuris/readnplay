@@ -1011,20 +1011,20 @@ body.mode-vn .game-lang-pill:hover { opacity: 1; }
 
 /* Portrait Area (인물 카드 스타일 - 왼쪽 배치) */
 .vn-portrait-area {
-  display: none !important;
+  display: none; /* 기본 숨김 */
   position: absolute;
   left: 6%; 
   top: 42%;
   transform: translateY(-50%);
   width: auto;
-  height: 50vh; /* 조금 작게 조정 */
+  height: 50vh;
   z-index: 100;
   transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
-  background: #fff; /* 흰 배경 강조 */
-  padding: 8px;
-  border-radius: 4px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1);
+  background: transparent; /* 흰색 배경 제거 */
+  padding: 0;
+  border-radius: 8px;
+  filter: drop-shadow(0 20px 60px rgba(0,0,0,0.6));
 }
 .vn-portrait-area img {
   height: 100%;

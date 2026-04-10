@@ -892,12 +892,18 @@ body.mode-vn .game-backdrop::after {
 body.mode-vn .game-masthead, 
 body.mode-vn .progress-rail, 
 body.mode-vn .game-lang-pill {
-  opacity: 0.15;
+  opacity: 0.6; /* 가독성을 위해 불투명도 증가 */
   transition: opacity 0.5s;
   z-index: 100;
+  color: #fff !important;
+}
+body.mode-vn .game-masthead .game-book-title,
+body.mode-vn .game-masthead .score {
+  color: #fff !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 body.mode-vn .game-masthead:hover, 
-body.mode-vn .game-lang-pill:hover { opacity: 0.9; }
+body.mode-vn .game-lang-pill:hover { opacity: 1; }
 
 /* Portrait Area (중앙 상단 배치) */
 .vn-portrait-area {
@@ -1678,8 +1684,18 @@ async function generate(retryCount = 0) {
       if (cacheRes.ok) {
         const cacheData = await cacheRes.json();
         if (cacheData.cached && cacheData.gameData) {
-          log('저장된 스토리와 이미지를 불러왔습니다!');
+          log('저장된 데이터를 불러왔습니다.');
           gameData = cacheData.gameData;
+          
+          // 캐시 데이터여도 캐릭터 이미지가 누락된 경우 생성을 재시도
+          if (selectedMode === 'visual_novel' && gameData.characters) {
+            const missingPortraits = gameData.characters.some(c => !c.avatar_url);
+            if (missingPortraits) {
+              log('일부 캐릭터 이미지가 누락되어 생성을 시작합니다...');
+              await ensureCharacterPortraits(gameData.characters);
+            }
+          }
+
           setStage(3);
           completeStages();
           setTimeout(startGame, 600);

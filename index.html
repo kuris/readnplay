@@ -951,7 +951,8 @@ body.mode-vn #adventure-area {
   transform: translateX(-50%);
   width: 94%;
   max-width: 1400px;
-  z-index: 500; /* 레이어 순위를 대폭 높임 */
+  z-index: 500;
+  display: block !important; /* AI 응답 누락으로 인한 숨김 방지 */
 }
 body.mode-vn .scene-wrap {
   background: linear-gradient(135deg, rgba(20, 20, 25, 0.85) 0%, rgba(5, 5, 10, 0.95) 100%);
@@ -1807,13 +1808,17 @@ ${studyExtra}
     } catch (parseErr) {
       console.warn('Initial parse failed, attempting deep repair...');
       try {
-        gameData = JSON.parse(repairJson(jsonText));
+        jsonText = repairJson(jsonText);
+        gameData = JSON.parse(jsonText);
       } catch (repairErr) {
         console.error('Repair failed:', repairErr);
         throw new Error('AI 응답 데이터 복구 실패 (JSON 형식이 너무 많이 손상됨)');
       }
     }
 
+    // ── 데이터 무결성 강제 확보 ─────────────────────────────
+    gameData.mode = selectedMode; // 모드 필드 강제 할당 (대화창 증발 방지)
+    
     if (!gameData.scenes || !Array.isArray(gameData.scenes)) {
        console.error('Missing scenes in gameData:', gameData);
        throw new Error('장면(scenes) 데이터가 생성되지 않았습니다.');
@@ -1973,7 +1978,7 @@ function startGame() {
 function renderCharacterPanel() {
   const cont = $('character-panel');
   if (!gameData.characters) return;
-  // 이미지가 있는 캐릭터만 표시
+  // 이미지가 있는 캐릭터만 표시 (사용자 요청 반영)
   const charsWithImage = gameData.characters.filter(c => c.avatar_url);
   cont.innerHTML = charsWithImage.map(char => {
     const rel = characterRelationships[char.id] || 0;
@@ -1981,7 +1986,7 @@ function renderCharacterPanel() {
     return `
       <div class="char-card" id="char-card-${char.id}" data-char="${char.id}">
         <div class="char-avatar">
-          ${char.avatar_url ? `<img src="${char.avatar_url}">` : `<div style="padding-top:15px;color:rgba(255,255,255,0.3)">?</div>`}
+          <img src="${char.avatar_url}">
         </div>
         <div class="char-name">${char.name}</div>
         <div class="char-rel-bar">

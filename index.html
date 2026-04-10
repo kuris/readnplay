@@ -6,6 +6,7 @@
 <title>READPLAY — epub을 게임으로</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -892,7 +893,7 @@ body.mode-vn .game-backdrop::after {
 body.mode-vn .game-masthead, 
 body.mode-vn .progress-rail, 
 body.mode-vn .game-lang-pill {
-  opacity: 0.6; /* 가독성을 위해 불투명도 증가 */
+  opacity: 0.4; /* 상단 클러터 시인성 더 낮춤 */
   transition: opacity 0.5s;
   z-index: 100;
   color: #fff !important;
@@ -995,6 +996,7 @@ body.mode-vn #book-title,
 body.mode-vn .orig-toggle,
 body.mode-vn #orig-toggle,
 body.mode-vn #orig-box,
+body.mode-vn .scene-header, /* 장면 컨텍스트 및 번호 숨김 (겹침 방지) */
 body.mode-vn .game-footer .copyright { 
   display: none !important; 
 }
@@ -2276,7 +2278,7 @@ function renderQuiz(scene) {
 }
 
 function showEnding() {
-  clearProgress(); // 완독 시 저장 데이터 삭제
+  clearProgress();
   $('adventure-area').style.display = 'none';
   $('quiz-area').style.display = 'none';
   $('ending-area').style.display = 'block';
@@ -2284,7 +2286,6 @@ function showEnding() {
   $('g-context').textContent = '完';
   $('g-scene').textContent = '';
   
-  // 비주얼 노벨 모드: 최적 엔딩 찾기
   let finalTitle = '완독';
   let finalDesc = gameData.title_ko || gameData.title || bookTitle;
 
@@ -2306,12 +2307,125 @@ function showEnding() {
     $('ending-score-label').style.display = 'block';
   }
 
-  // 비주얼 노벨 모드: 최종 관계도 표시
   if (selectedMode === 'visual_novel' && gameData.characters) {
     showFinalRelationships();
   }
 
   injectFeedbackButtons();
+
+  // ZIP 다운로드 버튼 추가
+  const actBar = document.querySelector('.ending-actions');
+  if (actBar && !document.getElementById('btn-zip-export')) {
+    const zipBtn = document.createElement('button');
+    zipBtn.id = 'btn-zip-export';
+    zipBtn.className = 'btn btn-secondary';
+    zipBtn.style.background = 'var(--gold)';
+    zipBtn.style.color = '#fff';
+    zipBtn.innerHTML = '📂 전체 기록 ZIP 다운로드';
+    zipBtn.onclick = downloadGameZip;
+    actBar.prepend(zipBtn);
+  }
+}
+
+async function downloadGameZip() {
+  const btn = document.getElementById('btn-zip-export');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '📦 패키징 중...';
+  btn.disabled = true;
+
+  try {
+    const zip = new JSZip();
+    const folder = zip.folder("readplay_export");
+    
+    // 1. JSON 데이터 추가
+    folder.file("game_data.json", JSON.stringify(gameData, null, 2));
+    
+    // 2. 캐릭터 이미지 수집 및 추가
+    const imgFolder = folder.folder("images");
+    if (gameData.characters) {
+      log('이미지 패키징 중...', 'warn');
+      const fetchPromises = gameData.characters.map(async (char) => {
+        if (char.avatar_url) {
+          try {
+            const res = await fetch(char.avatar_url);
+            const blob = await res.blob();
+            const ext = char.avatar_url.split('.').pop().split('?')[0] || 'jpg';
+            imgFolder.file(`${char.id}.${ext}`, blob);
+          } catch (e) {
+            console.error(`Failed to fetch image for ${char.name}`, e);
+          }
+        }
+      });
+      await Promise.all(fetchPromises);
+    }
+
+    // 3. 간이 오프라인 뷰어 HTML
+    const viewerHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${gameData.title_ko || gameData.title} - READPLAY 독서 기록</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #fdfaf6; color: #1a1714; }
+    h1 { border-bottom: 2px solid #b8860b; padding-bottom: 10px; }
+    .scene { background: #fff; border: 1px solid #e0d8cc; border-radius: 8px; margin-bottom: 20px; overflow: hidden; }
+    .scene-header { background: #1a1714; color: #f2e9dc; padding: 8px 15px; font-size: 13px; }
+    .scene-body { padding: 20px; line-height: 1.8; }
+    .character-list { display: flex; gap: 15px; margin: 20px 0; }
+    .char-card { text-align: center; font-size: 12px; }
+    .char-card img { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #b8860b; object-fit: cover; }
+  </style>
+</head>
+<body>
+  <h1>${gameData.title_ko || gameData.title}</h1>
+  <p>모드: ${selectedMode} | 생성일: ${new Date().toLocaleDateString()}</p>
+  
+  <div class="character-list">
+    ${(gameData.characters || []).map(c => `
+      <div class="char-card">
+        <img src="images/${c.id}.jpg" onerror="this.src='https://via.placeholder.com/60'">
+        <div>${c.name}</div>
+      </div>
+    `).join('')}
+  </div>
+
+  <h2>플레이 기록</h2>
+  ${gameData.scenes.map((s, idx) => `
+    <div class="scene">
+      <div class="scene-header">SCENE ${idx + 1} - ${s.id}</div>
+      <div class="scene-body">
+        ${s.narrative || ''}
+        ${s.script ? s.script.map(l => `<p><strong>${l.speaker}:</strong> ${l.text}</p>`).join('') : ''}
+      </div>
+    </div>
+  `).join('')}
+</body>
+</html>`;
+    folder.file("index.html", viewerHtml);
+
+    // 4. 생성 및 다운로드
+    log('ZIP 파일 생성 중...');
+    const content = await zip.generateAsync({type:"blob"});
+    const safeTitle = (gameData.title || 'game').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `READPLAY_${safeTitle}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    btn.innerHTML = '✅ 다운로드 완료';
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }, 3000);
+  } catch (err) {
+    console.error(err);
+    alert('ZIP 생성 중 오류가 발생했습니다.');
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
 }
 
 async function updateBackdrop(keyword) {

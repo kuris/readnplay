@@ -1039,11 +1039,38 @@ body.mode-vn .choice-main { font-weight: 500; letter-spacing: 0.05em; }
 body.mode-vn .choice-hint { display: none; }
 body.mode-vn .choices-header { display: none !important; }
 
-/* UI 숨기기 */
-body.mode-vn #orig-toggle,
-body.mode-vn #orig-box,
-body.mode-vn .orig-toggle { display: none !important; }
+/* 모바일 대응: 가로 모드 유도 및 레이아웃 최적화 */
+#landscape-prompt {
+  display: none;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: #000; z-index: 9999;
+  flex-direction: column; align-items: center; justify-content: center;
+  color: #fff; text-align: center; padding: 20px;
+}
+#landscape-prompt .icon {
+  font-size: 50px; margin-bottom: 20px;
+  animation: rotateDevice 2s infinite ease-in-out;
+}
+@keyframes rotateDevice {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
 
+@media (max-width: 900px) and (orientation: portrait) {
+  body.mode-vn #landscape-prompt { display: flex; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  body.mode-vn .vn-portrait-area { height: 95vh; top: 50%; }
+  body.mode-vn #adventure-area { bottom: 0.5rem; width: 98%; }
+  body.mode-vn .scene-wrap { padding: 1rem 1.5rem; min-height: 120px; border-radius: 8px; }
+  body.mode-vn .dialogue-line { font-size: 18px; line-height: 1.4; }
+  body.mode-vn .speaker-tag { font-size: 20px !important; top: -35px !important; }
+  body.mode-vn .choice { padding: 0.8rem 1.5rem; font-size: 16px; }
+  body.mode-vn .choices-list { gap: 5px; top: 40%; }
+  body.mode-vn .game-masthead { font-size: 12px; }
+}
 </style>
 </head>
 <body>
@@ -1212,6 +1239,13 @@ body.mode-vn .orig-toggle { display: none !important; }
 
   <!-- ── GAME ── -->
   <div id="screen-game" class="screen">
+    <!-- 가로 모드 안내 (VN 전용) -->
+    <div id="landscape-prompt">
+      <div class="icon">📱🔄</div>
+      <div style="font-family: 'Outfit'; font-weight: 600; font-size: 20px; margin-bottom: 10px;">시네마틱 모드 전환</div>
+      <div style="opacity: 0.8;">더 생생한 경험을 위해 기기를 가로로 돌려주세요.</div>
+    </div>
+
     <!-- Cinematic Backdrop & Portrait -->
     <div id="game-backdrop" class="game-backdrop"></div>
     <div id="vn-portrait-area" class="vn-portrait-area"></div>

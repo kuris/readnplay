@@ -14,10 +14,17 @@
   <svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
     <defs>
       <filter id="chroma-key-white">
+        <!-- 흰색 배경을 투명하게 만드는 기본 크로마키 연산 -->
         <feColorMatrix type="matrix" values="1 0 0 0 0
                                              0 1 0 0 0
                                              0 0 1 0 0
-                                             -5 -5 -5 15.1 -0.1"/>
+                                             -5 -5 -5 15.1 -0.1" result="color-mask"/>
+        <!-- 알파 채널을 팽창/침식하여 테두리의 흰색 잔상(Halos)을 깎아냄 -->
+        <feMorphology operator="erode" radius="0.5" in="color-mask" result="eroded-mask"/>
+        <!-- 알파 채널의 임계값을 조정하여 경계를 더 명확하게 함 -->
+        <feComponentTransfer in="eroded-mask">
+          <feFuncA type="discrete" tableValues="0 1"/>
+        </feComponentTransfer>
       </filter>
     </defs>
   </svg>

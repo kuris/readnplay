@@ -1093,13 +1093,9 @@ body.mode-vn .choices-header { display: none !important; }
   }
 }
 
-/* 모바일 대응: 가로 모드 유도 및 레이아웃 최적화 */
-@media screen and (orientation: portrait) {
-  #landscape-prompt { display: flex; }
-}
-
+/* 모바일 대응: 레이아웃 최적화 (가로 안내 제거) */
 #landscape-prompt {
-  display: none;
+  display: none !important; /* 모든 모드에서 안내 문구 비활성화 */
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0, 0, 0, 0.95); z-index: 9999;
   flex-direction: column; align-items: center; justify-content: center;

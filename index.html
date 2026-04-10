@@ -1666,6 +1666,28 @@ async function generate(retryCount = 0) {
 
   log('콘텐츠 준비 완료 (' + Math.round(processingText.length / 1000) + 'k chars)');
 
+  // ── 캐시 조회 로직 추가 ──────────────────────────────
+  const bookIdStr = selectedGutenbergBook ? selectedGutenbergBook.id.toString() : 'custom_book';
+  const cacheKey = `${bookIdStr}_${selectedMode}_${selectedLang}_${selectedLength}`;
+
+  if (retryCount === 0) {
+    try {
+      log('서버 캐시 조회 중...');
+      const cacheRes = await fetch('/api/game-save?cacheKey=' + cacheKey);
+      if (cacheRes.ok) {
+        const cacheData = await cacheRes.json();
+        if (cacheData.cached && cacheData.gameData) {
+          log('저장된 스토리와 이미지를 불러왔습니다!');
+          gameData = cacheData.gameData;
+          setStage(3);
+          completeStages();
+          setTimeout(startGame, 600);
+          return;
+        }
+      }
+    } catch(e) { console.warn('캐시 조회 실패', e); }
+  }
+
   const langMap = {
     ko: 'narrative, choices, quiz의 모든 텍스트를 자연스러운 한국어로 작성. 원문이 영어면 한국어로 번역/각색.',
     en: '모든 텍스트를 원문 언어(영어)로 유지.',

@@ -373,7 +373,7 @@ export function renderChoices(scene) {
       setTimeout(() => {
         if (c.is_game_over) { showGameOver(outcomeText); return; }
         const rawNext = c.next ? c.next - 1 : state.curIdx + 1;
-        state.curIdx = Math.min(Math.max(rawNext, state.curIdx + 1), state.gameData.scenes.length - 1);
+        state.curIdx = Math.max(rawNext, state.curIdx + 1);
         renderScene();
       }, 1400);
     });

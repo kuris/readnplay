@@ -6,6 +6,60 @@ import { getGameCache, fetchGeminiStory, ensureCharacterPortraits, saveGameCache
 import { startGame } from './game-engine.js';
 
 /**
+ * 생성된 게임 데이터의 구조적 무결성을 검증하고 수정합니다.
+ */
+function validateAndRepairGameData(data) {
+  if (!data || !data.scenes || !Array.isArray(data.scenes)) return data;
+
+  const sceneCount = data.scenes.length;
+  const validCharIds = new Set((data.characters || []).map(c => c.id));
+
+  data.scenes.forEach((scene, idx) => {
+    const currentSceneNum = idx + 1;
+
+    // 1. 비주얼 노벨 모드 스크립트 검증
+    if (scene.script && Array.isArray(scene.script)) {
+      scene.script.forEach(line => {
+        if (line.speaker && !validCharIds.has(line.speaker)) {
+          // 캐릭터가 없으면 가장 유사한 ID를 찾거나 무시 (여기서는 로그만 남김)
+          console.warn(`Validation: Scene ${currentSceneNum} references unknown character ${line.speaker}`);
+        }
+      });
+    }
+
+    // 2. 선택지 분기 보정 (루프 방지 및 유효성 체크)
+    if (scene.choices && Array.isArray(scene.choices)) {
+      scene.choices.forEach(choice => {
+        if (choice.next) {
+          const nextIdx = Number(choice.next);
+          // 선형 진행 게임이므로 현재보다 이전 혹은 자기 자신으로 돌아가는 루프 방지
+          // 단, 마지막 장면이 아닌데 비정상적인 값이면 다음 장면으로 유도
+          if (isNaN(nextIdx) || nextIdx <= currentSceneNum || nextIdx > sceneCount) {
+             choice.next = currentSceneNum + 1;
+          }
+        }
+      });
+    }
+
+    // 3. 장면 자체의 차기 인덱스 보정 (퀴즈 등에서 사용)
+    if (scene.next) {
+       const nextIdx = Number(scene.next);
+       if (isNaN(nextIdx) || nextIdx <= currentSceneNum || nextIdx > sceneCount) {
+         scene.next = currentSceneNum + 1;
+       }
+    }
+    
+    // 4. 필수 필드 보강
+    scene.narrative = scene.narrative || scene.context || "이야기가 계속됩니다.";
+    if (data.mode === 'visual_novel' && (!scene.script || scene.script.length === 0)) {
+       scene.script = [{ speaker: "system", text: scene.narrative }];
+    }
+  });
+
+  return data;
+}
+
+/**
  * AI 게임 생성을 조율하는 메인 함수입니다.
  */
 export async function generate(retryCount = 0) {
@@ -134,7 +188,10 @@ ${studyExtra}
     jsonText = repairJson(jsonText);
     state.gameData = JSON.parse(jsonText);
     
-    // 데이터 정규화
+    // 데이터 검증 및 보정
+    state.gameData = validateAndRepairGameData(state.gameData);
+    
+    // 데이터 정규화 (필드 타입 보장)
     if (state.gameData) {
       state.gameData.title_ko = ensureString(state.gameData.title_ko);
       state.gameData.title = ensureString(state.gameData.title);
@@ -144,8 +201,8 @@ ${studyExtra}
       state.gameData.mode = state.selectedMode;
     }
     
-    if (!state.gameData.scenes || !Array.isArray(state.gameData.scenes)) {
-       throw new Error('장면(scenes) 데이터가 생성되지 않았습니다.');
+    if (!state.gameData.scenes || !Array.isArray(state.gameData.scenes) || state.gameData.scenes.length === 0) {
+       throw new Error('유효한 장면(scenes) 데이터가 생성되지 않았습니다.');
     }
     
     if (state.selectedMode === 'visual_novel' && state.gameData.characters) {

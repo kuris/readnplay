@@ -1925,38 +1925,46 @@ ${studyExtra}
 /* ── IMAGE QUEUE & STABILITY (429 대응) ── */
 let imageTaskQueue = Promise.resolve();
 
-async function safeFetchImagen(params, retryCount = 0) {
+async function safeFetchImagen(params) {
   return new Promise((resolve) => {
     imageTaskQueue = imageTaskQueue.then(async () => {
-      try {
-        // 기본 5초 대기 (할당량 방어)
-        await sleep(5000);
-        
-        const res = await fetch('/api/imagen', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(params)
-        });
-        
-        if (res.status === 429) {
-          if (retryCount < 3) {
-            const waitTime = (retryCount + 1) * 10000;
-            log(`할당량 초과. ${waitTime/1000}초 후 다시 시도합니다...`, 'warn');
-            await sleep(waitTime);
-            resolve(await safeFetchImagen(params, retryCount + 1));
-          } else {
-            log('이미지 생성 최대 재시도 횟수 초과', 'err');
-            resolve(null);
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount <= maxRetries) {
+        try {
+          // 기본 5초 대기 (할당량 방어용)
+          await sleep(5000);
+          
+          const res = await fetch('/api/imagen', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params)
+          });
+          
+          if (res.status === 429) {
+            if (retryCount < maxRetries) {
+              const waitTime = (retryCount + 1) * 10000;
+              log(`할당량 초과. ${waitTime/1000}초 후 다시 시도합니다... (${retryCount + 1}/${maxRetries})`, 'warn');
+              await sleep(waitTime);
+              retryCount++;
+              continue; // 루프를 통해 다시 시도
+            } else {
+              log('이미지 생성 최대 재시도 횟수 초과', 'err');
+              resolve(null);
+              return;
+            }
           }
+          
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          resolve(data);
+          return; // 성공 시 리턴
+        } catch (e) {
+          console.error('safeFetchImagen error:', e);
+          resolve(null);
           return;
         }
-        
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        resolve(data);
-      } catch (e) {
-        console.error('safeFetchImagen error:', e);
-        resolve(null);
       }
     });
   });
@@ -2090,7 +2098,7 @@ function renderCharacterPanel() {
         <div class="char-avatar">
           <img src="${char.avatar_url}">
         </div>
-        <div class="char-name">${char.name}</div>
+        <div class="char-name">${ensureString(char.name)}</div>
         <div class="char-rel-bar">
           <div class="char-rel-fill" style="width: ${displayRel}%"></div>
         </div>
@@ -2166,7 +2174,7 @@ function renderScene() {
       const line = scene.script[step];
       // ID 매칭 시 안정성을 위해 toString() 사용
       const char = (gameData.characters || []).find(c => String(c.id) === String(line.speaker));
-      const name = char ? char.name : (line.speaker === 'narrator' ? '' : line.speaker);
+      const name = ensureString(char ? char.name : (line.speaker === 'narrator' ? '' : line.speaker));
       
       if (line.speaker !== 'narrator' && speakerTag) {
         speakerTag.textContent = name;

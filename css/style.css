@@ -1036,25 +1036,48 @@ body.mode-vn .choices-header { display: none !important; }
 
 /* Portrait optimization for mode-vn */
 @media (max-width: 768px) and (orientation: portrait) {
-  body.mode-vn #landscape-prompt { display: none !important; }
+  /* 가로 모드 유도 문구가 나타나지 않도록 VN 모드와 일반 모드 모두에서 우선순위 높게 가림 */
+  #landscape-prompt { display: none !important; }
+  
   body.mode-vn .vn-portrait-area {
-    height: 55vh;
-    top: 35%;
+    height: 58vh; /* 캐릭터가 세로 화면에서 더 돋보이도록 높이 조정 */
+    top: 38%;     /* 수직 중앙보다 약간 위로 배치 */
   }
+  
+  body.mode-vn #adventure-area {
+    bottom: 0.5rem;
+    width: 96%;
+  }
+
   body.mode-vn .choices-list {
-    bottom: 32vh;
+    bottom: 30vh; /* 대사창 바로 위에 선택지 배치 */
+    width: 92%;
+    gap: 6px;
   }
+  
   body.mode-vn .choice {
-    padding: 0.8rem 1rem;
-    font-size: 16px;
+    padding: 0.7rem 1rem;
+    font-size: 15px;
+    border-radius: 10px;
   }
+  
   body.mode-vn .scene-wrap {
-    padding: 1.2rem 1.5rem;
-    min-height: 120px;
-    max-height: 30vh;
+    padding: 1.2rem 1.4rem;
+    min-height: 140px;
+    max-height: 28vh;
+    border-radius: 14px;
   }
-  body.mode-vn .dialogue-line { font-size: 18px; }
-  body.mode-vn .speaker-tag { font-size: 20px !important; top: -35px !important; }
+  
+  body.mode-vn .dialogue-line { 
+    font-size: 19px; 
+    line-height: 1.5;
+  }
+  
+  body.mode-vn .speaker-tag { 
+    font-size: 22px !important; 
+    top: -40px !important;
+    padding-bottom: 4px !important;
+  }
 }
 
 /* 모바일 대응: 가로 모드 유도 및 레이아웃 최적화 */

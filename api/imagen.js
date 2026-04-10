@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY가 없습니다.' });
 
-  const { prompt, aspectRatio = "1:1", numImages = 1 } = req.body;
+  const { prompt, aspectRatio = "1:1", numImages = 1, mimeType, compressionQuality } = req.body;
   
   // ✅ 최신 Imagen 3 모델 및 Vertex AI 엔드포인트 스타일 (API Key 사용)
   const model = "imagen-3.0-fast-generate-001";
@@ -31,7 +31,10 @@ export default async function handler(req, res) {
             sampleCount: count,
             aspectRatio: aspectRatio,
             personGeneration: "allow_adult",
-            outputOptions: { mimeType: "image/jpeg", compressionQuality: 75 }
+            outputOptions: { 
+              mimeType: mimeType || "image/jpeg", 
+              compressionQuality: compressionQuality || 75 
+            }
           }
         })
       }));

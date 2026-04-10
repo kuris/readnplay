@@ -86,20 +86,20 @@ export async function ensureCharacterPortraits(characters) {
       
       const tryGenerate = async (retriesInner = 1) => {
         try {
-          const genData = await safeFetchImagen({ 
             prompt: `${char.image_prompt}, character illustration, standalone portrait, pure solid white background, high quality, studio lighting, masterpiece`,
-            aspectRatio: "1:1", numImages: 1
+            aspectRatio: "1:1", numImages: 1,
+            mimeType: "image/png"
           });
           
           if (genData) {
             const base64Data = genData.imageBinary || (genData.images && genData.images[0]);
             if (!base64Data) throw new Error('No image data');
 
-            const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
+            const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.png`;
             const saveRes = await fetch('/api/save-image', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ imageBinary: base64Data, fileName, mimeType: 'image/jpeg' })
+              body: JSON.stringify({ imageBinary: base64Data, fileName, mimeType: 'image/png' })
             });
             
             if (saveRes.ok) {

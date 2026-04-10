@@ -997,19 +997,19 @@ body.mode-vn .game-footer .copyright {
   display: none !important; 
 }
 
-/* Choices (우측 상단 배치) */
+/* Choices (인물 카드 우측 배치) */
 body.mode-vn .choices-list {
-  top: 80px; /* 마스트헤드 아래쪽 */
-  right: 3%;
+  top: 42%;         /* 인물 카드와 수직 중앙 정렬 */
+  left: 40%;        /* 인물 카드 오른쪽 영역 */
+  right: auto;
   bottom: auto;
-  left: auto;
-  transform: none;
+  transform: translateY(-50%);
   width: auto;
-  max-width: 450px;
+  max-width: 500px;
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  align-items: flex-end; /* 우측 정렬 */
+  align-items: flex-start; /* 좌측 정렬 */
   gap: 12px;
   padding: 0;
   pointer-events: none;
@@ -1018,7 +1018,7 @@ body.mode-vn .choices-list > .choice { pointer-events: auto; }
 body.mode-vn .choice {
   background: rgba(10, 10, 15, 0.8);
   border: 1px solid rgba(255,255,255,0.15);
-  border-right: 4px solid var(--gold); /* 우측 상단 배치에 어울리는 포인트 */
+  border-left: 4px solid var(--gold); /* 좌측 포인트 바 */
   border-radius: 8px;
   padding: 0.9rem 1.8rem;
   font-size: 17px;
@@ -1026,7 +1026,7 @@ body.mode-vn .choice {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   transition: all 0.2s ease;
-  text-align: right;
+  text-align: left;
   width: max-content;
   min-width: 250px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);

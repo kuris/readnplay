@@ -1409,6 +1409,19 @@ function loadProgress() {
 
 function clearProgress() {
   localStorage.removeItem('readplay_save');
+  const contSec = $('continue-section');
+  if (contSec) contSec.style.display = 'none';
+}
+
+function getStringHash(str) {
+  let hash = 0;
+  // 텍스트 전체를 해싱하면 비용이 크므로 앞부분 10,000자만 사용
+  const target = str.slice(0, 10000);
+  for (let i = 0; i < target.length; i++) {
+    hash = ((hash << 5) - hash) + target.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16);
 }
 
 // --- UTILS ---
@@ -1528,6 +1541,7 @@ async function handleFile(file) {
     const parts = await Promise.all(chapters.map(c => c.promise));
     const validParts = parts.filter(t => t.length > 100);
     epubText = validParts.join('\n\n');
+    clearProgress(); // 새로운 파일을 올리면 기존 세션 초기화
     checkReady();
   } catch(e) { alert('epub 파싱 실패: ' + e.message); }
 }
@@ -1573,6 +1587,7 @@ function createBookCard(book) {
     card.classList.add('selected');
     selectedGutenbergBook = book;
     bookTitle = book.title;
+    clearProgress(); // 책을 새로 선택하면 기존 세션 초기화
     checkReady();
   });
   return card;
@@ -1711,7 +1726,9 @@ async function generate(retryCount = 0) {
   log('콘텐츠 준비 완료 (' + Math.round(processingText.length / 1000) + 'k chars)');
 
   // ── 캐시 조회 로직 추가 ──────────────────────────────
-  const bookIdStr = selectedGutenbergBook ? selectedGutenbergBook.id.toString() : 'custom_book';
+  const bookIdStr = selectedGutenbergBook 
+    ? selectedGutenbergBook.id.toString() 
+    : `custom_${getStringHash(epubText)}`; // 업로드 파일은 내용 해시 사용
   const cacheKey = `${bookIdStr}_${selectedMode}_${selectedLang}_${selectedLength}`;
 
   if (retryCount === 0) {

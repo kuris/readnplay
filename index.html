@@ -951,7 +951,7 @@ body.mode-vn #adventure-area {
   transform: translateX(-50%);
   width: 94%;
   max-width: 1400px;
-  z-index: 50;
+  z-index: 500; /* 레이어 순위를 대폭 높임 */
 }
 body.mode-vn .scene-wrap {
   background: linear-gradient(135deg, rgba(20, 20, 25, 0.85) 0%, rgba(5, 5, 10, 0.95) 100%);
@@ -1973,9 +1973,10 @@ function startGame() {
 function renderCharacterPanel() {
   const cont = $('character-panel');
   if (!gameData.characters) return;
-  cont.innerHTML = gameData.characters.map(char => {
+  // 이미지가 있는 캐릭터만 표시
+  const charsWithImage = gameData.characters.filter(c => c.avatar_url);
+  cont.innerHTML = charsWithImage.map(char => {
     const rel = characterRelationships[char.id] || 0;
-    // -100~100 범위를 0~100%로 변환 (UI용)
     const displayRel = Math.max(0, Math.min(100, (rel + 100) / 2));
     return `
       <div class="char-card" id="char-card-${char.id}" data-char="${char.id}">
@@ -2087,8 +2088,9 @@ function renderScene() {
       step++;
     };
 
-    sceneEl.style.cursor = 'pointer';
-    sceneEl.onclick = renderStep;
+    const advArea = $('adventure-area');
+    advArea.style.cursor = 'pointer';
+    advArea.onclick = renderStep;
     
     // 첫번째 대사 즉시 출력
     renderStep();

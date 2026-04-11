@@ -61,7 +61,15 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, url: publicUrl });
     
   } catch (e) {
-    console.error('Supabase Save Image Error:', e);
-    return res.status(500).json({ error: e.message });
+    console.error('Supabase Save Image Error detail:', e);
+    // 상세 에러 메시지가 있으면 포함 (예: 정책 위반 등)
+    const errorMsg = e.message || 'Unknown error during Supabase upload';
+    const status = e.status || 500;
+    
+    return res.status(status).json({ 
+      error: errorMsg,
+      code: e.code || 'STORAGE_ERROR',
+      hint: 'Check Supabase Storage RLS policies for readplay-images bucket.' 
+    });
   }
 }

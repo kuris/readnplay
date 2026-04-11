@@ -142,7 +142,7 @@ function initEventListeners() {
           $('gb-books-grid').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink3);font-size:12px;">검색 결과가 없습니다</div>';
           return;
         }
-        const mapped = results.slice(0, 16).map(b => ({
+        const mapped = results.map(b => ({
           id: b.id, title: b.title, author: b.authors?.[0]?.name || 'Unknown',
           lang: b.languages?.[0] || 'en', category: 'classic'
         }));

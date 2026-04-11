@@ -43,8 +43,20 @@ function validateAndRepairGameData(data) {
             console.log(`Validation: Fixing speaker ID [${line.speaker}] -> [${matchedChar.id}]`);
             line.speaker = matchedChar.id;
           } else {
-            console.warn(`Validation: Unknown speaker ID [${line.speaker}] in Scene ${currentSceneNum}. Falling back to 'system'.`);
-            line.speaker = 'system'; // 폴백
+            console.warn(`Validation: Unknown speaker ID [${line.speaker}] in Scene ${currentSceneNum}. Dynamically adding to character list.`);
+            
+            // 엑스트라 자동 생성 및 등록
+            const newCharId = line.speaker;
+            const newChar = {
+              id: newCharId,
+              name: newCharId.includes('_') ? (newCharId.charAt(0).toUpperCase() + newCharId.slice(1).replace(/_/g, ' ')) : newCharId,
+              image_prompt: `A side character named ${newCharId} in the story "${data.metadata?.title || 'this book'}", matching the overall art style.`,
+              avatar_url: '' // 이후 ensureCharacterPortraits에서 생성 요청됨
+            };
+            
+            data.characters.push(newChar);
+            validCharIds.add(newCharId);
+            line.speaker = newCharId;
           }
         }
       });

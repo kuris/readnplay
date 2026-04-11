@@ -122,18 +122,47 @@ function setSearchCache(query, data) {
 
 /**
  * 구텐베르크 라이브러리에서 책을 검색합니다.
+ * @param {string} query 검색어
+ * @param {number} targetCount 목표 결과 수 (기본 100권)
  */
-export async function searchGutenberg(query, page = 1) {
-  if (page === 1) {
-    const cached = getSearchCache(query);
-    if (cached) return { results: cached, fromCache: true };
+export async function searchGutenberg(query, targetCount = 100) {
+  const cached = getSearchCache(query);
+  if (cached && cached.length >= targetCount) {
+    return { results: cached, fromCache: true };
   }
+
+  let results = [];
+  let page = 1;
+  let hasNext = true;
+
   try {
-    const res = await fetch(`${GUTENBERG_API}?search=${encodeURIComponent(query)}&page=${page}`);
-    const data = await res.json();
-    if (page === 1 && data.results?.length) setSearchCache(query, data.results);
-    return { results: data.results || [], fromCache: false };
-  } catch(e) { return { results: [], fromCache: false }; }
+    // 목표 수량에 도달하거나 더 이상 결과가 없을 때까지 페이지 요청
+    while (results.length < targetCount && hasNext) {
+      const res = await fetch(`${GUTENBERG_API}?search=${encodeURIComponent(query)}&page=${page}`);
+      if (!res.ok) break;
+      
+      const data = await res.json();
+      if (!data.results || data.results.length === 0) break;
+      
+      results = [...results, ...data.results];
+      hasNext = !!data.next;
+      page++;
+      
+      // 개별 페이지 요청 간에 약간의 딜레이 (Rate limiting 방지)
+      if (hasNext && results.length < targetCount) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
+
+    if (results.length > 0) {
+      // 1페이지 결과뿐만 아니라 전합 결과를 캐싱
+      setSearchCache(query, results.slice(0, targetCount)); 
+    }
+    
+    return { results: results.slice(0, targetCount), fromCache: false };
+  } catch(e) { 
+    return { results: results.length > 0 ? results : [], fromCache: false }; 
+  }
 }
 
 /**

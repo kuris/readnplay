@@ -15,7 +15,17 @@ export default async function handler(req, res) {
       { id: 98, title: 'A Tale of Two Cities', author: 'Charles Dickens', lang: 'en', category: 'historical' },
       { id: 1952, title: 'The Yellow Wallpaper', author: 'Charlotte Perkins Gilman', lang: 'en', category: 'short' },
       { id: 244, title: 'A Study in Scarlet', author: 'Arthur Conan Doyle', lang: 'en', category: 'mystery' },
-      { id: 46, title: 'A Christmas Carol', author: 'Charles Dickens', lang: 'en', category: 'short' }
+      { id: 46, title: 'A Christmas Carol', author: 'Charles Dickens', lang: 'en', category: 'short' },
+      { id: 2591, title: 'Grimms\' Fairy Tales', author: 'Jacob Grimm and Wilhelm Grimm', lang: 'en', category: 'fantasy' },
+      { id: 1400, title: 'Great Expectations', author: 'Charles Dickens', lang: 'en', category: 'classic' },
+      { id: 5200, title: 'Metamorphosis', author: 'Franz Kafka', lang: 'en', category: 'classic' },
+      { id: 160, title: 'The Awakening, and Selected Short Stories', author: 'Kate Chopin', lang: 'en', category: 'short' },
+      { id: 1260, title: 'Jane Eyre: An Autobiography', author: 'Charlotte Brontë', lang: 'en', category: 'romance' },
+      { id: 4300, title: 'Ulysses', author: 'James Joyce', lang: 'en', category: 'classic' },
+      { id: 76, title: 'Adventures of Huckleberry Finn', author: 'Mark Twain', lang: 'en', category: 'adventure' },
+      { id: 219, title: 'Heart of Darkness', author: 'Joseph Conrad', lang: 'en', category: 'classic' },
+      { id: 158, title: 'Emma', author: 'Jane Austen', lang: 'en', category: 'romance' },
+      { id: 345, title: 'Dracula', author: 'Bram Stoker', lang: 'en', category: 'horror' }
     ];
 
     // 현재 목록의 해시 또는 버전을 생성하여 클라이언트가 변경 사항을 감지할 수 있게 함

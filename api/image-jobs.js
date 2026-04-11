@@ -36,7 +36,8 @@ export default async function handler(req, res) {
         const fetchUrl = `${existingBlob.url}?t=${Date.now()}`;
         const resp = await fetch(fetchUrl);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        jobs = await resp.json();
+        const data = await resp.json();
+        jobs = Array.isArray(data) ? data : [];
       } catch (jsonErr) {
         console.error('Jobs JSON Fetch/Parse Error:', jsonErr);
         // JSON 파싱 실패 시 빈 배열로 시작 (중요 데이터 유실 방지는 차후 과제)
@@ -125,6 +126,7 @@ async function saveJobs(jobs) {
   const trimmed = jobs.slice(-200);
   await put(JOBS_FILENAME, JSON.stringify(trimmed, null, 2), {
     access: 'public',
-    addRandomSuffix: false // 파일명 고정
+    addRandomSuffix: false, // 파일명 고정
+    allowOverwrite: true    // 덮어쓰기 허용 (필수)
   });
 }

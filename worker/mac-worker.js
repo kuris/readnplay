@@ -22,8 +22,8 @@ async function workerLoop() {
     const res = await fetch(`${SERVER_URL}/api/image-jobs?status=pending`);
     const job = await res.json();
 
-    if (!job || processedJobIds.has(job.id)) {
-      // 대기 중인 작업 없음 또는 이미 처리한 작업
+    if (!job || !job.id || processedJobIds.has(job.id)) {
+      // 대기 중인 작업 없음, 유효하지 않은 작업, 또는 이미 처리한 작업
       process.stdout.write('.');
       setTimeout(workerLoop, POLL_INTERVAL);
       return;

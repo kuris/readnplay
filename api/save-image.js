@@ -43,7 +43,8 @@ export default async function handler(req, res) {
     const blob = await put(`portraits/${fileName}`, buffer, {
       access: 'public',
       contentType: contentType,
-      addRandomSuffix: false
+      addRandomSuffix: false,
+      allowOverwrite: true // 덮어쓰기 허용 추가
     });
 
     return res.status(200).json({ success: true, url: blob.url });

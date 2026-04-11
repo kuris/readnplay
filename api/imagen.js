@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const { prompt, aspectRatio = "1:1", numImages = 1, mimeType, compressionQuality } = req.body;
   
   // ✅ 최신 Imagen 3 모델 및 Vertex AI 엔드포인트 스타일 (API Key 사용)
-  const model = "imagen-3.0-fast-generate-001";
+  const model = "imagen-3.0-generate-001";
   const endpoint = `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:predict?key=${apiKey}`;
 
   try {
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
           parameters: {
             sampleCount: count,
             aspectRatio: aspectRatio,
-            personGeneration: "allow_adult",
+            // personGeneration: "allow_adult", // 이 옵션은 권한 이슈가 있을 수 있으므로 비활성화하거나 기본값 사용
             outputOptions: { 
               mimeType: mimeType || "image/jpeg", 
               compressionQuality: compressionQuality || 75 
@@ -43,19 +43,20 @@ export default async function handler(req, res) {
 
     const responses = await Promise.all(requests);
     const allImages = [];
+    let lastRawData = null;
 
     for (const response of responses) {
+      const data = await response.json().catch(() => ({}));
+      lastRawData = data;
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Imagen Upstream Error:", errorData);
+        console.error("Imagen Upstream Error:", data);
         return res.status(response.status).json({
           error: "Imagen API 업스트림 에러",
-          details: errorData,
+          details: data,
           status: response.status
         });
       }
-      
-      const data = await response.json();
       
       // Vertex AI / AI Platform 응답 형식에서 이미지 추출
       const predictions = data.predictions || [];
@@ -75,7 +76,8 @@ export default async function handler(req, res) {
     if (allImages.length === 0) {
       return res.status(400).json({ 
         error: "이미지 데이터가 생성되지 않았습니다 (Safety filter?).",
-        rawResponse: responses[0] ? await (async () => { try { return await responses[0].clone().json(); } catch(e) { return "Parse Error"; } })() : null
+        details: "API가 성공했으나 이미지를 반환하지 않았습니다. 프롬프트가 안전 정책을 위반했을 수 있습니다.",
+        rawResponse: lastRawData
       });
     }
 

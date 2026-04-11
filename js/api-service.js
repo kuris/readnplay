@@ -61,7 +61,10 @@ export async function safeFetchImagen(params) {
               continue;
             }
             
-            throw new Error(errorData.error || `HTTP ${res.status}`);
+            // 세이프티 필터 등의 400 에러는 재시도하지 않음
+            const err = new Error(errorData.error || `HTTP ${res.status}`);
+            err.isFatal = res.status === 400; // 400 에러는 치명적으로 처리하여 재시도 중단
+            throw err;
           }
           
           const data = await res.json();
@@ -69,10 +72,10 @@ export async function safeFetchImagen(params) {
           return; 
         } catch (e) {
           console.error(`safeFetchImagen retry ${retryCount}:`, e);
-          if (retryCount < maxRetries) {
+          if (!e.isFatal && retryCount < maxRetries) {
             retryCount++;
           } else {
-            log('이미지 생성 최대 재시도 횟수 초과', 'err');
+            log(e.isFatal ? `생성 중단: ${e.message}` : '이미지 생성 최대 재시도 횟수 초과', 'err');
             resolve(null);
             return;
           }
@@ -97,7 +100,7 @@ export async function ensureCharacterPortraits(characters) {
       const tryGenerate = async (retriesInner = 1) => {
         try {
           const genData = await safeFetchImagen({ 
-            prompt: `${char.image_prompt}, character illustration, standalone portrait, pure solid white background, high quality, studio lighting, masterpiece`,
+            prompt: `${char.image_prompt}, detailed character portrait, look at viewer, high quality digital art, soft lighting, solid simple background, professional illustration`,
             aspectRatio: "1:1", numImages: 1,
             mimeType: "image/png"
           });

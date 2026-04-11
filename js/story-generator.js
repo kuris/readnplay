@@ -142,7 +142,9 @@ export async function generate(retryCount = 0) {
 [비주얼 노벨 모드 규칙]
 1단계: 텍스트 원문에서 중요 인물을 유동적으로 추출 (3~8명 사이)
  - id, name, personality, role, image_prompt 필드 포함
- - image_prompt: 영어 묘사 및 화풍 명시 (예: "anime style, medium shot, brown hair, vintage suit"). 각 인물마다 고유한 개성이 드러나게 구체적으로 작성.
+  - image_prompt: 인물의 시각적 외양에 대한 상세한 영어 묘사 및 화풍 (예: "digital art, medium shot, young man, scholarly look, traditional korean robes, black hair"). 
+    중요: 인물의 실명은 절대 포함하지 말고, 오직 시각적 특징(성별, 추정 나이, 복장, 머리 형태, 분위기 등)만 구체적으로 묘사하여 이미지 생성 필터를 방지할 것.
+
 2단계: 시네마틱 스크립트 기반 스토리 생성
  - scenes[].script: [ { "speaker": "char_id", "text": "대화내용" }, ... ]
  - scenes[].bg_keyword: 장면 배경 키워드 (영어)

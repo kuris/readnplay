@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { $, log } from './utils.js';
-import { GUTENBERG_API, FEATURED_BOOKS, GB_CACHE_TTL } from './constants.js';
+import { GUTENBERG_API, FEATURED_BOOKS, GB_CACHE_TTL, BOOK_LIST_API } from './constants.js';
 
 /**
  * 추천 도서 목록을 렌더링합니다.
@@ -9,7 +9,43 @@ export function renderFeaturedBooks() {
   const grid = $('gb-books-grid');
   if (!grid) return;
   grid.innerHTML = '';
-  renderBookList(FEATURED_BOOKS, grid);
+  
+  // 캐시된 도서 목록 확인
+  const cached = localStorage.getItem('featured_books_data');
+  const books = cached ? JSON.parse(cached).books : FEATURED_BOOKS;
+  
+  renderBookList(books, grid);
+}
+
+/**
+ * 서버에서 최신 도서 목록을 가져와 동기화합니다.
+ */
+export async function refreshFeaturedBooks(force = false) {
+  try {
+    const res = await fetch(BOOK_LIST_API);
+    if (!res.ok) throw new Error('목록을 가져오지 못했습니다.');
+    
+    const data = await res.json();
+    const cached = localStorage.getItem('featured_books_data');
+    const cachedData = cached ? JSON.parse(cached) : null;
+    
+    // 버전이 다르거나 강제 갱신인 경우에만 업데이트
+    if (force || !cachedData || cachedData.version !== data.version) {
+      log('고전 도서 목록 업데이트 중...');
+      localStorage.setItem('featured_books_data', JSON.stringify(data));
+      
+      // 현재 "추천" 카테고리가 떠있다면 즉시 재렌더링
+      const activeCat = document.querySelector('.gb-cat-btn.active');
+      if (activeCat && activeCat.dataset.cat === 'featured') {
+        renderFeaturedBooks();
+      }
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.warn('Book list refresh failed:', e);
+    return false;
+  }
 }
 
 /**

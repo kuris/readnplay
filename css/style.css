@@ -233,6 +233,11 @@ body::before {
 .loading-h { font-family: var(--ff-serif); font-size: 1.4rem; color: var(--ink); margin-bottom: 0.4rem; }
 .loading-sub { font-size: 11px; color: var(--ink3); margin-bottom: 2rem; letter-spacing: 0.08em; }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* STAGE PROGRESS */
 .stage-bar-wrap {
   margin-bottom: 2rem;

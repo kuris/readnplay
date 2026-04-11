@@ -63,7 +63,10 @@
       </div>
       
       <div class="gb-categories">
-        <button class="gb-cat-btn active" data-cat="featured">⭐ 추천</button>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button class="gb-cat-btn active" data-cat="featured">⭐ 추천</button>
+          <button class="btn-ghost" id="gb-refresh-btn" title="목록 새로고침" style="padding:4px 8px; font-size:14px; border:none; background:none; cursor:pointer; color:var(--gold); opacity:0.8;">↻</button>
+        </div>
         <button class="gb-cat-btn" data-cat="romance">💕 로맨스</button>
         <button class="gb-cat-btn" data-cat="mystery">🔍 미스터리</button>
         <button class="gb-cat-btn" data-cat="adventure">⚔️ 모험</button>
@@ -153,12 +156,12 @@
     <div class="opt-section fadein" style="animation-delay:0.4s">
       <label class="field-label">이미지 생성 엔진 (AI Image Mode)</label>
       <div class="lang-row" id="gen-row">
-        <button class="lang-opt sel" data-gen="imagen">☁️ Imagen 3 (Cloud)</button>
-        <button class="lang-opt" data-gen="sd_local">🏠 Internal SD (Local)</button>
+        <button class="lang-opt" data-gen="imagen">☁️ Imagen 3 (Cloud)</button>
+        <button class="lang-opt sel" data-gen="sd_local">🏠 Internal SD (Local)</button>
       </div>
       
-      <!-- SD 상세 설정 (기본적으로 숨김) -->
-      <div id="sd-settings" style="display:none; margin-top:10px; padding:12px; background:rgba(184,134,11,0.05); border:1px solid rgba(184,134,11,0.2); border-radius:4px;">
+      <!-- SD 상세 설정 (기본적으로 표시) -->
+      <div id="sd-settings" style="display:block; margin-top:10px; padding:12px; background:rgba(184,134,11,0.05); border:1px solid rgba(184,134,11,0.2); border-radius:4px;">
         <label class="field-label" style="color:var(--gold); margin-bottom:5px;">Stable Diffusion API URL</label>
         <input class="field-input" type="text" id="sd-url-input" placeholder="https://****.ngrok-free.app" style="margin-bottom:8px;">
         <div style="font-size:10px; color:var(--ink3); line-height:1.5;">

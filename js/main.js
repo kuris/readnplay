@@ -4,7 +4,7 @@ import { showScreen, updateLangTabs } from './ui-manager.js';
 import { generate } from './story-generator.js';
 import { startGame, renderScene } from './game-engine.js';
 import { loadProgress, clearProgress, handleFile } from './storage.js';
-import { renderFeaturedBooks, searchGutenberg, renderBookList } from './gutenberg.js';
+import { renderFeaturedBooks, searchGutenberg, renderBookList, refreshFeaturedBooks } from './gutenberg.js';
 import { downloadGameZip, shareResults, saveGameAsHTML, saveGameAsText } from './export-system.js';
 
 // --- 전역 접근이 필요한 함수들 (HTML inline 이벤트 호환용) ---
@@ -179,6 +179,19 @@ function initEventListeners() {
       }
     });
   });
+
+  /* ── REFRESH FEATURED BOOKS ── */
+  const refreshBtn = $('gb-refresh-btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.style.animation = 'spin 1s linear infinite';
+      const updated = await refreshFeaturedBooks(true);
+      refreshBtn.style.animation = '';
+      if (!updated) {
+        // 변경 사항이 없거나 실패한 경우 간단한 토스트 느낌의 메시지 표시 가능 (생략)
+      }
+    });
+  }
 
   /* ── START / RESTART / CONTINUE ── */
   const startBtn = $('btn-start');

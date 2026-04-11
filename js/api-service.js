@@ -42,17 +42,13 @@ export async function safeFetchImagen(params) {
           
           let res;
           if (state.imageGenerator === 'sd_local') {
-            // ✅ CASE 1: Stable Diffusion (Local/Tunnel)
-            const sdEndpoint = (state.sdUrl || 'http://127.0.0.1:7860').replace(/\/$/, '') + '/sdapi/v1/txt2img';
-            
-            res = await fetch(sdEndpoint, {
+            // ✅ CASE 1: Stable Diffusion (Backend Proxy)
+            // 브라우저의 CORS 제한 및 OPTIONS 404를 피하기 위해 전용 프록시 경유
+            res = await fetch('/api/sd-proxy', {
               method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                // ngrok 무료 버전의 경우 브라우저 경고 페이지가 뜨는 것을 방지
-                'ngrok-skip-browser-warning': 'true'
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
+                sdUrl: state.sdUrl,
                 prompt: params.prompt,
                 negative_prompt: "blurry, low quality, bad anatomy, text, watermark, signature",
                 width: 384,

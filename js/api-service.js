@@ -54,8 +54,11 @@ export async function safeFetchImagen(params) {
               })
             });
             
-            if (!jobRes.ok) throw new Error('작업 등록 실패');
-            const jobData = await jobRes.ok && await jobRes.json();
+            if (!jobRes.ok) {
+              const errorBody = await jobRes.json().catch(() => ({}));
+              throw new Error(`작업 등록 실패: ${JSON.stringify(errorBody)}`);
+            }
+            const jobData = await jobRes.json();
             const jobId = jobData.id;
             
             log(`[SD 큐] 작업 등록 완료 (ID: ${jobId}) - 로컬 워커를 대기 중...`, 'warn');

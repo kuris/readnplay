@@ -16,10 +16,18 @@ export default async function handler(req, res) {
     // Vercel Blob 토큰 체크 추가
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       console.error('Missing BLOB_READ_WRITE_TOKEN in Environment Variables');
-      return res.status(500).json({ error: '서버 설정 오류: BLOB_READ_WRITE_TOKEN이 부족합니다.' });
+      return res.status(500).json({ error: '서버 설정 오류: BLOB_READ_WRITE_TOKEN이 부족합니다.', stage: 'token_check' });
     }
 
-    const { blobs } = await list();
+    let blobs;
+    try {
+      const listRes = await list();
+      blobs = listRes.blobs;
+    } catch (listErr) {
+       console.error('Blob List Error:', listErr);
+       return res.status(500).json({ error: 'Blob 목록 조회 실패', details: listErr.message, stage: 'list_blobs' });
+    }
+
     const existingBlob = blobs.find(b => b.pathname === JOBS_FILENAME);
     let jobs = [];
 
@@ -27,31 +35,41 @@ export default async function handler(req, res) {
       try {
         const fetchUrl = `${existingBlob.url}?t=${Date.now()}`;
         const resp = await fetch(fetchUrl);
-        if (!resp.ok) throw new Error(`Blob 읽기 실패: ${resp.status}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         jobs = await resp.json();
       } catch (jsonErr) {
-        console.error('Jobs JSON Parse Error:', jsonErr);
-        // JSON 파싱 실패 시 초기화 (데이터 손상 대비)
+        console.error('Jobs JSON Fetch/Parse Error:', jsonErr);
+        // JSON 파싱 실패 시 빈 배열로 시작 (중요 데이터 유실 방지는 차후 과제)
         jobs = [];
       }
     }
 
     // --- CASE 1: 작업 생성 (POST) ---
     if (req.method === 'POST') {
-      const { prompt, sdUrl, metadata } = req.body;
+      const body = req.body;
+      if (!body || typeof body !== 'object') {
+        return res.status(400).json({ error: '잘못된 요청 본문입니다.', stage: 'body_check' });
+      }
+
+      const { prompt, sdUrl, metadata } = body;
       const newJob = {
         id: 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-        prompt,
-        sdUrl,
+        prompt: prompt || 'no prompt',
+        sdUrl: sdUrl || '',
         metadata: metadata || {},
-        status: 'pending', // pending, processing, done, failed
+        status: 'pending',
         resultUrl: null,
         createdAt: new Date().toISOString()
       };
       
       jobs.push(newJob);
-      await saveJobs(jobs);
-      return res.status(201).json(newJob);
+      try {
+        await saveJobs(jobs);
+        return res.status(201).json(newJob);
+      } catch (saveErr) {
+        console.error('Save Jobs Error:', saveErr);
+        return res.status(500).json({ error: '작업 데이터 저장 실패', details: saveErr.message, stage: 'save_jobs' });
+      }
     }
 
     // --- CASE 2: 작업 조회 (GET) ---

@@ -224,11 +224,21 @@ export function renderScene() {
         
         if (avatarUrl) {
           portraitArea.style.display = 'flex';
-          portraitArea.innerHTML = `<img src="${avatarUrl}" class="fadein" onerror="this.parentElement.style.display='none'">`;
+          portraitArea.innerHTML = `<img src="${avatarUrl}" class="fadein" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=1f1f1f&fontFamily=Arial&fontSize=40&textColor=ffffff'">`;
           portraitArea.classList.remove('dim');
         } else if (line.speaker === 'narrator') {
           portraitArea.style.display = 'block';
           portraitArea.classList.add('dim');
+        } else if (line.speaker !== 'system') {
+          // 캐릭터 이미지가 없을 때 실루엣/이니셜 표시
+          portraitArea.style.display = 'flex';
+          portraitArea.innerHTML = `
+            <div class="silhouette-placeholder fadein">
+              <img src="https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=1f1f1f&fontFamily=Arial&fontSize=40&textColor=ffffff" style="opacity: 0.6">
+              <div class="placeholder-name">${name}</div>
+            </div>
+          `;
+          portraitArea.classList.remove('dim');
         } else {
           portraitArea.style.display = 'none';
           portraitArea.innerHTML = '';

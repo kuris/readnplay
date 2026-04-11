@@ -1,9 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.rnp_SUPABASE_URL || process.env.NEXT_PUBLIC_rnp_SUPABASE_URL;
-const SUPABASE_KEY = process.env.rnp_SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.rnp_SUPABASE_URL || process.env.NEXT_PUBLIC_rnp_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.rnp_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('Missing Supabase Credentials');
+}
+
+const supabase = createClient(SUPABASE_URL || 'https://placeholder.supabase.co', SUPABASE_KEY || 'placeholder');
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

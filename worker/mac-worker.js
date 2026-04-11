@@ -11,6 +11,40 @@ const POLL_INTERVAL = 4000; // 4초마다 확인
 const processedJobIds = new Set();
 let currentJobId = null;
 
+async function checkConnectivity() {
+  console.log('🔍 로컬 SD API 연결 확인 중...');
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
+    // options 엔드포인트로 서버 확인
+    const res = await fetch(SD_API_URL.replace('/txt2img', '/options'), { 
+      signal: controller.signal 
+    });
+    
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      console.log('✅ SD API 연결 성공!');
+      return true;
+    }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      console.error('❌ SD API 연결 시간 초과 (3초)');
+    } else {
+      console.error(`❌ SD API 연결 실패: ${e.message}`);
+    }
+  }
+  
+  console.log('\n--- Troubleshooting ---');
+  console.log('1. Stable Diffusion(Draw Things 또는 A1111)이 실행 중인지 확인하세요.');
+  console.log('2. API 서버가 활성화되어 있는지 확인하세요.');
+  console.log(`   - Draw Things: 세팅 -> Experimental -> Enable HTTP API Server`);
+  console.log(`   - A1111: 실행 시 --api 플래그 사용`);
+  console.log(`3. 주소가 맞는지 확인하세요: ${SD_API_URL}`);
+  console.log('-----------------------\n');
+  return false;
+}
+
 console.log('🚀 READPLAY 로컬 워커 (분산 큐 모드) 가 시작되었습니다.');
 console.log(`🔗 서버 주소: ${SERVER_URL}`);
 console.log(`🏠 로컬 SD 주소: ${SD_API_URL}`);
@@ -139,4 +173,14 @@ async function workerLoop() {
 }
 
 // 시작
-workerLoop();
+async function start() {
+  const isConnected = await checkConnectivity();
+  if (isConnected) {
+    workerLoop();
+  } else {
+    console.log('⚠️ 5초 후 다시 연결을 시도합니다...');
+    setTimeout(start, 5000);
+  }
+}
+
+start();

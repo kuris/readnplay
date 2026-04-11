@@ -213,6 +213,11 @@ export async function ensureCharacterPortraits(characters) {
               char.avatar_url = resData.url;
               log(`${char.name} 생성 완료!`);
               return true;
+            } else {
+              // Supabase 저장 실패 시 Base64 데이터를 그대로 사용 (배경 이미지처럼)
+              char.avatar_url = `data:image/png;base64,${base64Data}`;
+              log(`${char.name} 생성 완료 (임시 저장)!`, 'warn');
+              return true;
             }
           }
         } catch (e) {

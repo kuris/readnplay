@@ -31,8 +31,21 @@ function validateAndRepairGameData(data) {
       scene.script.forEach(line => {
         line.speaker = String(line.speaker);
         if (line.speaker !== 'system' && line.speaker !== 'narrator' && !validCharIds.has(line.speaker)) {
-          console.warn(`Validation: Unknown speaker ID [${line.speaker}] in Scene ${currentSceneNum}. Falling back to 'system'.`);
-          line.speaker = 'system'; // 폴백
+          // 퍼지 매칭 시도: 대소문자 무시, 혹은 이름 자체가 포함되어 있는지 확인
+          const lowerSpeaker = line.speaker.toLowerCase();
+          const matchedChar = (data.characters || []).find(c => 
+            c.id.toLowerCase() === lowerSpeaker || 
+            c.name.toLowerCase().includes(lowerSpeaker) ||
+            lowerSpeaker.includes(c.id.toLowerCase())
+          );
+
+          if (matchedChar) {
+            console.log(`Validation: Fixing speaker ID [${line.speaker}] -> [${matchedChar.id}]`);
+            line.speaker = matchedChar.id;
+          } else {
+            console.warn(`Validation: Unknown speaker ID [${line.speaker}] in Scene ${currentSceneNum}. Falling back to 'system'.`);
+            line.speaker = 'system'; // 폴백
+          }
         }
       });
     }
@@ -149,6 +162,7 @@ export async function generate(retryCount = 0) {
 2단계: 시네마틱 스크립트 기반 스토리 생성
  - scenes[].script: [ { "speaker": "char_id", "text": "대화내용" }, ... ]
  - scenes[].bg_keyword: 장면 배경 키워드 (영어)
+ - 중요: speaker 값은 반드시 위에서 정의한 1단계 characters의 "id"와 정확히 일치해야 함.
  - 예시: {"speaker": "elon_1", "text": "화성에 가야만 합니다."}` : '';
 
   const adventureExtra = state.selectedMode === 'adventure' ? `

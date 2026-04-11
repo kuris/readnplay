@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.rnp_SUPABASE_URL,
-  process.env.rnp_SUPABASE_SERVICE_ROLE_KEY
-);
+const SUPABASE_URL = process.env.rnp_SUPABASE_URL || process.env.NEXT_PUBLIC_rnp_SUPABASE_URL;
+const SUPABASE_KEY = process.env.rnp_SUPABASE_SERVICE_ROLE_KEY;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /**
  * Supabase DB 기반 작업 큐 핸들러
@@ -15,8 +15,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    if (!process.env.rnp_SUPABASE_URL || !process.env.rnp_SUPABASE_SERVICE_ROLE_KEY) {
-      return res.status(500).json({ error: 'Missing Supabase Credentials' });
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      return res.status(500).json({ error: 'Missing Supabase Credentials (URL or Key)' });
     }
 
     // --- CASE 1: 작업 생성 (POST) ---

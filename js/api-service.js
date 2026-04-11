@@ -42,22 +42,65 @@ export async function safeFetchImagen(params) {
           
           let res;
           if (state.imageGenerator === 'sd_local') {
-            // ✅ CASE 1: Stable Diffusion (Backend Proxy)
-            // 브라우저의 CORS 제한 및 OPTIONS 404를 피하기 위해 전용 프록시 경유
-            res = await fetch('/api/sd-proxy', {
+            // ✅ CASE 1: Stable Diffusion (Orchestrator + Worker Queue)
+            // 1. 서버에 작업 생성 요청
+            const jobRes = await fetch('/api/image-jobs', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                sdUrl: state.sdUrl,
                 prompt: params.prompt,
-                negative_prompt: "blurry, low quality, bad anatomy, text, watermark, signature",
-                width: 384,
-                height: 384,
-                steps: 6,
-                seed: -1,
-                batch_size: 1
+                sdUrl: state.sdUrl,
+                metadata: { charName: params.metadata?.charName || 'unknown' }
               })
             });
+            
+            if (!jobRes.ok) throw new Error('작업 등록 실패');
+            const jobData = await jobRes.ok && await jobRes.json();
+            const jobId = jobData.id;
+            
+            log(`[SD 큐] 작업 등록 완료 (ID: ${jobId}) - 로컬 워커를 대기 중...`, 'warn');
+            
+            // 2. 작업 완료까지 폴링 (최대 120초)
+            let pollCount = 0;
+            const maxPolls = 40; // 3초 간격 x 40 = 120초
+            
+            while (pollCount < maxPolls) {
+              await sleep(3000);
+              const checkRes = await fetch(`/api/image-jobs?id=${jobId}`);
+              const jobStatus = await checkRes.json();
+              
+              if (jobStatus.status === 'done') {
+                log(`[SD 큐] 생성 완료!`, 'ok');
+                // 결과 이미지 URL을 리턴 (base64 대신 URL 사용 가능하게 대응)
+                // save-image의 응답을 워커가 저장했을 것임
+                const imgRes = await fetch(jobStatus.resultUrl);
+                const blob = await imgRes.blob();
+                const reader = new FileReader();
+                const base64 = await new Promise(r => {
+                  reader.onloadend = () => r(reader.result.split(',')[1]);
+                  reader.readAsDataURL(blob);
+                });
+
+                resolve({ 
+                  success: true, 
+                  imageBinary: base64,
+                  url: jobStatus.resultUrl
+                });
+                return;
+              }
+              
+              if (jobStatus.status === 'failed') {
+                throw new Error(jobStatus.error || '생성 실패');
+              }
+              
+              if (jobStatus.status === 'processing') {
+                if (pollCount % 2 === 0) log(`[SD 큐] 맥북에서 생성 중...`, 'warn');
+              }
+              
+              pollCount++;
+            }
+            throw new Error('대기 시간 초과 (로컬 워커가 실행 중인지 확인하세요)');
+
           } else {
             // ✅ CASE 2: Imagen 3 (Cloud)
             res = await fetch('/api/imagen', {
@@ -65,43 +108,33 @@ export async function safeFetchImagen(params) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(params)
             });
-          }
-          
-          if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            console.error('Image API 호출 실패:', {
-              status: res.status,
-              error: errorData.error,
-              details: errorData.details || errorData.message,
-              raw: errorData
-            });
+            
+            if (!res.ok) {
+              const errorData = await res.json().catch(() => ({}));
+              console.error('Image API 호출 실패:', {
+                status: res.status,
+                error: errorData.error,
+                details: errorData.details || errorData.message,
+                raw: errorData
+              });
 
-            // 429(Rate Limit)나 500대 에러만 재시도 (SD 로컬은 에러 시 재시도 생략 권장)
-            const isRetriable = (res.status === 429 || res.status >= 500) && state.imageGenerator !== 'sd_local';
-            if (isRetriable && retryCount < maxRetries) {
-              retryCount++;
-              continue;
+              // 429(Rate Limit)나 500대 에러만 재시도
+              const isRetriable = (res.status === 429 || res.status >= 500);
+              if (isRetriable && retryCount < maxRetries) {
+                retryCount++;
+                continue;
+              }
+              
+              // 세이프티 필터 등의 400 에러는 재시도하지 않음
+              const err = new Error(errorData.error || `HTTP ${res.status}`);
+              err.isFatal = res.status === 400; 
+              throw err;
             }
             
-            // 세이프티 필터 등의 400 에러는 재시도하지 않음
-            const err = new Error(errorData.error || `HTTP ${res.status}`);
-            err.isFatal = res.status === 400 || state.imageGenerator === 'sd_local'; 
-            throw err;
+            const data = await res.json();
+            resolve(data);
+            return;
           }
-          
-          const data = await res.json();
-          
-          // SD 로컬인 경우 응답 형식 정규화 (base64 데이터 추출)
-          if (state.imageGenerator === 'sd_local' && data.images) {
-             resolve({ 
-               success: true, 
-               imageBinary: data.images[0],
-               images: data.images 
-             });
-          } else {
-             resolve(data);
-          }
-          return; 
         } catch (e) {
           console.error(`safeFetchImagen error (retry ${retryCount}):`, e);
           

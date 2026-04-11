@@ -18,7 +18,9 @@ export default async function handler(req, res) {
     let jobs = [];
 
     if (existingBlob) {
-      const resp = await fetch(existingBlob.url);
+      // 캐시 방지를 위해 타임스탬프 추가 (Vercel Blob의 최신 데이터 확보를 위함)
+      const fetchUrl = `${existingBlob.url}?t=${Date.now()}`;
+      const resp = await fetch(fetchUrl);
       jobs = await resp.json();
     }
 
@@ -50,14 +52,13 @@ export default async function handler(req, res) {
         return job ? res.status(200).json(job) : res.status(404).json({ error: 'Job not found' });
       }
 
-      // 상태별 조회 (주로 워커가 pending을 가져갈 때 사용)
+      // 상태별 조회 (워커용)
       if (status) {
         const filtered = jobs.filter(j => j.status === status);
-        // 처리 효율을 위해 pending인 경우 가장 오래된 하나만 반환 가능
+        // 최근 순서대로 정렬하여 최신 작업을 먼저 가져가게 할 수도 있지만, 큐라면 앞에서부터.
         return res.status(200).json(status === 'pending' ? (filtered[0] || null) : filtered);
       }
 
-      // 전체 목록 (최근 50개만)
       return res.status(200).json(jobs.slice(-50));
     }
 
@@ -68,13 +69,11 @@ export default async function handler(req, res) {
       
       if (index === -1) return res.status(404).json({ error: 'Job not found' });
       
-      jobs[index] = { 
-        ...jobs[index], 
-        status: status || jobs[index].status,
-        resultUrl: resultUrl || jobs[index].resultUrl,
-        error: error || jobs[index].error,
-        updatedAt: new Date().toISOString()
-      };
+      // 명시적으로 전달된 값만 업데이트
+      if (status !== undefined) jobs[index].status = status;
+      if (resultUrl !== undefined) jobs[index].resultUrl = resultUrl;
+      if (error !== undefined) jobs[index].error = error;
+      jobs[index].updatedAt = new Date().toISOString();
 
       await saveJobs(jobs);
       return res.status(200).json(jobs[index]);

@@ -145,8 +145,11 @@ export async function generate(retryCount = 0) {
   
   if (state.selectedLength === 'series' && state.customStartingPoint) {
       const startPos = state.customStartingPoint.index || 0;
-      processingText = state.epubText.substring(startPos, startPos + 25000);
-      log(`선택된 지점(${state.customStartingPoint.name})부터 분석을 시작합니다.`);
+      const endPos = state.customEndPoint ? state.customEndPoint.index : (startPos + 40000);
+      
+      // 최소 10000자, 최대 제한 없이 선택한 만큼 처리 (Gemini 컨텍스트 고려)
+      processingText = state.epubText.substring(startPos, Math.max(startPos + 10000, endPos));
+      log(`선택된 구간(${state.customStartingPoint.name} ~ ${state.customEndPoint?.name || '끝'}) 분석을 시작합니다.`);
   } else {
       processingText = state.epubText.slice(0, targetChars);
   }
@@ -157,7 +160,7 @@ export async function generate(retryCount = 0) {
     ? state.selectedGutenbergBook.id.toString() 
     : `custom_${getStringHash(state.epubText)}`;
   
-  const cacheKey = `${bookIdStr}_${state.selectedMode}_${state.selectedLang}_${state.selectedLength}_${state.customStartingPoint?.index || 0}`;
+  const cacheKey = `${bookIdStr}_${state.selectedMode}_${state.selectedLang}_${state.selectedLength}_${state.customStartingPoint?.index || 0}_${state.customEndPoint?.index || 'end'}`;
 
   if (retryCount === 0 && state.cacheStrategy === 'use') {
     const cachedData = await getGameCache(cacheKey);
@@ -304,37 +307,80 @@ ${studyExtra}
  * 책의 챕터 구성과 주요 시점을 분석합니다.
  */
 async function extractChapters(text) {
-  log('책의 구성을 분석 중입니다...');
-  const prompt = `다음 텍스트에서 주요 챕터나 서사적인 변곡점 7~10개를 찾아 JSON 리스트로 응답하라.
-텍스트: ${text.substring(0, 15000)}
+  log('책의 전체 구성을 분석 중입니다 (Mult-Sampling)...');
+  
+  // 전체 책에서 5개 지점 샘플링하여 챕터 구조를 종합
+  const len = text.length;
+  const samples = [
+    { label: 'Beginning', content: text.substring(0, 15000) },
+    { label: '25%', content: text.substring(Math.floor(len * 0.25), Math.floor(len * 0.25) + 10000) },
+    { label: '50%', content: text.substring(Math.floor(len * 0.5), Math.floor(len * 0.5) + 10000) },
+    { label: '75%', content: text.substring(Math.floor(len * 0.75), Math.floor(len * 0.75) + 10000) },
+    { label: 'Ending', content: text.substring(len - 15000) }
+  ];
+
+  const prompt = `다음은 고전 소설의 여러 부분에서 발췌한 텍스트 샘플들이다. 
+이 정보를 바탕으로 책 전체의 주요 챕터나 서사적인 변곡점 10~15개를 추론하여 JSON 리스트로 응답하라.
+각 항목의 index는 전체 텍스트 길이(${len}자)를 기준으로 한 상대적 위치(0 ~ ${len})여야 한다.
+
+샘플 데이터:
+${samples.map(s => `[${s.label}]: ${s.content}`).join('\n\n')}
 
 응답 형식: 
 [
-  {"name": "챕터 제목 또는 요약", "index": 텍스트 시작 위치(추정)},
+  {"name": "챕터 제목 또는 장면 요약", "index": 숫자},
   ...
 ]`;
 
   const raw = await fetchGeminiStory(prompt);
   try {
-    return JSON.parse(repairJson(raw.trim()));
+    let chapters = JSON.parse(repairJson(raw.trim()));
+    // index 정렬 보장
+    return chapters.sort((a,b) => a.index - b.index);
   } catch (e) {
-    // 실패 시 텍스트를 대략적으로 나누어 반환
+    console.error('Chapter extraction failed', e);
     return [
       { name: "도입부", index: 0 },
-      { name: "전개 1", index: Math.floor(text.length * 0.2) },
-      { name: "전개 2", index: Math.floor(text.length * 0.4) },
-      { name: "절정", index: Math.floor(text.length * 0.6) },
-      { name: "결말", index: Math.floor(text.length * 0.8) }
+      { name: "초반 전개", index: Math.floor(len * 0.2) },
+      { name: "전개 1", index: Math.floor(len * 0.4) },
+      { name: "전개 2", index: Math.floor(len * 0.6) },
+      { name: "결말", index: Math.floor(len * 0.8) }
     ];
   }
 }
 
 /**
- * 분석된 챕터 목록을 UI에 렌더링합니다.
+ * 분석된 챕터 목록을 UI에 렌더링하고 범위 선택을 관리합니다.
  */
 function renderChapterList(chapters) {
   const grid = $('chapter-list');
+  const confirmBtn = $('btn-chapters-confirm');
   if (!grid) return;
+  
+  state.customStartingPoint = null;
+  state.customEndPoint = null;
+  if (confirmBtn) confirmBtn.disabled = true;
+
+  function updateUI() {
+    const items = grid.querySelectorAll('.chapter-item');
+    items.forEach((item, idx) => {
+      const chIndex = chapters[idx].index;
+      item.classList.remove('sel-start', 'sel-end', 'sel-range');
+      
+      const startIdx = state.customStartingPoint ? chapters.findIndex(c => c.index === state.customStartingPoint.index) : -1;
+      const endIdx = state.customEndPoint ? chapters.findIndex(c => c.index === state.customEndPoint.index) : -1;
+
+      if (startIdx !== -1 && idx === startIdx) item.classList.add('sel-start');
+      if (endIdx !== -1 && idx === endIdx) item.classList.add('sel-end');
+      
+      if (startIdx !== -1 && endIdx !== -1) {
+        if (idx > startIdx && idx < endIdx) item.classList.add('sel-range');
+      }
+    });
+    
+    if (confirmBtn) confirmBtn.disabled = !state.customStartingPoint;
+  }
+
   grid.innerHTML = chapters.map((ch, i) => `
     <div class="chapter-item fadein" style="animation-delay: ${i * 0.05}s" data-index="${ch.index}" data-name="${ch.name}">
       <div class="chapter-num">${i + 1}</div>
@@ -342,14 +388,30 @@ function renderChapterList(chapters) {
     </div>
   `).join('');
 
-  grid.querySelectorAll('.chapter-item').forEach(item => {
+  grid.querySelectorAll('.chapter-item').forEach((item, idx) => {
     item.addEventListener('click', () => {
-      state.customStartingPoint = {
-        index: parseInt(item.dataset.index),
-        name: item.dataset.name
-      };
-      // 선택 후 다시 생성 프로세스 시작
-      generate(0);
+      const ch = chapters[idx];
+      
+      if (!state.customStartingPoint || (state.customStartingPoint && state.customEndPoint)) {
+        // 새로 시작점 선택
+        state.customStartingPoint = ch;
+        state.customEndPoint = null;
+      } else {
+        // 종료점 선택
+        if (ch.index > state.customStartingPoint.index) {
+          state.customEndPoint = ch;
+        } else {
+          // 클릭한 게 시작점보다 앞이면 시작점을 바꿈
+          state.customStartingPoint = ch;
+        }
+      }
+      updateUI();
     });
   });
+
+  if (confirmBtn) {
+    confirmBtn.onclick = () => {
+      generate(0);
+    };
+  }
 }

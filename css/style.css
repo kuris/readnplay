@@ -1448,3 +1448,24 @@ body.mode-vn .choices-header { display: none !important; }
   color: var(--gold);
 }
 .chapter-item:hover::after { opacity: 1; transform: translateX(0); }
+
+.chapter-item.sel-start {
+  background: rgba(184,134,11,0.1);
+  border-left: 4px solid var(--gold);
+}
+.chapter-item.sel-end {
+  background: rgba(184,134,11,0.1);
+  border-left: 4px solid var(--gold);
+}
+.chapter-item.sel-range {
+  background: rgba(184,134,11,0.05);
+}
+.chapter-badge {
+  font-size: 8px;
+  background: var(--gold);
+  color: white;
+  padding: 1px 4px;
+  border-radius: 2px;
+  margin-left: 8px;
+  text-transform: uppercase;
+}

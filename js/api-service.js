@@ -139,7 +139,14 @@ export async function safeFetchImagen(params) {
           console.error(`safeFetchImagen error (retry ${retryCount}):`, e);
           
           if (state.imageGenerator === 'sd_local') {
-            log('SD 연결 실패! CORS 설정(--cors-allow-origins)이나 ngrok 주소가 맞는지 확인하세요.', 'err');
+            const errorMsg = e.message || '알 수 없는 오류';
+            log(`[SD 오류] ${errorMsg}`, 'err');
+            
+            if (errorMsg.includes('작업 등록 실패') || errorMsg.includes('HTTP 500')) {
+              log('💡 서버의 Environment Variables에 BLOB_READ_WRITE_TOKEN이 제대로 설정되었는지 확인이 필요합니다.', 'err');
+            } else {
+              log('💡 로컬 워커가 실행 중이거나 ngrok 주소가 맞는지 확인하세요.', 'err');
+            }
             resolve(null);
             return;
           }

@@ -13,15 +13,27 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
+    // Vercel Blob 토큰 체크 추가
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('Missing BLOB_READ_WRITE_TOKEN in Environment Variables');
+      return res.status(500).json({ error: '서버 설정 오류: BLOB_READ_WRITE_TOKEN이 부족합니다.' });
+    }
+
     const { blobs } = await list();
     const existingBlob = blobs.find(b => b.pathname === JOBS_FILENAME);
     let jobs = [];
 
     if (existingBlob) {
-      // 캐시 방지를 위해 타임스탬프 추가 (Vercel Blob의 최신 데이터 확보를 위함)
-      const fetchUrl = `${existingBlob.url}?t=${Date.now()}`;
-      const resp = await fetch(fetchUrl);
-      jobs = await resp.json();
+      try {
+        const fetchUrl = `${existingBlob.url}?t=${Date.now()}`;
+        const resp = await fetch(fetchUrl);
+        if (!resp.ok) throw new Error(`Blob 읽기 실패: ${resp.status}`);
+        jobs = await resp.json();
+      } catch (jsonErr) {
+        console.error('Jobs JSON Parse Error:', jsonErr);
+        // JSON 파싱 실패 시 초기화 (데이터 손상 대비)
+        jobs = [];
+      }
     }
 
     // --- CASE 1: 작업 생성 (POST) ---

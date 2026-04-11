@@ -4,11 +4,11 @@ import { log } from './utils.js';
 /**
  * 게임의 모든 기록을 ZIP 파일로 패키징하여 다운로드합니다.
  */
-export async function downloadGameZip() {
-  const btn = document.getElementById('btn-zip-export');
+export async function downloadGameZip(btnOverride = null) {
+  const btn = btnOverride || document.getElementById('btn-zip-export');
   const originalText = btn ? btn.innerHTML : '';
   if (btn) {
-    btn.innerHTML = '📦 패키징 중...';
+    btn.innerHTML = '📦 패키징...';
     btn.disabled = true;
   }
 

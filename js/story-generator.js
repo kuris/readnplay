@@ -306,39 +306,91 @@ ${studyExtra}
 /**
  * 책의 챕터 구성과 주요 시점을 분석합니다.
  */
+/**
+ * 책의 챕터 구성과 주요 시점을 분석합니다. (정규식 기반 사전 스캔 + AI 검증)
+ */
 async function extractChapters(text) {
-  log('책의 전체 구성을 분석 중입니다 (Mult-Sampling)...');
+  log('책의 전체 구조를 정밀 스캔 중입니다...');
   
-  // 전체 책에서 5개 지점 샘플링하여 챕터 구조를 종합
   const len = text.length;
-  const samples = [
-    { label: 'Beginning', content: text.substring(0, 15000) },
-    { label: '25%', content: text.substring(Math.floor(len * 0.25), Math.floor(len * 0.25) + 10000) },
-    { label: '50%', content: text.substring(Math.floor(len * 0.5), Math.floor(len * 0.5) + 10000) },
-    { label: '75%', content: text.substring(Math.floor(len * 0.75), Math.floor(len * 0.75) + 10000) },
-    { label: 'Ending', content: text.substring(len - 15000) }
+  const markers = [];
+  
+  // 1. 정규식 기반 사전 스캔 (주요 목차 패턴)
+  const patterns = [
+    /제\s*(\d+)\s*[화장강]/g,       // 제1화, 제 2 장 등
+    /Chapter\s*(\d+)/gi,           // Chapter 1, CHAPTER 2 등
+    /(\d+)장\./g,                  // 1장. 2장.
+    /\n(\d+)\.\s/g                 // 줄 시작의 "1. " 패턴
   ];
 
-  const prompt = `다음은 고전 소설의 여러 부분에서 발췌한 텍스트 샘플들이다. 
-이 정보를 바탕으로 책 전체의 주요 챕터나 서사적인 변곡점 10~15개를 추론하여 JSON 리스트로 응답하라.
-각 항목의 index는 전체 텍스트 길이(${len}자)를 기준으로 한 상대적 위치(0 ~ ${len})여야 한다.
+  patterns.forEach(regex => {
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      markers.push({
+        text: match[0],
+        index: match.index,
+        num: parseInt(match[1])
+      });
+    }
+  });
+
+  // 너무 촘촘한 마커들 정리 (최소 2000자 간격) 및 정렬
+  const sortedMarkers = markers.sort((a,b) => a.index - b.index);
+  const filteredMarkers = [];
+  if (sortedMarkers.length > 0) {
+    filteredMarkers.push(sortedMarkers[0]);
+    for (let i = 1; i < sortedMarkers.length; i++) {
+      if (sortedMarkers[i].index - filteredMarkers[filteredMarkers.length - 1].index > 2000) {
+        filteredMarkers.push(sortedMarkers[i]);
+      }
+    }
+  }
+
+  // 2. 샘플링 지점 결정 (정규식 발견 지점 + 기본 샘플 지점)
+  const sampleIndices = [0, ...filteredMarkers.map(m => m.index), Math.floor(len * 0.25), Math.floor(len * 0.5), Math.floor(len * 0.75), len - 15000];
+  const uniqueIndices = [...new Set(sampleIndices.filter(idx => idx >= 0 && idx < len))].sort((a,b) => a - b);
+  
+  // 최대 10개 지점만 샘플링 (Gemini 토큰 제한 고려)
+  const finalIndices = uniqueIndices.filter((idx, i) => {
+      if (i === 0 || i === uniqueIndices.length - 1) return true;
+      // 이전 지점에서 최소 10% 이상 떨어져 있거나 정규식 마커인 경우 포함
+      return true; 
+  }).slice(0, 12);
+
+  const samples = finalIndices.map(idx => ({
+    pos: idx,
+    content: text.substring(idx, idx + 8000)
+  }));
+
+  const prompt = `다음은 소설의 여러 지점에서 추출한 텍스트 샘플들이다. 
+우리는 이 소설의 전체 챕터 목록(TOC)을 만들고자 한다.
+
+요구사항:
+1. 샘플에 나타난 명시적인 화수(예: 제1화, Chapter 2)를 기반으로 목록을 작성하라.
+2. 만약 숫자가 건너뛰어진다면(예: 5화 다음 7화), 텍스트의 흐름상 그 사이에 존재할 법한 지점을 추론하여 포함하라.
+3. 각 항목의 index는 전체 텍스트 길이(${len}자)를 기준으로 한 절대적 위치여야 한다.
 
 샘플 데이터:
-${samples.map(s => `[${s.label}]: ${s.content}`).join('\n\n')}
+${samples.map(s => `[위치: ${s.pos}자 지점]:\n${s.content}`).join('\n\n')}
 
-응답 형식: 
+응답 형식 (JSON 리스트만):
 [
-  {"name": "챕터 제목 또는 장면 요약", "index": 숫자},
+  {"name": "제N화: 제목", "index": 숫자},
   ...
 ]`;
 
   const raw = await fetchGeminiStory(prompt);
   try {
     let chapters = JSON.parse(repairJson(raw.trim()));
-    // index 정렬 보장
+    // 최종 결과 정렬 및 유효성 체크
+    chapters = chapters.filter(c => c.index >= 0 && c.index <= len);
     return chapters.sort((a,b) => a.index - b.index);
   } catch (e) {
-    console.error('Chapter extraction failed', e);
+    console.error('Hybrid Chapter extraction failed', e);
+    // 폴백: 정규식 마커 직접 사용
+    if (filteredMarkers.length > 3) {
+      return filteredMarkers.map(m => ({ name: m.text, index: m.index }));
+    }
     return [
       { name: "도입부", index: 0 },
       { name: "초반 전개", index: Math.floor(len * 0.2) },

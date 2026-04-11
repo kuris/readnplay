@@ -280,11 +280,23 @@ async function loadGallery() {
           <span class="gc-mode">${item.mode === 'visual_novel' ? '🎭 비주얼 노벨' : '⚔ 어드벤처'}</span>
           <span>${new Date(item.created_at).toLocaleDateString()}</span>
         </div>
+        <button class="gc-dl-btn" data-id="${item.id}" title="ZIP 다운로드">📦 다운로드</button>
       </div>
     `).join('');
     
     grid.querySelectorAll('.gallery-card').forEach(card => {
-      card.addEventListener('click', () => loadGameFromGallery(card.dataset.id));
+      card.addEventListener('click', (e) => {
+        // 다운로드 버튼 클릭 시 무시
+        if (e.target.classList.contains('gc-dl-btn')) return;
+        loadGameFromGallery(card.dataset.id);
+      });
+    });
+
+    grid.querySelectorAll('.gc-dl-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleGalleryDownload(btn.dataset.id, btn);
+      });
     });
   } catch (e) {
     grid.innerHTML = `<div class="gallery-empty">에러: ${e.message}</div>`;
@@ -307,5 +319,23 @@ async function loadGameFromGallery(id) {
     import('./game-engine.js').then(m => m.startGame());
   } catch (e) {
     alert('갤러리 로딩 실패: ' + e.message);
+  }
+}
+
+async function handleGalleryDownload(id, btn) {
+  try {
+    const res = await fetch('/api/gallery?id=' + id);
+    if (!res.ok) throw new Error('데이터를 가져오지 못했습니다.');
+    const gameData = await res.json();
+    
+    // 임시로 상태 설정 후 다운로드 실행
+    state.gameData = gameData;
+    state.selectedMode = gameData.mode || 'adventure';
+    state.bookTitle = gameData.title_ko || gameData.title;
+    
+    const { downloadGameZip } = await import('./export-system.js');
+    await downloadGameZip(btn);
+  } catch (e) {
+    alert('다운로드 실패: ' + e.message);
   }
 }

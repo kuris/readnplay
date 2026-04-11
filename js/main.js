@@ -92,8 +92,21 @@ function initEventListeners() {
       $('gen-row').querySelectorAll('.lang-opt').forEach(x => x.classList.remove('sel'));
       b.classList.add('sel');
       state.imageGenerator = b.dataset.gen;
+      
+      // SD 상세 설정 섹션 표시 제어
+      const sdSets = $('sd-settings');
+      if (sdSets) sdSets.style.display = state.imageGenerator === 'sd_local' ? 'block' : 'none';
     });
   });
+
+  /* ── SD URL INPUT ── */
+  const sdUrlInput = $('sd-url-input');
+  if (sdUrlInput) {
+    sdUrlInput.value = state.sdUrl || '';
+    sdUrlInput.addEventListener('input', () => {
+      state.sdUrl = sdUrlInput.value.trim();
+    });
+  }
 
   /* ── FILE DROP ── */
   const dz = $('drop-zone');

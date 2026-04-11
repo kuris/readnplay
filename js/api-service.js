@@ -42,11 +42,16 @@ export async function safeFetchImagen(params) {
           
           let res;
           if (state.imageGenerator === 'sd_local') {
-            // ✅ CASE 1: Stable Diffusion (Local)
-            // 브라우저에서 로컬 API로 직접 전송 (SD WebUI API 사양)
-            res = await fetch('http://127.0.0.1:7860/sdapi/v1/txt2img', {
+            // ✅ CASE 1: Stable Diffusion (Local/Tunnel)
+            const sdEndpoint = (state.sdUrl || 'http://127.0.0.1:7860').replace(/\/$/, '') + '/sdapi/v1/txt2img';
+            
+            res = await fetch(sdEndpoint, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                // ngrok 무료 버전의 경우 브라우저 경고 페이지가 뜨는 것을 방지
+                'ngrok-skip-browser-warning': 'true'
+              },
               body: JSON.stringify({
                 prompt: params.prompt,
                 negative_prompt: "blurry, low quality, bad anatomy, text, watermark, signature",
@@ -103,6 +108,13 @@ export async function safeFetchImagen(params) {
           return; 
         } catch (e) {
           console.error(`safeFetchImagen error (retry ${retryCount}):`, e);
+          
+          if (state.imageGenerator === 'sd_local') {
+            log('SD 연결 실패! CORS 설정(--cors-allow-origins)이나 ngrok 주소가 맞는지 확인하세요.', 'err');
+            resolve(null);
+            return;
+          }
+
           if (!e.isFatal && retryCount < maxRetries) {
             retryCount++;
           } else {

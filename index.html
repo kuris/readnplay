@@ -156,9 +156,17 @@
         <button class="lang-opt sel" data-gen="imagen">☁️ Imagen 3 (Cloud)</button>
         <button class="lang-opt" data-gen="sd_local">🏠 Internal SD (Local)</button>
       </div>
-      <div style="font-size:10px; color:var(--ink3); margin-top:6px; line-height:1.4;">
-        * Internal SD 사용 시 <b>http://127.0.0.1:7860</b> (WebUI API) 접근이 필요합니다.
+      
+      <!-- SD 상세 설정 (기본적으로 숨김) -->
+      <div id="sd-settings" style="display:none; margin-top:10px; padding:12px; background:rgba(184,134,11,0.05); border:1px solid rgba(184,134,11,0.2); border-radius:4px;">
+        <label class="field-label" style="color:var(--gold); margin-bottom:5px;">Stable Diffusion API URL</label>
+        <input class="field-input" type="text" id="sd-url-input" placeholder="https://****.ngrok-free.app" style="margin-bottom:8px;">
+        <div style="font-size:10px; color:var(--ink3); line-height:1.5;">
+          💡 <b>ngrok</b> 사용 시 위 주소를 입력하세요. <br>
+          💡 SD 실행 시 <code>--cors-allow-origins https://readplay.vercel.app</code> 옵션이 필수입니다.
+        </div>
       </div>
+
     </div>
 
     <button class="btn-start fadein" id="btn-start" disabled style="animation-delay:0.25s">

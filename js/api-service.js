@@ -24,7 +24,7 @@ export async function fetchGeminiStory(prompt) {
 }
 
 /**
- * 이미지 생성을 안정적으로 수행합니다 (429 할당량 초과 대응)
+ * 이미지 생성을 안정적으로 수행합니다 (환경별 분기 및 재시도 대응)
  */
 export async function safeFetchImagen(params) {
   return new Promise((resolve) => {
@@ -40,38 +40,69 @@ export async function safeFetchImagen(params) {
           if (retryCount > 0) log(`재시도 대기 중 (${currentDelay/1000}초)...`, 'warn');
           await sleep(currentDelay);
           
-          const res = await fetch('/api/imagen', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(params)
-          });
+          let res;
+          if (state.imageGenerator === 'sd_local') {
+            // ✅ CASE 1: Stable Diffusion (Local)
+            // 브라우저에서 로컬 API로 직접 전송 (SD WebUI API 사양)
+            res = await fetch('http://127.0.0.1:7860/sdapi/v1/txt2img', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                prompt: params.prompt,
+                negative_prompt: "blurry, low quality, bad anatomy, text, watermark, signature",
+                width: 384,
+                height: 384,
+                steps: 6,
+                seed: -1,
+                batch_size: 1
+              })
+            });
+          } else {
+            // ✅ CASE 2: Imagen 3 (Cloud)
+            res = await fetch('/api/imagen', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(params)
+            });
+          }
           
           if (!res.ok) {
             const errorData = await res.json().catch(() => ({}));
-            console.error('Imagen API 호출 실패:', {
+            console.error('Image API 호출 실패:', {
               status: res.status,
               error: errorData.error,
               details: errorData.details || errorData.message,
               raw: errorData
             });
 
-            // 429(Rate Limit)나 500대 에러만 재시도
-            if ((res.status === 429 || res.status >= 500) && retryCount < maxRetries) {
+            // 429(Rate Limit)나 500대 에러만 재시도 (SD 로컬은 에러 시 재시도 생략 권장)
+            const isRetriable = (res.status === 429 || res.status >= 500) && state.imageGenerator !== 'sd_local';
+            if (isRetriable && retryCount < maxRetries) {
               retryCount++;
               continue;
             }
             
             // 세이프티 필터 등의 400 에러는 재시도하지 않음
             const err = new Error(errorData.error || `HTTP ${res.status}`);
-            err.isFatal = res.status === 400; // 400 에러는 치명적으로 처리하여 재시도 중단
+            err.isFatal = res.status === 400 || state.imageGenerator === 'sd_local'; 
             throw err;
           }
           
           const data = await res.json();
-          resolve(data);
+          
+          // SD 로컬인 경우 응답 형식 정규화 (base64 데이터 추출)
+          if (state.imageGenerator === 'sd_local' && data.images) {
+             resolve({ 
+               success: true, 
+               imageBinary: data.images[0],
+               images: data.images 
+             });
+          } else {
+             resolve(data);
+          }
           return; 
         } catch (e) {
-          console.error(`safeFetchImagen retry ${retryCount}:`, e);
+          console.error(`safeFetchImagen error (retry ${retryCount}):`, e);
           if (!e.isFatal && retryCount < maxRetries) {
             retryCount++;
           } else {

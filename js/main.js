@@ -86,6 +86,15 @@ function initEventListeners() {
     });
   });
 
+  /* ── IMAGE GENERATOR TOGGLE ── */
+  $('gen-row').querySelectorAll('.lang-opt').forEach(b => {
+    b.addEventListener('click', () => {
+      $('gen-row').querySelectorAll('.lang-opt').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel');
+      state.imageGenerator = b.dataset.gen;
+    });
+  });
+
   /* ── FILE DROP ── */
   const dz = $('drop-zone');
   if (dz) {

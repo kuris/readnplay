@@ -150,6 +150,17 @@
       </div>
     </div>
 
+    <div class="opt-section fadein" style="animation-delay:0.4s">
+      <label class="field-label">이미지 생성 엔진 (AI Image Mode)</label>
+      <div class="lang-row" id="gen-row">
+        <button class="lang-opt sel" data-gen="imagen">☁️ Imagen 3 (Cloud)</button>
+        <button class="lang-opt" data-gen="sd_local">🏠 Internal SD (Local)</button>
+      </div>
+      <div style="font-size:10px; color:var(--ink3); margin-top:6px; line-height:1.4;">
+        * Internal SD 사용 시 <b>http://127.0.0.1:7860</b> (WebUI API) 접근이 필요합니다.
+      </div>
+    </div>
+
     <button class="btn-start fadein" id="btn-start" disabled style="animation-delay:0.25s">
       ◆ 게임 생성 시작
     </button>

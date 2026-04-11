@@ -14,5 +14,6 @@ export const state = {
   gameStartTime: 0,
   characterRelationships: {},
   cacheStrategy: 'use', // 'use' or 'refresh'
+  imageGenerator: 'imagen', // 'imagen' or 'sd_local'
   imageTaskQueue: Promise.resolve() // 이미지 생성 큐
 };

@@ -22,9 +22,10 @@ window.checkReady = () => {
   if (btn) btn.disabled = !ready;
 };
 
-// --- 초기화 ---
 document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
+  setupTabEvents();
+  setupGalleryEvents();
   
   if (loadProgress()) {
     const contSec = $('continue-section');
@@ -86,18 +87,8 @@ function initEventListeners() {
     });
   });
 
-  /* ── IMAGE GENERATOR TOGGLE ── */
-  $('gen-row').querySelectorAll('.lang-opt').forEach(b => {
-    b.addEventListener('click', () => {
-      $('gen-row').querySelectorAll('.lang-opt').forEach(x => x.classList.remove('sel'));
-      b.classList.add('sel');
-      state.imageGenerator = b.dataset.gen;
-      
-      // SD 상세 설정 섹션 표시 제어
-      const sdSets = $('sd-settings');
-      if (sdSets) sdSets.style.display = state.imageGenerator === 'sd_local' ? 'block' : 'none';
-    });
-  });
+  /* ── IMAGE GENERATOR SETTINGS (Always SD) ── */
+  state.imageGenerator = 'sd_local';
 
   /* ── SD URL INPUT ── */
   const sdUrlInput = $('sd-url-input');
@@ -241,4 +232,80 @@ function initEventListeners() {
     if (e.target.id === 'btn-save-txt') saveGameAsText();
     if (e.target.id === 'btn-go-home') location.reload(); // 가장 확실한 초기화 방법
   });
+}
+
+/** ─── TABS & GALLERY LOGIC ─── **/
+function setupTabEvents() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      const tabId = 'tab-' + btn.dataset.tab;
+      const tabEl = $(tabId);
+      if (tabEl) tabEl.classList.add('active');
+      
+      if (btn.dataset.tab === 'gallery') {
+        loadGallery();
+      }
+    });
+  });
+}
+
+function setupGalleryEvents() {
+  const refreshBtn = $('btn-refresh-gallery');
+  if (refreshBtn) refreshBtn.addEventListener('click', loadGallery);
+}
+
+async function loadGallery() {
+  const grid = $('gallery-grid');
+  if (!grid) return;
+  
+  grid.innerHTML = '<div class="gallery-empty">기록을 불러오는 중...</div>';
+  
+  try {
+    const res = await fetch('/api/gallery');
+    if (!res.ok) throw new Error('불러오기 실패');
+    const items = await res.json();
+    
+    if (!items || items.length === 0) {
+      grid.innerHTML = '<div class="gallery-empty">아직 기록된 모험이 없습니다.</div>';
+      return;
+    }
+    
+    grid.innerHTML = items.map(item => `
+      <div class="gallery-card fadein" data-id="${item.id}">
+        <div class="gc-title">${item.title}</div>
+        <div class="gc-meta">
+          <span class="gc-mode">${item.mode === 'visual_novel' ? '🎭 비주얼 노벨' : '⚔ 어드벤처'}</span>
+          <span>${new Date(item.created_at).toLocaleDateString()}</span>
+        </div>
+      </div>
+    `).join('');
+    
+    grid.querySelectorAll('.gallery-card').forEach(card => {
+      card.addEventListener('click', () => loadGameFromGallery(card.dataset.id));
+    });
+  } catch (e) {
+    grid.innerHTML = `<div class="gallery-empty">에러: ${e.message}</div>`;
+  }
+}
+
+async function loadGameFromGallery(id) {
+  log('모험 기록을 불러오는 중...');
+  try {
+    const res = await fetch('/api/gallery?id=' + id);
+    if (!res.ok) throw new Error('데이터를 가져오지 못했습니다.');
+    const gameData = await res.json();
+    
+    state.gameData = gameData;
+    state.selectedMode = gameData.mode || 'adventure';
+    state.bookTitle = gameData.title_ko || gameData.title;
+    state.isGalleryMode = true;
+    
+    // 게임 시작
+    import('./game-engine.js').then(m => m.startGame());
+  } catch (e) {
+    alert('갤러리 로딩 실패: ' + e.message);
+  }
 }

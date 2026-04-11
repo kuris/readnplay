@@ -42,7 +42,13 @@
       <input class="field-input" type="password" id="api-key" placeholder="AIza..." autocomplete="off">
     </div>
 
-    <div class="opt-section fadein" style="animation-delay:0.05s">
+    <div class="main-tabs fadein">
+      <button class="tab-btn active" data-tab="library">🏛 도서관</button>
+      <button class="tab-btn" data-tab="gallery">🖼 갤러리</button>
+    </div>
+
+    <div id="tab-library" class="tab-content active">
+      <div class="opt-section fadein" style="animation-delay:0.05s">
       <label class="field-label">책 선택 방법</label>
       <div class="source-toggle" id="source-toggle">
         <button class="source-btn active" data-source="upload">
@@ -133,6 +139,10 @@
           <div class="oc-title">🎯 심화</div>
           <div class="oc-desc">10-15 씬, 40분 내외</div>
         </div>
+        <div class="opt-card" data-length="series" id="opt-series">
+          <div class="oc-title">🎞 시리즈/커스텀</div>
+          <div class="oc-desc">챕터를 분석하여 지점을 선택</div>
+        </div>
       </div>
     </div>
 
@@ -153,22 +163,17 @@
       </div>
     </div>
 
-    <div class="opt-section fadein" style="animation-delay:0.4s">
-      <label class="field-label">이미지 생성 엔진 (AI Image Mode)</label>
-      <div class="lang-row" id="gen-row">
-        <button class="lang-opt" data-gen="imagen">☁️ Imagen 3 (Cloud)</button>
-        <button class="lang-opt sel" data-gen="sd_local">🏠 Internal SD (Local)</button>
-      </div>
-      
-      <!-- SD 상세 설정 (기본적으로 표시) -->
-      <div id="sd-settings" style="display:block; margin-top:10px; padding:12px; background:rgba(184,134,11,0.05); border:1px solid rgba(184,134,11,0.2); border-radius:4px;">
+    <div class="opt-section fadein" id="sd-section" style="animation-delay:0.4s">
+      <label class="field-label">AI 이미지 설정 (Local SD)</label>
+      <div id="sd-settings" style="display:block; padding:12px; background:rgba(184,134,11,0.05); border:1px solid var(--gold); border-radius:4px;">
         <label class="field-label" style="color:var(--gold); margin-bottom:5px;">Stable Diffusion API URL</label>
         <input class="field-input" type="text" id="sd-url-input" placeholder="https://****.ngrok-free.app" style="margin-bottom:8px;">
         <div style="font-size:10px; color:var(--ink3); line-height:1.5;">
-          💡 <b>ngrok</b> 사용 시 위 주소를 입력하세요. <br>
-          💡 SD 실행 시 <code>--cors-allow-origins https://readplay.vercel.app</code> 옵션이 필수입니다.
+          💡 로컬 PC에서 실행 중인 <b>Stable Diffusion</b>의 API 주소를 입력하세요. <br>
+          💡 <code>--cors-allow-origins https://readplay.vercel.app</code> 옵션이 설정되어 있어야 합니다.
         </div>
       </div>
+    </div>
 
     </div>
 
@@ -182,6 +187,35 @@
       <button class="btn-ghost" id="btn-continue" style="width:100%; padding:11px; border-color:var(--gold); color:var(--gold);">
         ↻ 이어서 진행하기
       </button>
+    </div>
+  </div>
+
+  <!-- ── GALLERY ── -->
+  <div id="tab-gallery" class="tab-content">
+    <div class="gallery-header">
+      <label class="field-label">나의 모험 기록 (Supabase)</label>
+      <button class="btn-ghost" id="btn-refresh-gallery" style="font-size:11px">↻ 목록 갱신</button>
+    </div>
+    <div id="gallery-grid" class="gallery-grid">
+      <!-- 갤러리 아이템 동적 삽입 -->
+      <div class="gallery-empty">아직 기록된 모험이 없습니다.</div>
+    </div>
+  </div>
+</div>
+
+  <!-- ── CHAPTER SELECTION ── -->
+  <div id="screen-chapters" class="screen">
+    <div class="masthead">
+      <div class="logo">READ<span>PLAY</span></div>
+      <div class="tagline">어느 지점에서 시작할까요?</div>
+    </div>
+    <div class="chapter-list-container">
+      <div id="chapter-list" class="chapter-grid">
+        <!-- 챕터 목록 동적 삽입 -->
+      </div>
+    </div>
+    <div style="margin-top:2rem; text-align:center;">
+      <button class="btn-ghost" onclick="window.location.reload()">처음으로</button>
     </div>
   </div>
 

@@ -319,7 +319,7 @@ export function renderScene() {
 }
 
 async function handleBackdropUpdate(keyword) {
-  const bgPrompt = `${keyword}, cinematic lighting, atmospheric, high quality background, art style matched to 19th century, no characters, wide shot`;
+  const bgPrompt = `${keyword}, cinematic landscape view, high-quality environmental concept art, detailed scenery, wide shot, looking into the distance, (strictly NO people, NO humans, NO characters), empty landscape, professional gaming background style, masterpiece`;
   let url = `https://loremflickr.com/1280/720/${encodeURIComponent(keyword || 'landscape')}/all`;
   
   try {

@@ -125,16 +125,39 @@ export async function generate(retryCount = 0) {
 
   setStage(1);
   const lengthMap = { short: 15000, medium: 25000, long: 40000 };
-  const scenesCountMap = { short: '3~5', medium: '5~8', long: '10~15' };
+  const scenesCountMap = { short: '3~5', medium: '5~8', long: '10~15', series: '5~8' };
+  
+  // --- 시리즈/커스텀 모드 특별 처리 ---
+  if (state.selectedLength === 'series' && !state.customStartingPoint) {
+    try {
+      const chapters = await extractChapters(state.epubText);
+      renderChapterList(chapters);
+      showScreen('chapters');
+      return; // 사용자가 선택할 때까지 중단
+    } catch (e) {
+      log('챕터 분석 실패, 표준 모드로 진행합니다.', 'warn');
+      state.selectedLength = 'medium';
+    }
+  }
+
   const targetChars = lengthMap[state.selectedLength] || 25000;
-  const processingText = state.epubText.slice(0, targetChars);
+  let processingText = '';
+  
+  if (state.selectedLength === 'series' && state.customStartingPoint) {
+      const startPos = state.customStartingPoint.index || 0;
+      processingText = state.epubText.substring(startPos, startPos + 25000);
+      log(`선택된 지점(${state.customStartingPoint.name})부터 분석을 시작합니다.`);
+  } else {
+      processingText = state.epubText.slice(0, targetChars);
+  }
 
   log('콘텐츠 준비 완료 (' + Math.round(processingText.length / 1000) + 'k chars)');
 
   const bookIdStr = state.selectedGutenbergBook 
     ? state.selectedGutenbergBook.id.toString() 
     : `custom_${getStringHash(state.epubText)}`;
-  const cacheKey = `${bookIdStr}_${state.selectedMode}_${state.selectedLang}_${state.selectedLength}`;
+  
+  const cacheKey = `${bookIdStr}_${state.selectedMode}_${state.selectedLang}_${state.selectedLength}_${state.customStartingPoint?.index || 0}`;
 
   if (retryCount === 0 && state.cacheStrategy === 'use') {
     const cachedData = await getGameCache(cacheKey);
@@ -275,4 +298,58 @@ ${studyExtra}
       setTimeout(() => generate(retryCount + 1), 2000);
     }
   }
+}
+
+/**
+ * 책의 챕터 구성과 주요 시점을 분석합니다.
+ */
+async function extractChapters(text) {
+  log('책의 구성을 분석 중입니다...');
+  const prompt = `다음 텍스트에서 주요 챕터나 서사적인 변곡점 7~10개를 찾아 JSON 리스트로 응답하라.
+텍스트: ${text.substring(0, 15000)}
+
+응답 형식: 
+[
+  {"name": "챕터 제목 또는 요약", "index": 텍스트 시작 위치(추정)},
+  ...
+]`;
+
+  const raw = await fetchGeminiStory(prompt);
+  try {
+    return JSON.parse(repairJson(raw.trim()));
+  } catch (e) {
+    // 실패 시 텍스트를 대략적으로 나누어 반환
+    return [
+      { name: "도입부", index: 0 },
+      { name: "전개 1", index: Math.floor(text.length * 0.2) },
+      { name: "전개 2", index: Math.floor(text.length * 0.4) },
+      { name: "절정", index: Math.floor(text.length * 0.6) },
+      { name: "결말", index: Math.floor(text.length * 0.8) }
+    ];
+  }
+}
+
+/**
+ * 분석된 챕터 목록을 UI에 렌더링합니다.
+ */
+function renderChapterList(chapters) {
+  const grid = $('chapter-list');
+  if (!grid) return;
+  grid.innerHTML = chapters.map((ch, i) => `
+    <div class="chapter-item fadein" style="animation-delay: ${i * 0.05}s" data-index="${ch.index}" data-name="${ch.name}">
+      <div class="chapter-num">${i + 1}</div>
+      <div class="chapter-name">${ch.name}</div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.chapter-item').forEach(item => {
+    item.addEventListener('click', () => {
+      state.customStartingPoint = {
+        index: parseInt(item.dataset.index),
+        name: item.dataset.name
+      };
+      // 선택 후 다시 생성 프로세스 시작
+      generate(0);
+    });
+  });
 }

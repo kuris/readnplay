@@ -64,7 +64,33 @@ export function saveToHistory() {
     // 최근 20개까지만 유지
     history.unshift(record);
     localStorage.setItem('readplay_history', JSON.stringify(history.slice(0, 20)));
+
+    // ✅ 서버 갤러리에 영구 저장 시도
+    saveToGallery();
   } catch(e) { console.error('History save failed', e); }
+}
+
+/**
+ * 게임 데이터를 서버 갤러리에 영구 저장합니다.
+ */
+export async function saveToGallery() {
+  if (!state.gameData) return;
+  try {
+    const res = await fetch('/api/gallery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: state.gameData.title_ko || state.gameData.title || state.bookTitle,
+        mode: state.selectedMode,
+        gameData: state.gameData
+      })
+    });
+    if (res.ok) {
+       console.log('Successfully saved to gallery');
+    }
+  } catch (e) {
+    console.error('Gallery permanent save failed', e);
+  }
 }
 
 /**

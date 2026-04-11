@@ -1333,3 +1333,118 @@ body.mode-vn .choices-header { display: none !important; }
   }
 }
 
+/* ─── TABS ─── */
+.main-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  color: var(--ink3);
+  cursor: pointer;
+  padding: 8px 4px;
+  position: relative;
+  transition: all 0.2s;
+}
+.tab-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transition: transform 0.2s;
+}
+.tab-btn.active { color: var(--gold); font-weight: 600; }
+.tab-btn.active::after { transform: scaleX(1); }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ─── GALLERY ─── */
+.gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  min-height: 200px;
+}
+.gallery-card {
+  background: var(--paper2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.gallery-card:hover { 
+  transform: translateY(-2px); 
+  border-color: var(--gold);
+  box-shadow: 0 4px 12px rgba(184,134,11,0.1);
+}
+.gc-title { font-family: var(--ff-serif); font-size: 1.25rem; margin-bottom: 0.5rem; }
+.gc-meta { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.1em; display: flex; gap: 8px; }
+.gc-mode { color: var(--gold); font-weight: 600; }
+.gallery-empty {
+  grid-column: 1/-1;
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--ink3);
+  font-style: italic;
+  font-size: 13px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* ─── CHAPTER SELECTION ─── */
+.chapter-list-container {
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,0.2);
+}
+.chapter-grid {
+  display: flex;
+  flex-direction: column;
+}
+.chapter-item {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.chapter-item:last-child { border-bottom: none; }
+.chapter-item:hover { 
+  background: var(--paper3);
+  padding-left: 2rem;
+}
+.chapter-num { font-size: 10px; color: var(--gold); font-weight: 600; width: 40px; }
+.chapter-name { font-size: 14px; color: var(--ink); flex: 1; }
+.chapter-item::after {
+  content: '→';
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.2s;
+  color: var(--gold);
+}
+.chapter-item:hover::after { opacity: 1; transform: translateX(0); }

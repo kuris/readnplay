@@ -1,60 +1,27 @@
-import { list, put } from '@vercel/blob';
+import { list, put, del } from '@vercel/blob';
 
-const JOBS_FILENAME = 'readplay-jobs-queue.json';
+const JOBS_PREFIX = 'jobs/';
 
 /**
- * 작업을 관리하는 메인 핸들러
+ * 분산형 작업 큐 핸들러 (개별 파일 방식)
  */
 export default async function handler(req, res) {
-  // CORS 설정
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // Vercel Blob 토큰 체크 추가
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error('Missing BLOB_READ_WRITE_TOKEN in Environment Variables');
-      return res.status(500).json({ error: '서버 설정 오류: BLOB_READ_WRITE_TOKEN이 부족합니다.', stage: 'token_check' });
-    }
-
-    let blobs;
-    try {
-      const listRes = await list();
-      blobs = listRes.blobs;
-    } catch (listErr) {
-       console.error('Blob List Error:', listErr);
-       return res.status(500).json({ error: 'Blob 목록 조회 실패', details: listErr.message, stage: 'list_blobs' });
-    }
-
-    const existingBlob = blobs.find(b => b.pathname === JOBS_FILENAME);
-    let jobs = [];
-
-    if (existingBlob) {
-      try {
-        const fetchUrl = `${existingBlob.url}?t=${Date.now()}`;
-        const resp = await fetch(fetchUrl);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        jobs = Array.isArray(data) ? data : [];
-      } catch (jsonErr) {
-        console.error('Jobs JSON Fetch/Parse Error:', jsonErr);
-        // JSON 파싱 실패 시 빈 배열로 시작 (중요 데이터 유실 방지는 차후 과제)
-        jobs = [];
-      }
+      return res.status(500).json({ error: 'Missing BLOB_READ_WRITE_TOKEN' });
     }
 
     // --- CASE 1: 작업 생성 (POST) ---
     if (req.method === 'POST') {
-      const body = req.body;
-      if (!body || typeof body !== 'object') {
-        return res.status(400).json({ error: '잘못된 요청 본문입니다.', stage: 'body_check' });
-      }
-
-      const { prompt, sdUrl, metadata } = body;
+      const { prompt, sdUrl, metadata } = req.body;
+      const id = 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
       const newJob = {
-        id: 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        id,
         prompt: prompt || 'no prompt',
         sdUrl: sdUrl || '',
         metadata: metadata || {},
@@ -63,14 +30,14 @@ export default async function handler(req, res) {
         createdAt: new Date().toISOString()
       };
       
-      jobs.push(newJob);
-      try {
-        await saveJobs(jobs);
-        return res.status(201).json(newJob);
-      } catch (saveErr) {
-        console.error('Save Jobs Error:', saveErr);
-        return res.status(500).json({ error: '작업 데이터 저장 실패', details: saveErr.message, stage: 'save_jobs' });
-      }
+      // 개별 파일 생성: jobs/job_ID_pending.json
+      await put(`${JOBS_PREFIX}${id}_pending.json`, JSON.stringify(newJob, null, 2), {
+        access: 'public',
+        addRandomSuffix: false,
+        allowOverwrite: true
+      });
+      
+      return res.status(201).json(newJob);
     }
 
     // --- CASE 2: 작업 조회 (GET) ---
@@ -79,61 +46,82 @@ export default async function handler(req, res) {
       
       // 특정 ID 조회
       if (id) {
-        const job = jobs.find(j => j.id === id);
-        if (!job) {
-          return res.status(404).json({ 
-            error: 'Job not found', 
-            jobId: id,
-            totalJobs: jobs.length,
-            message: '작업이 아직 동기화되지 않았을 수 있습니다. 잠시 후 다시 시도하세요.'
-          });
-        }
+        const { blobs } = await list({ prefix: `${JOBS_PREFIX}${id}_` });
+        if (blobs.length === 0) return res.status(404).json({ error: 'Job not found' });
+        
+        // 상태 우선순위: done > processing > pending
+        const priority = { 'done.json': 3, 'processing.json': 2, 'pending.json': 1, 'failed.json': 0 };
+        const sortedBlobs = blobs.sort((a, b) => {
+          const statusA = a.pathname.split('_').pop();
+          const statusB = b.pathname.split('_').pop();
+          return (priority[statusB] || 0) - (priority[statusA] || 0);
+        });
+
+        const blob = sortedBlobs[0];
+        const resp = await fetch(`${blob.url}?t=${Date.now()}`);
+        const job = await resp.json();
         return res.status(200).json(job);
       }
 
-      // 상태별 조회 (워커용)
+      // 상태별 조회 (워커가 pending 작업을 찾는 용도 등)
       if (status) {
-        const filtered = jobs.filter(j => j.status === status);
-        return res.status(200).json(status === 'pending' ? (filtered[0] || null) : filtered);
+        const { blobs } = await list({ prefix: JOBS_PREFIX });
+        const filteredBlobs = blobs.filter(b => b.pathname.endsWith(`_${status}.json`));
+        
+        if (status === 'pending') {
+          if (filteredBlobs.length === 0) return res.status(200).json(null);
+          // 가장 오래된 작업 우선 반환 (Lexicographical order of job_TIMESTAMP)
+          const resp = await fetch(`${filteredBlobs[0].url}?t=${Date.now()}`);
+          const job = await resp.json();
+          return res.status(200).json(job);
+        }
+        
+        // 목록 전체 반환
+        return res.status(200).json(filteredBlobs.map(b => ({ id: b.pathname.split('_')[1], url: b.url })));
       }
 
-      return res.status(200).json(jobs.slice(-50));
+      return res.status(200).json({ message: 'Status or ID required' });
     }
 
-    // --- CASE 3: 작업 업데이트 (PATCH) ---
+    // --- CASE 3: 상태 업데이트 (PATCH) ---
     if (req.method === 'PATCH') {
       const { id, status, resultUrl, error } = req.body;
-      const index = jobs.findIndex(j => j.id === id);
-      
-      if (index === -1) return res.status(404).json({ error: 'Job not found' });
-      
-      // 명시적으로 전달된 값만 업데이트
-      if (status !== undefined) jobs[index].status = status;
-      if (resultUrl !== undefined) jobs[index].resultUrl = resultUrl;
-      if (error !== undefined) jobs[index].error = error;
-      jobs[index].updatedAt = new Date().toISOString();
+      if (!id || !status) return res.status(400).json({ error: 'ID and status required' });
 
-      await saveJobs(jobs);
-      return res.status(200).json(jobs[index]);
+      // 1. 기존 상태 파일 찾기
+      const { blobs } = await list({ prefix: `${JOBS_PREFIX}${id}_` });
+      if (blobs.length === 0) return res.status(404).json({ error: 'Job not found for update' });
+
+      const oldBlob = blobs[0];
+      const resp = await fetch(`${oldBlob.url}?t=${Date.now()}`);
+      const job = await resp.json();
+
+      // 2. 데이터 업데이트
+      job.status = status;
+      if (resultUrl !== undefined) job.resultUrl = resultUrl;
+      if (error !== undefined) job.error = error;
+      job.updatedAt = new Date().toISOString();
+
+      // 3. 새로운 상태 파일 생성
+      await put(`${JOBS_PREFIX}${id}_${status}.json`, JSON.stringify(job, null, 2), {
+        access: 'public',
+        addRandomSuffix: false,
+        allowOverwrite: true
+      });
+
+      // 4. 이전 상태 파일 삭제 (상태가 변경된 경우에만)
+      const oldStatus = oldBlob.pathname.split('_').pop().replace('.json', '');
+      if (oldStatus !== status) {
+        await del(oldBlob.url);
+      }
+
+      return res.status(200).json(job);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (e) {
-    console.error('Jobs API Error:', e);
+    console.error('Distributed Jobs API Error:', e);
     return res.status(500).json({ error: e.message });
   }
-}
-
-/**
- * Blob에 작업 목록을 저장합니다 (전체 덮어쓰기 형식)
- */
-async function saveJobs(jobs) {
-  // 큐가 무한히 커지는 것을 방지 (최근 200개만 유지)
-  const trimmed = jobs.slice(-200);
-  await put(JOBS_FILENAME, JSON.stringify(trimmed, null, 2), {
-    access: 'public',
-    addRandomSuffix: false, // 파일명 고정
-    allowOverwrite: true    // 덮어쓰기 허용 (필수)
-  });
 }

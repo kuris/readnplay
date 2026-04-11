@@ -1,33 +1,37 @@
+import fetch from 'node-fetch';
+
 /**
  * READPLAY 로컬 이미지 생성 워커
  * 맥북 터미널에서 'node worker/mac-worker.js'로 실행하세요.
  */
 
-const SERVER_URL = 'https://readplay.vercel.app'; // Vercel 배포 주소로 수정 필요 시 수정
+const SERVER_URL = 'https://readplay.vercel.app'; 
 const SD_API_URL = 'http://127.0.0.1:7860/sdapi/v1/txt2img'; 
-const POLL_INTERVAL = 3000; // 3초마다 확인
+const POLL_INTERVAL = 4000; // 4초마다 확인
 
-// ✅ 중복 처리 방지를 위한 처리된 작업 ID 캐시
+// ✅ 중복 처리 방지 캐시 (세션 내)
 const processedJobIds = new Set();
 let currentJobId = null;
 
-console.log('🚀 READPLAY 로컬 워커가 시작되었습니다.');
+console.log('🚀 READPLAY 로컬 워커 (분산 큐 모드) 가 시작되었습니다.');
 console.log(`🔗 서버 주소: ${SERVER_URL}`);
 console.log(`🏠 로컬 SD 주소: ${SD_API_URL}`);
 console.log('---');
 
 async function workerLoop() {
   try {
-    // 1. 대기 중인 작업 가져오기
+    // 1. 대기 중인 작업 하나 가져오기 (가장 오래된 것)
     const res = await fetch(`${SERVER_URL}/api/image-jobs?status=pending`);
     if (!res.ok) {
-        setTimeout(workerLoop, POLL_INTERVAL);
-        return;
+       process.stdout.write('!'); // 서버 에러 시 ! 표시
+       setTimeout(workerLoop, POLL_INTERVAL);
+       return;
     }
+
     const job = await res.json();
 
+    // 대기 중인 작업이 없거나 이미 처리 중인 경우
     if (!job || !job.id || processedJobIds.has(job.id)) {
-      // 대기 중인 작업 없음, 유효하지 않은 작업, 또는 이미 처리한 작업
       process.stdout.write('.');
       setTimeout(workerLoop, POLL_INTERVAL);
       return;
@@ -37,7 +41,8 @@ async function workerLoop() {
     console.log(`\n\n[JOB 감지] ID: ${job.id}`);
     console.log(`📝 프롬프트: ${job.prompt}`);
 
-    // 2. 작업 상태를 'processing'으로 변경
+    // 2. 작업 상태를 'processing'으로 변경 시도
+    // 분산 큐에서는 이 과정에서 기존 파일을 _processing으로 교체함
     const patchRes = await fetch(`${SERVER_URL}/api/image-jobs`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -45,12 +50,13 @@ async function workerLoop() {
     });
     
     if (!patchRes.ok) {
-       console.warn('⚠️ 전송 상태 변경 실패, 다른 워커가 처리 중일 수 있습니다.');
-       setTimeout(workerLoop, POLL_INTERVAL);
+       console.warn('⚠️ 작업 선점 실패 (이미 다른 워커가 처리 중일 수 있음)');
+       processedJobIds.add(job.id); // 실패한 것도 당분간 건너뜀
+       setTimeout(workerLoop, 1000);
        return;
     }
 
-    // 3. 로컬 SD(Stable Diffusion / Draw Things) 호출
+    // 3. 로컬 SD 호출
     console.log('🎨 이미지 생성 중...');
     const sdRes = await fetch(SD_API_URL, {
       method: 'POST',
@@ -72,9 +78,9 @@ async function workerLoop() {
 
     const sdData = await sdRes.json();
     const base64Image = sdData.images[0];
-    console.log('✅ 이미지 생성 완료! 서버에 업로드 중...');
+    console.log('✅ 생성 완료! 서버 업로드 중...');
 
-    // 4. 생성된 이미지를 서버에 저장
+    // 4. 생성된 이미지를 Vercel Blob에 저장
     const fileName = `job_${job.id}.png`;
     const saveRes = await fetch(`${SERVER_URL}/api/save-image`, {
       method: 'POST',
@@ -87,14 +93,14 @@ async function workerLoop() {
     });
 
     if (!saveRes.ok) {
-      const errorText = await saveRes.text();
-      throw new Error(`이미지 저장 오류(${saveRes.status}): ${errorText}`);
+      const errorBody = await saveRes.text();
+      throw new Error(`이미지 업로드 실패: ${errorBody}`);
     }
 
     const { url } = await saveRes.json();
     console.log(`☁️ 업로드 완료: ${url}`);
 
-    // 5. 작업 완료 보고
+    // 5. 작업 상태를 'done'으로 최종 업데이트
     await fetch(`${SERVER_URL}/api/image-jobs`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -102,13 +108,13 @@ async function workerLoop() {
     });
 
     processedJobIds.add(job.id);
-    console.log('🏁 작업 프로세스 종료.');
+    console.log('🏁 작업 프로세스 완료.');
     currentJobId = null;
     
-    // 캐시 크기 관리 (최근 100개만 유지)
-    if (processedJobIds.size > 100) {
-      const firstKey = processedJobIds.values().next().value;
-      processedJobIds.delete(firstKey);
+    // 캐시 관리
+    if (processedJobIds.size > 200) {
+      const first = processedJobIds.values().next().value;
+      processedJobIds.delete(first);
     }
 
     setTimeout(workerLoop, 500);
@@ -116,7 +122,6 @@ async function workerLoop() {
   } catch (e) {
     console.error(`\n❌ 에러 발생: ${e.message}`);
     
-    // 서버에 에러 상태 알림
     if (currentJobId) {
        try {
          await fetch(`${SERVER_URL}/api/image-jobs`, {
@@ -124,7 +129,7 @@ async function workerLoop() {
            headers: { 'Content-Type': 'application/json' },
            body: JSON.stringify({ id: currentJobId, status: 'failed', error: e.message })
          });
-         processedJobIds.add(currentJobId); // 실패한 항목도 무한 재시도 방지를 위해 캐시 추가
+         processedJobIds.add(currentJobId);
        } catch (err) {
          console.error('서버 상태 업데이트 실패:', err.message);
        }
@@ -135,4 +140,5 @@ async function workerLoop() {
   }
 }
 
+// 시작
 workerLoop();

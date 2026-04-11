@@ -102,7 +102,7 @@ async function workerLoop() {
     await fetch(`${SERVER_URL}/api/image-jobs`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: job.id, status: 'done', resultUrl: url })
+      body: JSON.stringify({ id: job.id, status: 'done', resultUrl: url }) // API에서 resultUrl을 받아 result_url로 저장함
     });
 
     processedJobIds.add(job.id);

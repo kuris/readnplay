@@ -1,11 +1,14 @@
-import { put } from '@vercel/blob';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.rnp_SUPABASE_URL,
+  process.env.rnp_SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
-  // CORS 처리
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -16,40 +19,45 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Vercel Blob 토큰 확인
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error('Missing BLOB_READ_WRITE_TOKEN');
-      return res.status(500).json({ error: 'Vercel Blob 토큰이 설정되지 않았습니다. 대시보드를 확인하세요.' });
+    if (!process.env.rnp_SUPABASE_URL || !process.env.rnp_SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({ error: 'Missing Supabase Credentials' });
     }
 
     let buffer;
-    let contentType = mimeType || 'image/jpeg'; // 기본값: JPEG (경량)
+    const contentType = mimeType || 'image/png';
 
     if (imageBinary) {
-      // base64 데이터 유효성 검사 추가
       if (typeof imageBinary !== 'string' || imageBinary.length < 100) {
-        throw new Error('전달된 이미지 데이터가 비정상적이거나 너무 짧습니다.');
+        throw new Error('Invalid image data');
       }
       buffer = Buffer.from(imageBinary, 'base64');
     } else {
       const imgRes = await fetch(imageUrl);
-      if (!imgRes.ok) throw new Error(`이미지 원본 주소 접근 실패: ${imgRes.status}`);
+      if (!imgRes.ok) throw new Error(`Fetch failed: ${imgRes.status}`);
       const arrayBuffer = await imgRes.arrayBuffer();
       buffer = Buffer.from(arrayBuffer);
-      contentType = imgRes.headers.get('content-type') || 'image/png';
     }
 
-    // Vercel Blob에 업로드
-    const blob = await put(`portraits/${fileName}`, buffer, {
-      access: 'public',
-      contentType: contentType,
-      addRandomSuffix: false,
-      allowOverwrite: true // 덮어쓰기 허용 추가
-    });
+    // Supabase Storage에 업로드 (기본 경로: portraits/)
+    const filePath = `portraits/${fileName}`;
+    const { data, error } = await supabase.storage
+      .from('readplay-images')
+      .upload(filePath, buffer, {
+        contentType,
+        upsert: true
+      });
 
-    return res.status(200).json({ success: true, url: blob.url });
+    if (error) throw error;
+
+    // 공용 URL 가져오기
+    const { data: { publicUrl } } = supabase.storage
+      .from('readplay-images')
+      .getPublicUrl(filePath);
+
+    return res.status(200).json({ success: true, url: publicUrl });
+    
   } catch (e) {
-    console.error('Save image critical error:', e);
-    return res.status(500).json({ error: e.message, github_issue: 'check BLOB_READ_WRITE_TOKEN' });
+    console.error('Supabase Save Image Error:', e);
+    return res.status(500).json({ error: e.message });
   }
 }

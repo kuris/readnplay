@@ -80,12 +80,13 @@ export async function safeFetchImagen(params) {
               if (!checkRes.ok) throw new Error(`상태 확인 실패 (${checkRes.status})`);
               
               const jobStatus = await checkRes.json();
+              const finalUrl = jobStatus.result_url || jobStatus.resultUrl;
               
               if (jobStatus.status === 'done') {
                 log(`[SD 큐] 생성 완료!`, 'ok');
                 // 결과 이미지 URL을 리턴 (base64 대신 URL 사용 가능하게 대응)
                 // save-image의 응답을 워커가 저장했을 것임
-                const imgRes = await fetch(jobStatus.resultUrl);
+                const imgRes = await fetch(finalUrl);
                 const blob = await imgRes.blob();
                 const reader = new FileReader();
                 const base64 = await new Promise(r => {
@@ -96,7 +97,7 @@ export async function safeFetchImagen(params) {
                 resolve({ 
                   success: true, 
                   imageBinary: base64,
-                  url: jobStatus.resultUrl
+                  url: finalUrl
                 });
                 return;
               }

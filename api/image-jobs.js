@@ -1,9 +1,12 @@
-import { list, put, del } from '@vercel/blob';
+import { createClient } from '@supabase/supabase-js';
 
-const JOBS_PREFIX = 'jobs/';
+const supabase = createClient(
+  process.env.rnp_SUPABASE_URL,
+  process.env.rnp_SUPABASE_SERVICE_ROLE_KEY
+);
 
 /**
- * 분산형 작업 큐 핸들러 (개별 파일 방식)
+ * Supabase DB 기반 작업 큐 핸들러
  */
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,30 +15,27 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return res.status(500).json({ error: 'Missing BLOB_READ_WRITE_TOKEN' });
+    if (!process.env.rnp_SUPABASE_URL || !process.env.rnp_SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({ error: 'Missing Supabase Credentials' });
     }
 
     // --- CASE 1: 작업 생성 (POST) ---
     if (req.method === 'POST') {
       const { prompt, sdUrl, metadata } = req.body;
       const id = 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+      
       const newJob = {
         id,
         prompt: prompt || 'no prompt',
-        sdUrl: sdUrl || '',
+        sd_url: sdUrl || '',
         metadata: metadata || {},
         status: 'pending',
-        resultUrl: null,
-        createdAt: new Date().toISOString()
+        result_url: null,
+        created_at: new Date().toISOString()
       };
       
-      // 개별 파일 생성: jobs/job_ID_pending.json
-      await put(`${JOBS_PREFIX}${id}_pending.json`, JSON.stringify(newJob, null, 2), {
-        access: 'public',
-        addRandomSuffix: false,
-        allowOverwrite: true
-      });
+      const { error } = await supabase.from('image_jobs').insert([newJob]);
+      if (error) throw error;
       
       return res.status(201).json(newJob);
     }
@@ -44,84 +44,61 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const { status, id } = req.query;
       
-      // 특정 ID 조회
       if (id) {
-        const { blobs } = await list({ prefix: `${JOBS_PREFIX}${id}_` });
-        if (blobs.length === 0) return res.status(404).json({ error: 'Job not found' });
-        
-        // 상태 우선순위: done > processing > pending
-        const priority = { 'done.json': 3, 'processing.json': 2, 'pending.json': 1, 'failed.json': 0 };
-        const sortedBlobs = blobs.sort((a, b) => {
-          const statusA = a.pathname.split('_').pop();
-          const statusB = b.pathname.split('_').pop();
-          return (priority[statusB] || 0) - (priority[statusA] || 0);
-        });
-
-        const blob = sortedBlobs[0];
-        const resp = await fetch(`${blob.url}?t=${Date.now()}`);
-        const job = await resp.json();
-        return res.status(200).json(job);
+        const { data, error } = await supabase
+          .from('image_jobs')
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (error || !data) return res.status(404).json({ error: 'Job not found' });
+        return res.status(200).json(data);
       }
 
-      // 상태별 조회 (워커가 pending 작업을 찾는 용도 등)
       if (status) {
-        const { blobs } = await list({ prefix: JOBS_PREFIX });
-        const filteredBlobs = blobs.filter(b => b.pathname.endsWith(`_${status}.json`));
+        let query = supabase.from('image_jobs').select('*').eq('status', status);
         
         if (status === 'pending') {
-          if (filteredBlobs.length === 0) return res.status(200).json(null);
-          // 가장 오래된 작업 우선 반환 (Lexicographical order of job_TIMESTAMP)
-          const resp = await fetch(`${filteredBlobs[0].url}?t=${Date.now()}`);
-          const job = await resp.json();
-          return res.status(200).json(job);
+          // 가장 오래된 것 하나만 반환 (FIFO)
+          query = query.order('created_at', { ascending: true }).limit(1);
         }
         
-        // 목록 전체 반환
-        return res.status(200).json(filteredBlobs.map(b => ({ id: b.pathname.split('_')[1], url: b.url })));
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        return res.status(200).json(status === 'pending' ? (data[0] || null) : data);
       }
 
-      return res.status(200).json({ message: 'Status or ID required' });
+      return res.status(400).json({ error: 'Status or ID required' });
     }
 
     // --- CASE 3: 상태 업데이트 (PATCH) ---
     if (req.method === 'PATCH') {
-      const { id, status, resultUrl, error } = req.body;
+      const { id, status, resultUrl, error: jobError } = req.body;
       if (!id || !status) return res.status(400).json({ error: 'ID and status required' });
 
-      // 1. 기존 상태 파일 찾기
-      const { blobs } = await list({ prefix: `${JOBS_PREFIX}${id}_` });
-      if (blobs.length === 0) return res.status(404).json({ error: 'Job not found for update' });
+      const updateData = {
+        status,
+        updated_at: new Date().toISOString()
+      };
+      if (resultUrl !== undefined) updateData.result_url = resultUrl;
+      if (jobError !== undefined) updateData.error = jobError;
 
-      const oldBlob = blobs[0];
-      const resp = await fetch(`${oldBlob.url}?t=${Date.now()}`);
-      const job = await resp.json();
+      const { data, error } = await supabase
+        .from('image_jobs')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
 
-      // 2. 데이터 업데이트
-      job.status = status;
-      if (resultUrl !== undefined) job.resultUrl = resultUrl;
-      if (error !== undefined) job.error = error;
-      job.updatedAt = new Date().toISOString();
-
-      // 3. 새로운 상태 파일 생성
-      await put(`${JOBS_PREFIX}${id}_${status}.json`, JSON.stringify(job, null, 2), {
-        access: 'public',
-        addRandomSuffix: false,
-        allowOverwrite: true
-      });
-
-      // 4. 이전 상태 파일 삭제 (상태가 변경된 경우에만)
-      const oldStatus = oldBlob.pathname.split('_').pop().replace('.json', '');
-      if (oldStatus !== status) {
-        await del(oldBlob.url);
-      }
-
-      return res.status(200).json(job);
+      if (error) throw error;
+      return res.status(200).json(data);
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (e) {
-    console.error('Distributed Jobs API Error:', e);
+    console.error('Supabase Jobs API Error:', e);
     return res.status(500).json({ error: e.message });
   }
 }

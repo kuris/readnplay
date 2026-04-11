@@ -20,6 +20,10 @@ async function workerLoop() {
   try {
     // 1. 대기 중인 작업 가져오기
     const res = await fetch(`${SERVER_URL}/api/image-jobs?status=pending`);
+    if (!res.ok) {
+        setTimeout(workerLoop, POLL_INTERVAL);
+        return;
+    }
     const job = await res.json();
 
     if (!job || !job.id || processedJobIds.has(job.id)) {

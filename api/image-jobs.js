@@ -80,13 +80,20 @@ export default async function handler(req, res) {
       // 특정 ID 조회
       if (id) {
         const job = jobs.find(j => j.id === id);
-        return job ? res.status(200).json(job) : res.status(404).json({ error: 'Job not found' });
+        if (!job) {
+          return res.status(404).json({ 
+            error: 'Job not found', 
+            jobId: id,
+            totalJobs: jobs.length,
+            message: '작업이 아직 동기화되지 않았을 수 있습니다. 잠시 후 다시 시도하세요.'
+          });
+        }
+        return res.status(200).json(job);
       }
 
       // 상태별 조회 (워커용)
       if (status) {
         const filtered = jobs.filter(j => j.status === status);
-        // 최근 순서대로 정렬하여 최신 작업을 먼저 가져가게 할 수도 있지만, 큐라면 앞에서부터.
         return res.status(200).json(status === 'pending' ? (filtered[0] || null) : filtered);
       }
 

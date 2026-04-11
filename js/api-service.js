@@ -70,6 +70,15 @@ export async function safeFetchImagen(params) {
             while (pollCount < maxPolls) {
               await sleep(3000);
               const checkRes = await fetch(`/api/image-jobs?id=${jobId}`);
+              
+              if (checkRes.status === 404) {
+                 // 일관성 지연으로 일시적으로 못 찾을 수 있음
+                 pollCount++;
+                 continue;
+              }
+              
+              if (!checkRes.ok) throw new Error(`상태 확인 실패 (${checkRes.status})`);
+              
               const jobStatus = await checkRes.json();
               
               if (jobStatus.status === 'done') {

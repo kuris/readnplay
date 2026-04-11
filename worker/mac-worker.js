@@ -1,7 +1,5 @@
-import fetch from 'node-fetch';
-
 /**
- * READPLAY 로컬 이미지 생성 워커
+ * READPLAY 로컬 이미지 생성 워커 (분산 큐 모드)
  * 맥북 터미널에서 'node worker/mac-worker.js'로 실행하세요.
  */
 
@@ -57,16 +55,16 @@ async function workerLoop() {
     }
 
     // 3. 로컬 SD 호출
-    console.log('🎨 이미지 생성 중...');
+    console.log('🎨 이미지 생성 중 (Quality: 20 steps)...');
     const sdRes = await fetch(SD_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt: job.prompt,
-        negative_prompt: "blurry, low quality, bad anatomy, text, watermark, signature",
+        negative_prompt: "blurry, low quality, bad anatomy, text, watermark, signature, oversaturated, red tint, glowing eyes, color distortion, neon colors, abstract, cartoonish",
         width: 384,
         height: 384,
-        steps: 10,
+        steps: 20, // 10 -> 20으로 상향
         seed: -1,
         batch_size: 1
       })

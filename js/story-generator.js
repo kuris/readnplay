@@ -143,7 +143,8 @@ export async function generate(retryCount = 0) {
 1단계: 텍스트 원문에서 중요 인물을 유동적으로 추출 (3~8명 사이)
  - id, name, personality, role, image_prompt 필드 포함
   - image_prompt: 인물의 시각적 외양에 대한 상세한 영어 묘사 및 화풍 (예: "digital art, medium shot, young man, scholarly look, traditional korean robes, black hair"). 
-    중요: 인물의 실명은 절대 포함하지 말고, 오직 시각적 특징(성별, 추정 나이, 복장, 머리 형태, 분위기 등)만 구체적으로 묘사하여 이미지 생성 필터를 방지할 것.
+    중요: 인물의 실명은 절대 포함하지 말고, 오직 시각적 특징(성별, 추정 나이, 복장, 머리 형태, 분위기 등)만 구체적으로 묘사할 것. 
+    스타일 지침: "natural colors, soft lighting, proportional facial features"와 같은 키워드를 포함하여 색표현이 과하거나 괴이하게 왜곡되는 것을 방지할 것.
 
 2단계: 시네마틱 스크립트 기반 스토리 생성
  - scenes[].script: [ { "speaker": "char_id", "text": "대화내용" }, ... ]

@@ -1002,7 +1002,7 @@ body.mode-vn #screen-game.active {
   height: 100vh;
 }
 body.mode-vn .game-backdrop {
-  z-index: -10;
+  z-index: 1;
   filter: brightness(0.6) contrast(1.1); /* 배경을 어둡게 하여 인물/대사 강조 */
 }
 body.mode-vn .game-backdrop::after {
@@ -1040,7 +1040,7 @@ body.mode-vn .game-lang-pill:hover { opacity: 1; }
   justify-content: center;
   align-items: flex-end;
   pointer-events: none;
-  z-index: 5;
+  z-index: 10;
   transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
   filter: drop-shadow(0 0 30px rgba(0,0,0,0.4));

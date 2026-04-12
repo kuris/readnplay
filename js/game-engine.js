@@ -77,6 +77,14 @@ export function renderScene() {
   }
   
   saveProgress();
+  
+  // 강제 가시성 확보 (Nuclear Fix)
+  const advArea = $('adventure-area');
+  if (advArea) {
+    advArea.style.display = 'block';
+    advArea.style.opacity = '1';
+    advArea.style.zIndex = '500';
+  }
 
   const total = state.gameData.scenes.length;
   const progFill = $('g-prog');

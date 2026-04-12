@@ -136,10 +136,30 @@ export async function updateBackdrop(keyword) {
 export function applyBackdrop(url) {
   const bg = $('game-backdrop');
   if (!bg) return;
+  
   const img = new Image();
+  let loaded = false;
+
+  // 타임아웃 설정: 2초 내에 이미지가 로드되지 않으면 그냥 검정/딤 처리된 상태에서 강제 활성화
+  const timeout = setTimeout(() => {
+    if (!loaded) {
+      log('배경 로드 지연 - 텍스트 우선 모드 전환', 'warn');
+      bg.style.opacity = '1'; 
+    }
+  }, 2000);
+
   img.src = url;
   img.onload = () => {
+    loaded = true;
+    clearTimeout(timeout);
     bg.style.backgroundImage = `url('${url}')`;
     bg.style.opacity = '1';
+  };
+
+  img.onerror = () => {
+    loaded = true;
+    clearTimeout(timeout);
+    log('배경 로드 실패', 'err');
+    bg.style.opacity = '1'; // 실패해도 검정 배경이라도 노출되게 opacity 확보
   };
 }

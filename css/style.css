@@ -712,12 +712,20 @@ body.is-ending .game-backdrop::after {
 }
 body.is-ending #ending-area { display: grid; }
 
-/* 모바일 대응: 세로 모드에서는 1컬러로 전환 */
+/* 모바일 대응: 세로 모드에서는 1컬럼으로 전환 */
 @media (max-width: 900px) {
   #ending-area {
-    display: none;
     grid-template-columns: 1fr;
     overflow-y: auto;
+  }
+  body.is-ending #ending-area { 
+    display: flex;
+    flex-direction: column;
+  }
+  .ending-wrap {
+    grid-column: 1;
+    height: auto;
+    padding: 3rem 1.5rem;
   }
 }
 
@@ -795,8 +803,21 @@ body.is-ending #character-panel {
   margin-bottom: 4rem;
 }
 
-/* 삭제된 관계도 스타일 정리 */
-.final-relationships { display: none !important; }
+/* 관계도 스타일 복구 및 최적화 */
+.final-relationships { 
+  grid-column: 1;
+  padding: 4rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,0.2);
+}
+@media (max-width: 900px) {
+  .final-relationships {
+    order: 2; /* 모바일에서는 정보창 뒤에 배치 */
+    padding: 2rem 1rem;
+  }
 .fr-title {
   font-family: var(--ff-mono);
   font-size: 10px;

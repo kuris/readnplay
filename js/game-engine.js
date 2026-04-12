@@ -477,9 +477,10 @@ export function renderQuiz(scene) {
 }
 
 export function showGameOver(reason) {
-  $('adventure-area').style.display = 'none';
+  if (advArea) advArea.style.display = 'none';
   $('quiz-area').style.display = 'none';
-  $('ending-area').style.display = 'block';
+  const endArea = $('ending-area');
+  if (endArea) endArea.style.display = 'grid';
   const progFill = $('g-prog');
   if (progFill) progFill.style.width = '100%';
   const ctxEl = $('g-context');
@@ -532,7 +533,11 @@ export function showEnding() {
   if (gChoices) gChoices.innerHTML = '';
 
   // 엔딩 영역 표시
-  $('ending-area').style.display = 'block';
+  const endArea = $('ending-area');
+  if (endArea) {
+    endArea.style.display = 'grid';
+    showFinalRelationships();
+  }
   
   const progFill = $('g-prog');
   if (progFill) progFill.style.width = '100%';

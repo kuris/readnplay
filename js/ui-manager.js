@@ -6,9 +6,18 @@ import { STAGE_PROGRESS as SP, STAGE_TEXTS as ST } from './constants.js';
  * 특정 화면을 활성화합니다.
  */
 export function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  log(`화면 전환: ${name}`, 'warn');
+  const screens = document.querySelectorAll('.screen');
+  screens.forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none'; // 클래스 외에 display 속성도 명시적으로 제어
+  });
+  
   const target = $('screen-' + name);
-  if (target) target.classList.add('active');
+  if (target) {
+    target.classList.add('active');
+    target.style.display = 'block';
+  }
 }
 
 /**

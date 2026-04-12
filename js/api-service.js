@@ -84,19 +84,9 @@ export async function safeFetchImagen(params) {
               
               if (jobStatus.status === 'done') {
                 log(`[SD 큐] 생성 완료!`, 'ok');
-                // 결과 이미지 URL을 리턴 (base64 대신 URL 사용 가능하게 대응)
-                // save-image의 응답을 워커가 저장했을 것임
-                const imgRes = await fetch(finalUrl);
-                const blob = await imgRes.blob();
-                const reader = new FileReader();
-                const base64 = await new Promise(r => {
-                  reader.onloadend = () => r(reader.result.split(',')[1]);
-                  reader.readAsDataURL(blob);
-                });
-
+                // 워커가 이미 저장한 결과 URL을 그대로 반환
                 resolve({ 
                   success: true, 
-                  imageBinary: base64,
                   url: finalUrl
                 });
                 return;
@@ -198,8 +188,21 @@ export async function ensureCharacterPortraits(characters) {
           });
           
           if (genData) {
+            // 이미 원격 URL(Supabase 등)이 있는 경우 재저장 생략
+            if (genData.url && (genData.url.includes('supabase.co') || genData.url.includes('vercel-storage.com'))) {
+              char.avatar_url = genData.url;
+              log(`${char.name} 생성 완료 (Direct)!`);
+              return true;
+            }
+
             const base64Data = genData.imageBinary || (genData.images && genData.images[0]);
-            if (!base64Data) throw new Error('No image data');
+            if (!base64Data) {
+              if (genData.url) {
+                char.avatar_url = genData.url;
+                return true;
+              }
+              throw new Error('No image data');
+            }
 
             const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.png`;
             const saveRes = await fetch('/api/save-image', {

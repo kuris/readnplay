@@ -13,24 +13,19 @@ export function showScreen(name) {
     return;
   }
 
-  // 1. 모든 스크린 요소 초기화
+  // 1. 모든 스크린 요소에서 active 클래스 제거 (CSS가 display: none을 담당)
   const screens = document.querySelectorAll('.screen');
   screens.forEach(s => {
-    // 인라인 스타일 및 클래스 모두 제거하여 확실히 숨김
     s.classList.remove('active');
-    s.style.display = 'none';
-    s.style.opacity = '0';
+    // JS 강제 스타일 제거 (충돌 방지)
+    s.style.display = '';
+    s.style.opacity = '';
   });
   
   // 2. 대상 스크린 활성화
   target.classList.add('active');
-  target.style.display = 'block';
-  // 약간의 딜레이 후 opacity 부여하여 페이드인 효과 보장 (선택적)
-  setTimeout(() => {
-    target.style.opacity = '1';
-  }, 10);
   
-  // 3. 페이지 상단으로 스크롤 (사용자 경험 개선)
+  // 3. 페이지 상단으로 스크롤
   window.scrollTo(0, 0);
 }
 

@@ -34,11 +34,12 @@ export function startGame() {
   // 화면 전환 전 상태 체크 및 강제 적용
   showScreen('game');
   
-  // 렌더링 시작
-  renderScene();
-
-  // ✅ 시작 시점에 갤러리에 기록 (나중에 엔딩 시 업데이트됨)
-  saveToGallery().catch(e => console.warn('Early save failed:', e));
+  // 렌더링 시작 전 잠깐 대기 (DOM 안정화)
+  setTimeout(() => {
+    renderScene();
+    // ✅ 시작 시점에 갤러리에 기록 (나중에 엔딩 시 업데이트됨)
+    saveToGallery().catch(e => console.warn('Early save failed:', e));
+  }, 100);
 }
 
 export function renderCharacterPanel() {

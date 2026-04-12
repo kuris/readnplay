@@ -42,20 +42,21 @@ body::before {
 .page { max-width: 680px; margin: 0 auto; padding: 3rem 1.5rem; }
 
 /* SCREENS */
-.screen { display: none; }
-.screen.active { display: block; }
+.screen { display: none !important; opacity: 0; pointer-events: none; }
+.screen.active {
+  display: block !important;
+  opacity: 1 !important;
+  pointer-events: auto;
+  transition: opacity 0.3s ease;
+}
 
 /* ─── SCREEN GAME OVERLAY FIX ─── */
 #screen-game {
   z-index: 100;
-  background: var(--paper); /* 혹시 모를 투명함 방지 */
+  background: var(--paper);
 }
 body.mode-vn #screen-game {
-  background: #000; /* 비주얼 노벨 모드일 때는 배경을 검정으로 강제 */
-}
-.screen.active {
-  display: block !important;
-  opacity: 1;
+  background: #000 !important;
 }
 
 /* ─── SETUP ─── */

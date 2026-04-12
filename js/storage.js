@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { $ } from './utils.js';
+import { $, log } from './utils.js';
 
 /**
  * 게임 진행 상황을 로컬 스토리지에 저장합니다.

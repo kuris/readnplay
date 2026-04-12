@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { $ } from './utils.js';
+import { $, log } from './utils.js';
 import { showScreen, updateLangTabs } from './ui-manager.js';
 import { generate } from './story-generator.js';
 import { startGame, renderScene } from './game-engine.js';

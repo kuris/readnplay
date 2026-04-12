@@ -8,18 +8,30 @@ import { STAGE_PROGRESS as SP, STAGE_TEXTS as ST } from './constants.js';
 export function showScreen(name) {
   log(`화면 전환: ${name}`, 'warn');
   const target = $('screen-' + name);
-  if (!target) return;
+  if (!target) {
+    console.error(`Target screen not found: screen-${name}`);
+    return;
+  }
 
+  // 1. 모든 스크린 요소 초기화
   const screens = document.querySelectorAll('.screen');
   screens.forEach(s => {
-    if (s !== target) {
-      s.classList.remove('active');
-      s.style.display = 'none';
-    }
+    // 인라인 스타일 및 클래스 모두 제거하여 확실히 숨김
+    s.classList.remove('active');
+    s.style.display = 'none';
+    s.style.opacity = '0';
   });
   
+  // 2. 대상 스크린 활성화
   target.classList.add('active');
   target.style.display = 'block';
+  // 약간의 딜레이 후 opacity 부여하여 페이드인 효과 보장 (선택적)
+  setTimeout(() => {
+    target.style.opacity = '1';
+  }, 10);
+  
+  // 3. 페이지 상단으로 스크롤 (사용자 경험 개선)
+  window.scrollTo(0, 0);
 }
 
 /**

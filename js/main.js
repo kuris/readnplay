@@ -357,7 +357,7 @@ async function loadGameFromGallery(id) {
     document.body.classList.toggle('mode-vn', state.selectedMode === 'visual_novel');
     
     // 게임 시작
-    import('./game-engine.js').then(m => m.startGame());
+    startGame();
   } catch (e) {
     alert('갤러리 로딩 실패: ' + e.message);
   }

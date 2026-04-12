@@ -30,11 +30,15 @@ export function startGame() {
   }
 
   updateLangTabs('ko');
+  
+  // 화면 전환 전 상태 체크 및 강제 적용
   showScreen('game');
+  
+  // 렌더링 시작
   renderScene();
 
   // ✅ 시작 시점에 갤러리에 기록 (나중에 엔딩 시 업데이트됨)
-  saveToGallery();
+  saveToGallery().catch(e => console.warn('Early save failed:', e));
 }
 
 export function renderCharacterPanel() {

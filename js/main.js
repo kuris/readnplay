@@ -286,8 +286,12 @@ async function loadGallery() {
   
   try {
     const res = await fetch('/api/gallery');
-    if (!res.ok) throw new Error('불러오기 실패');
-    const items = await res.json();
+    const data = await res.json();
+    
+    if (!res.ok) {
+      throw new Error(data.error || '불러오기 실패');
+    }
+    const items = data;
     
     if (!items || items.length === 0) {
       grid.innerHTML = '<div class="gallery-empty">아직 기록된 모험이 없습니다.</div>';
@@ -307,7 +311,6 @@ async function loadGallery() {
     
     grid.querySelectorAll('.gallery-card').forEach(card => {
       card.addEventListener('click', (e) => {
-        // 다운로드 버튼 클릭 시 무시
         if (e.target.classList.contains('gc-dl-btn')) return;
         loadGameFromGallery(card.dataset.id);
       });
@@ -320,7 +323,13 @@ async function loadGallery() {
       });
     });
   } catch (e) {
-    grid.innerHTML = `<div class="gallery-empty">에러: ${e.message}</div>`;
+    console.error('Gallery Load Error:', e);
+    grid.innerHTML = `
+      <div class="gallery-empty" style="color:var(--red);">
+        목록을 불러오지 못했습니다.<br>
+        <span style="font-size:10px; opacity:0.7;">사유: ${e.message}</span>
+      </div>
+    `;
   }
 }
 

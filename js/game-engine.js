@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { $, ensureString, log } from './utils.js';
 import { showScreen, updateLangTabs, updateBackdrop, animateScore, showRelationshipPopup, applyBackdrop } from './ui-manager.js';
-import { saveProgress, clearProgress } from './storage.js';
+import { saveProgress, clearProgress, saveToGallery } from './storage.js';
 import { safeFetchImagen } from './api-service.js';
 
 export function startGame() {
@@ -32,6 +32,9 @@ export function startGame() {
   updateLangTabs('ko');
   showScreen('game');
   renderScene();
+
+  // ✅ 시작 시점에 갤러리에 기록 (나중에 엔딩 시 업데이트됨)
+  saveToGallery();
 }
 
 export function renderCharacterPanel() {

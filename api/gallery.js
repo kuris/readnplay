@@ -62,7 +62,19 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (e) {
-    console.error('Gallery API Error:', e);
-    return res.status(500).json({ error: e.message });
+    console.error('Gallery API Error details:', {
+      message: e.message,
+      code: e.code,
+      details: e.details,
+      hint: e.hint,
+      method: req.method
+    });
+    
+    // 유저에게 더 친절한 에러 메시지 반환
+    let errorMsg = e.message;
+    if (e.code === 'PGRST116') errorMsg = 'No records found (PGRST116)';
+    if (e.code === '42P01') errorMsg = 'Table "readplay_history" not found. Please check Supabase schema.';
+    
+    return res.status(500).json({ error: errorMsg, code: e.code });
   }
 }

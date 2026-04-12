@@ -86,7 +86,11 @@ export async function saveToGallery() {
       })
     });
     if (res.ok) {
-       console.log('Successfully saved to gallery');
+       const data = await res.json();
+       console.log('Successfully saved to gallery. ID:', data.id);
+    } else {
+       const errorData = await res.json();
+       console.warn('Gallery save status not OK:', errorData.error);
     }
   } catch (e) {
     console.error('Gallery permanent save failed', e);

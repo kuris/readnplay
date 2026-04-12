@@ -196,12 +196,12 @@ export async function ensureCharacterPortraits(characters) {
             }
 
             const base64Data = genData.imageBinary || (genData.images && genData.images[0]);
-            if (!base64Data) {
+            if (!base64Data || base64Data.length < 100) {
               if (genData.url) {
                 char.avatar_url = genData.url;
                 return true;
               }
-              throw new Error('No image data');
+              throw new Error('Invalid or missing image data');
             }
 
             const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.png`;

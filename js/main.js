@@ -131,13 +131,17 @@ function initEventListeners() {
         $('gb-loading').style.display = 'none';
         if (!results || results.length === 0) {
           $('gb-books-grid').innerHTML = '<div style="padding:2rem;text-align:center;color:var(--ink3);font-size:12px;">검색 결과가 없습니다</div>';
+          $('gb-pagination').style.display = 'none';
           return;
         }
-        const mapped = results.map(b => ({
+        
+        state.gutenbergSearchResults = results.map(b => ({
           id: b.id, title: b.title, author: b.authors?.[0]?.name || 'Unknown',
           lang: b.languages?.[0] || 'en', category: 'classic'
         }));
-        renderBookList(mapped, $('gb-books-grid'));
+        state.gutenbergSearchPage = 1;
+        renderGutenbergPage();
+
         if (fromCache) {
           const notice = document.createElement('div');
           notice.style.cssText = 'font-size:10px;color:var(--ink3);text-align:right;padding:4px 8px;opacity:0.6;';
@@ -231,6 +235,21 @@ function initEventListeners() {
     if (e.target.id === 'btn-save-html') saveGameAsHTML();
     if (e.target.id === 'btn-save-txt') saveGameAsText();
     if (e.target.id === 'btn-go-home') location.reload(); // 가장 확실한 초기화 방법
+    
+    // pagination 버튼
+    if (e.target.id === 'gb-prev-btn') {
+      if (state.gutenbergSearchPage > 1) {
+        state.gutenbergSearchPage--;
+        renderGutenbergPage();
+      }
+    }
+    if (e.target.id === 'gb-next-btn') {
+      const maxPage = Math.ceil(state.gutenbergSearchResults.length / 20);
+      if (state.gutenbergSearchPage < maxPage) {
+        state.gutenbergSearchPage++;
+        renderGutenbergPage();
+      }
+    }
   });
 }
 
@@ -338,4 +357,32 @@ async function handleGalleryDownload(id, btn) {
   } catch (e) {
     alert('다운로드 실패: ' + e.message);
   }
+}
+
+/**
+ * 구텐베르크 검색 결과를 현재 페이지에 맞춰 렌더링합니다.
+ */
+function renderGutenbergPage() {
+  const grid = $('gb-books-grid');
+  const pagination = $('gb-pagination');
+  const info = $('gb-page-info');
+  if (!grid || !pagination) return;
+
+  const results = state.gutenbergSearchResults;
+  const page = state.gutenbergSearchPage;
+  const pageSize = 20;
+  const total = results.length;
+  const maxPage = Math.ceil(total / pageSize);
+
+  const start = (page - 1) * pageSize;
+  const currentItems = results.slice(start, start + pageSize);
+  
+  grid.innerHTML = '';
+  renderBookList(currentItems, grid);
+  
+  pagination.style.display = total > pageSize ? 'flex' : 'none';
+  if (info) info.textContent = `${page} / ${maxPage}`;
+  
+  $('gb-prev-btn').disabled = page === 1;
+  $('gb-next-btn').disabled = page === maxPage;
 }

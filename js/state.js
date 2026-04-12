@@ -20,5 +20,7 @@ export const state = {
   // --- NEW ---
   customStartingPoint: null, // 시리즈/커스텀 모드 선택 시작 지점
   customEndPoint: null,      // 시리즈/커스텀 모드 선택 종료 지점
-  isGalleryMode: false
+  isGalleryMode: false,
+  gutenbergSearchResults: [],
+  gutenbergSearchPage: 1
 };

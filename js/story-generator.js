@@ -235,7 +235,7 @@ ${processingText.slice(0, 8000)}
          "original_excerpt": "원문 발췌",
          "choices": [...],
          "quiz": {...},
-         "bg_keyword": "background keyword" (비주얼노벨용),
+         "bg_keyword": "cinematic landscape, environmental art, no text, no ui, wide angle", (비주얼노벨용),
          "script": [...] (비주얼노벨용)
        }
      ],
@@ -317,9 +317,9 @@ async function extractChapters(text) {
   
   // 1. 정규식 기반 사전 스캔 (주요 목차 패턴)
   const patterns = [
-    /제\s*(\d+)\s*[화장강]/g,       // 제1화, 제 2 장 등
+    /제\s*(\d+)\s*[화장강회]/g,      // 제1화, 제 2 장, 제3회 등
     /Chapter\s*(\d+)/gi,           // Chapter 1, CHAPTER 2 등
-    /(\d+)장\./g,                  // 1장. 2장.
+    /(\d+)\s*[화장회]\.?/g,         // 1화, 2장, 3회.
     /\n(\d+)\.\s/g                 // 줄 시작의 "1. " 패턴
   ];
 
@@ -350,12 +350,12 @@ async function extractChapters(text) {
   const sampleIndices = [0, ...filteredMarkers.map(m => m.index), Math.floor(len * 0.25), Math.floor(len * 0.5), Math.floor(len * 0.75), len - 15000];
   const uniqueIndices = [...new Set(sampleIndices.filter(idx => idx >= 0 && idx < len))].sort((a,b) => a - b);
   
-  // 최대 10개 지점만 샘플링 (Gemini 토큰 제한 고려)
+  // 이전보다 더 촘촘하게 샘플링 (최대 30개 지점)
   const finalIndices = uniqueIndices.filter((idx, i) => {
       if (i === 0 || i === uniqueIndices.length - 1) return true;
-      // 이전 지점에서 최소 10% 이상 떨어져 있거나 정규식 마커인 경우 포함
+      // 정규식 마커 지점은 무조건 포함하거나, 샘플 간격이 너무 멀지 않게 조절
       return true; 
-  }).slice(0, 12);
+  }).slice(0, 30);
 
   const samples = finalIndices.map(idx => ({
     pos: idx,

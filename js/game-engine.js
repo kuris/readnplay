@@ -3,6 +3,7 @@ import { $, ensureString, log } from './utils.js';
 import { showScreen, updateLangTabs, updateBackdrop, animateScore, showRelationshipPopup, applyBackdrop } from './ui-manager.js';
 import { saveProgress, clearProgress, saveToGallery } from './storage.js';
 import { safeFetchImagen } from './api-service.js';
+import { buildDrawThingsPrompt } from './prompt-engine.js';
 
 export function startGame() {
   state.score = 0;
@@ -327,12 +328,26 @@ export function renderScene() {
 }
 
 async function handleBackdropUpdate(keyword) {
-  const bgPrompt = `${keyword}, cinematic landscape view, high-quality environmental concept art, detailed scenery, wide shot, looking into the distance, (strictly NO people, NO humans, NO characters), empty landscape, professional gaming background style, masterpiece`;
+  const scene = state.gameData.scenes[state.curIdx];
+  let finalPrompt = "";
+  let finalNegativePrompt = "";
+
+  if (scene && scene.image_data) {
+    const drawPrompt = buildDrawThingsPrompt(scene.image_data);
+    finalPrompt = drawPrompt.prompt;
+    finalNegativePrompt = drawPrompt.negative_prompt;
+  } else {
+    // Legacy Fallback
+    finalPrompt = `${keyword}, cinematic landscape view, high-quality environmental concept art, detailed scenery, wide shot, looking into the distance, (strictly NO people, NO humans, NO characters), empty landscape, professional gaming background style, masterpiece`;
+    finalNegativePrompt = "low quality, blurry, bad hands, extra fingers, text, watermark";
+  }
+
   let url = `https://loremflickr.com/1280/720/${encodeURIComponent(keyword || 'landscape')}/all`;
   
   try {
     const data = await safeFetchImagen({
-      prompt: bgPrompt,
+      prompt: finalPrompt,
+      negativePrompt: finalNegativePrompt,
       aspectRatio: "16:9",
       numImages: 1
     });

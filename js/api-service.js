@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { log, sleep } from './utils.js';
+import { buildDrawThingsPrompt } from './prompt-engine.js';
 
 /**
  * Gemini API를 통해 스토리를 생성합니다.
@@ -49,6 +50,7 @@ export async function safeFetchImagen(params) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 prompt: params.prompt,
+                negativePrompt: params.negativePrompt || "",
                 sdUrl: state.sdUrl,
                 metadata: { charName: params.metadata?.charName || 'unknown' }
               })

@@ -4,6 +4,11 @@ import { setStage, completeStages, showScreen } from './ui-manager.js';
 import { fetchGutenbergBook } from './gutenberg.js';
 import { getGameCache, fetchGeminiStory, ensureCharacterPortraits, saveGameCache } from './api-service.js';
 import { startGame } from './game-engine.js';
+import { 
+  buildScenePrompt, 
+  extractJsonFromModelResponse, 
+  normalizeSceneResult 
+} from './prompt-engine.js';
 
 /**
  * 생성된 게임 데이터의 구조적 무결성을 검증하고 수정합니다.
@@ -183,88 +188,85 @@ export async function generate(retryCount = 0) {
     }
   }
 
-  const langMap = {
-    ko: 'narrative, choices, quiz의 모든 텍스트를 자연스러운 한국어로 작성. 원문이 영어면 한국어로 번역/각색.',
-    en: '모든 텍스트를 원문 언어(영어)로 유지.',
-    bilingual: 'narrative는 한국어로 작성하고 en_narrative 필드에 영어 원문도 포함. choices도 text는 한국어, en_text는 영어.'
-  };
-
-  const vnExtra = state.selectedMode === 'visual_novel' ? `
-[비주얼 노벨 모드 규칙]
-1단계: 텍스트 원문에서 중요 인물을 유동적으로 추출 (3~8명 사이)
- - id, name, personality, role, image_prompt 필드 포함
-  - image_prompt: 인물의 시각적 외양에 대한 구체적인 영어 묘사.
-    중요: "digital art"나 "anime" 같은 화풍 키워드는 절대 넣지 말고, 오직 인물의 [특징(성별, 나이, 체형), 복장, 머리색/모양, 눈색, 핵심 분위기]만 쉼표로 나열할 것. (예: "young woman, short blonde hair, blue eyes, wearing white lab coat, serious expression"). 
-    이 데이터는 시스템 내부의 통합 스타일 가이드와 결합되어 일관된 그림체로 생성됩니다.
-
-2단계: 시네마틱 스크립트 기반 스토리 생성
- - scenes[].script: [ { "speaker": "char_id", "text": "대화내용" }, ... ]
- - scenes[].bg_keyword: 장면 배경 키워드 (영어)
- - 중요: speaker 값은 반드시 위에서 정의한 1단계 characters의 "id"와 정확히 일치해야 함.
- - 예시: {"speaker": "elon_1", "text": "화성에 가야만 합니다."}` : '';
-
-  const adventureExtra = state.selectedMode === 'adventure' ? `
-[어드벤처 모드 규칙]
-- 선택지 3개: 대담함(high risk), 신중함(low risk), 인간적(mid risk)
-- 각 choice: text, outcome, score_impact, risk_level` : '';
-
-  const studyExtra = state.selectedMode === 'study' ? `
-[학습 모드 규칙]
-- narrative에 핵심 개념(key_concept)과 예제 포함
-- 퀴즈(quiz) 필수 포함: { "question": "질문", "choices": ["보기1", "보기2", "보기3", "보기4"], "answer": 0, "explanation": "해설" }` : '';
-
-  const prompt = `당신은 세계 최고의 게임 디자이너다. 아래 텍스트를 바탕으로 '${state.selectedMode}' 모드의 인터랙티브 게임을 JSON으로 설계하라.
-
-[텍스트 원문]
-${processingText.slice(0, 8000)}
-
-[필수 요구사항]
-1. 언어: ${langMap[state.selectedLang]}
-2. 분량: ${scenesCountMap[state.selectedLength]} 씬
-3. 구조: 
-   {
-     "title_ko": "한국어 제목",
-     "title": "English Title",
-     "characters": [...],
-     "scenes": [
-       {
-         "id": 1,
-         "context": "장면 요약(10자 이내)",
-         "narrative": "서술형 본문",
-         "en_narrative": "English Narrative (필요시)",
-         "original_excerpt": "원문 발췌",
-         "choices": [...],
-         "quiz": {...},
-         "bg_keyword": "cinematic landscape, environmental art, no text, no ui, wide angle", (비주얼노벨용),
-         "script": [...] (비주얼노벨용)
-       }
-     ],
-     "endings": [...]
-   }
-${vnExtra}
-${adventureExtra}
-${studyExtra}
-
-지루한 요약이 아니라, 플레이어가 몰입할 수 있는 긴장감 넘치는 스토리를 만들어라.
-중요: 서론이나 결론 없이 오직 유효한 JSON 데이터만 출력하라. 마크다운 태그(\`\`\`json)를 사용하지 마라.`;
+  log('AI 시네마틱 프롬프트 구성 중...');
+  
+  const workTitle = state.selectedGutenbergBook?.title || state.bookTitle || "";
+  const chapterTitle = state.customStartingPoint?.name || "";
+  
+  const prompt = buildScenePrompt({
+    text: processingText.slice(0, 15000), 
+    chapterTitles: [chapterTitle],
+    workTitle,
+    maxCandidates: state.selectedLength === 'long' ? 12 : 8,
+    maxSelectedScenes: state.selectedLength === 'short' ? 3 : (state.selectedLength === 'long' ? 8 : 5),
+    styleHint: "digital art style, semi-realistic anime, cinematic lighting, masterpiece, clean lineart"
+  });
 
   setStage(2);
-  log('AI 생성 시작...');
-  
+  log('AI 생성 시작 (시네마틱 엔진)...');
+
   try {
     const rawResponse = await fetchGeminiStory(prompt);
-    let jsonText = rawResponse.trim();
+    const parsed = extractJsonFromModelResponse(rawResponse);
+    const normalized = normalizeSceneResult(parsed);
     
-    const startIdx = jsonText.indexOf('{');
-    const lastIdx = jsonText.lastIndexOf('}');
-    if (startIdx !== -1 && lastIdx !== -1) {
-      jsonText = jsonText.substring(startIdx, lastIdx + 1);
-    }
+    log('시네마틱 데이터 수신 및 정규화 완료.');
+
+    // 앱 데이터 구조로 매핑
+    state.gameData = {
+      title_ko: workTitle,
+      title: workTitle,
+      mode: state.selectedMode,
+      characters: [], // 나중에 추출됨
+      scenes: normalized.selected_scenes.map((s, idx) => {
+        // 스크립트 결합 (Opening + Core + Closing)
+        const script = [];
+        if (s.dialogue.opening_hook_line?.line) {
+          script.push({ 
+            speaker: s.dialogue.opening_hook_line.speaker || 'narrator', 
+            text: s.dialogue.opening_hook_line.line 
+          });
+        }
+        s.dialogue.core_dialogue_lines.forEach(line => {
+          if (line.line) {
+            script.push({ speaker: line.speaker || 'narrator', text: line.line });
+          }
+        });
+        if (s.dialogue.closing_hook_line?.line) {
+          script.push({ 
+            speaker: s.dialogue.closing_hook_line.speaker || 'narrator', 
+            text: s.dialogue.closing_hook_line.line 
+          });
+        }
+
+        return {
+          id: idx + 1,
+          context: s.title,
+          narrative: s.context_for_new_viewer,
+          script: script,
+          image_data: s.image_data, // 신규 데이터 보존
+          bg_keyword: s.image_data.prompt_seed_text // 하위 호환성
+        };
+      })
+    };
+
+    // 캐릭터 목록 자동 추출 (장면에 등장하는 모든 화자 수집)
+    const speakerIds = new Set();
+    state.gameData.scenes.forEach(scene => {
+      scene.script.forEach(line => {
+        if (line.speaker && line.speaker !== 'narrator' && line.speaker !== 'system') {
+          speakerIds.add(line.speaker);
+        }
+      });
+    });
+
+    state.gameData.characters = Array.from(speakerIds).map(id => ({
+      id: id,
+      name: id,
+      image_prompt: `${id}, portrait, detailed character design` // 나중에 보강됨
+    }));
     
-    jsonText = repairJson(jsonText);
-    state.gameData = JSON.parse(jsonText);
-    
-    // 데이터 검증 및 보정
+    // 데이터 검증 및 보정 (기존 로직 활용)
     state.gameData = validateAndRepairGameData(state.gameData);
     
     // 데이터 정규화 (필드 타입 보장)

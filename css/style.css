@@ -1065,15 +1065,16 @@ body.mode-vn .vn-portrait-area.dim {
   opacity: 0.7;
 }
 
-/* Dialogue Box (강화된 글래스모피즘 - 하단 밀착) */
+/* Dialogue Box (시네마틱 하단 대화 상자) */
 body.mode-vn #adventure-area {
   margin-top: auto;
   position: absolute;
-  bottom: 0.8rem;
+  bottom: 0px;
   left: 50%;
   transform: translateX(-50%);
   width: 96%;
-  max-width: 1500px;
+  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.85) 30%, #000 100%);
+  padding: 3rem 2rem 4rem;
   z-index: 500;
   display: block !important;
 }

@@ -1411,10 +1411,9 @@ body.mode-vn .choices-header { display: none !important; }
 .gc-title { font-family: var(--ff-serif); font-size: 1.25rem; margin-bottom: 0.5rem; }
 .gc-meta { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.1em; display: flex; gap: 8px; }
 .gc-mode { color: var(--gold); font-weight: 600; }
-.gc-dl-btn {
+.gc-dl-btn, .gc-replay-btn {
   position: absolute;
   bottom: 0;
-  right: 0;
   background: var(--ink);
   color: var(--gold-light);
   border: none;
@@ -1423,13 +1422,24 @@ body.mode-vn .choices-header { display: none !important; }
   padding: 8px 12px;
   cursor: pointer;
   transition: all 0.2s;
+  z-index: 10;
+}
+.gc-dl-btn {
+  right: 0;
   border-top-left-radius: var(--radius);
 }
-.gc-dl-btn:hover {
+.gc-replay-btn {
+  right: 80px; /* 다운로드 버튼 너비 고려 */
+  border-top-left-radius: var(--radius);
   background: var(--gold);
   color: white;
 }
-.gc-dl-btn:disabled {
+.gc-dl-btn:hover, .gc-replay-btn:hover {
+  filter: brightness(1.2);
+  color: white;
+}
+.gc-replay-btn i { margin-right: 4px; }
+.gc-dl-btn:disabled, .gc-replay-btn:disabled {
   background: var(--ink3);
   cursor: not-allowed;
 }

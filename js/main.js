@@ -305,14 +305,22 @@ async function loadGallery() {
           <span class="gc-mode">${item.mode === 'visual_novel' ? '🎭 비주얼 노벨' : '⚔ 어드벤처'}</span>
           <span>${new Date(item.created_at).toLocaleDateString()}</span>
         </div>
+        <button class="gc-replay-btn" data-id="${item.id}">▶ 다시 플레이</button>
         <button class="gc-dl-btn" data-id="${item.id}" title="ZIP 다운로드">📦 다운로드</button>
       </div>
     `).join('');
     
     grid.querySelectorAll('.gallery-card').forEach(card => {
       card.addEventListener('click', (e) => {
-        if (e.target.classList.contains('gc-dl-btn')) return;
+        if (e.target.classList.contains('gc-dl-btn') || e.target.classList.contains('gc-replay-btn')) return;
         loadGameFromGallery(card.dataset.id);
+      });
+    });
+
+    grid.querySelectorAll('.gc-replay-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        loadGameFromGallery(btn.dataset.id);
       });
     });
 

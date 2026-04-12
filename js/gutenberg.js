@@ -121,6 +121,35 @@ function setSearchCache(query, data) {
 }
 
 /**
+ * 특정 도서의 본문 캐시를 로컬에서 가져옵니다.
+ */
+function getBookCache(bookId) {
+  try {
+    return localStorage.getItem('gb_book_text_' + bookId);
+  } catch { return null; }
+}
+
+/**
+ * 도서 본문을 캐시에 저장합니다. (용량 관리 포함)
+ */
+function setBookCache(bookId, text) {
+  try {
+    localStorage.setItem('gb_book_text_' + bookId, text);
+  } catch (e) {
+    // 용량 초과 시 오래된 검색 캐시부터 삭제 시도
+    console.warn('Storage full, clearing old search caches...');
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('gb_search_') || key.startsWith('gb_book_text_'))) {
+            localStorage.removeItem(key);
+            // 한 번 비우고 다시 시도 (재귀 방지 위해 한 번만)
+            try { localStorage.setItem('gb_book_text_' + bookId, text); break; } catch {}
+        }
+    }
+  }
+}
+
+/**
  * 구텐베르크 라이브러리에서 책을 검색합니다.
  * @param {string} query 검색어
  * @param {number} targetCount 목표 결과 수 (기본 100권)
@@ -191,11 +220,24 @@ export function cleanGutenbergText(text) {
  * 특정 ID의 도서를 구텐베르크에서 가져옵니다.
  */
 export async function fetchGutenbergBook(bookId) {
+  // 1. 캐시 확인
+  const cached = getBookCache(bookId);
+  if (cached) {
+    log('캐시에서 도서 본문을 불러왔습니다.');
+    return cached;
+  }
+
+  // 2. 서버에서 가져오기
   const res = await fetch(`/api/gutenberg?id=${bookId}`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || '책을 불러올 수 없습니다');
   }
   const text = await res.text();
-  return cleanGutenbergText(text);
+  const cleaned = cleanGutenbergText(text);
+
+  // 3. 캐시에 저장
+  setBookCache(bookId, cleaned);
+  
+  return cleaned;
 }

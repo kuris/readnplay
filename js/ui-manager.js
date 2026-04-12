@@ -7,17 +7,19 @@ import { STAGE_PROGRESS as SP, STAGE_TEXTS as ST } from './constants.js';
  */
 export function showScreen(name) {
   log(`화면 전환: ${name}`, 'warn');
+  const target = $('screen-' + name);
+  if (!target) return;
+
   const screens = document.querySelectorAll('.screen');
   screens.forEach(s => {
-    s.classList.remove('active');
-    s.style.display = 'none'; // 클래스 외에 display 속성도 명시적으로 제어
+    if (s !== target) {
+      s.classList.remove('active');
+      s.style.display = 'none';
+    }
   });
   
-  const target = $('screen-' + name);
-  if (target) {
-    target.classList.add('active');
-    target.style.display = 'block';
-  }
+  target.classList.add('active');
+  target.style.display = 'block';
 }
 
 /**

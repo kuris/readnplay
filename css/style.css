@@ -53,6 +53,10 @@ body::before {
 body.mode-vn #screen-game {
   background: #000; /* 비주얼 노벨 모드일 때는 배경을 검정으로 강제 */
 }
+.screen.active {
+  display: block !important;
+  opacity: 1;
+}
 
 /* ─── SETUP ─── */
 .masthead {

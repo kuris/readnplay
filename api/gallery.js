@@ -16,8 +16,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Missing Supabase Credentials' });
     }
 
-    // --- CASE 1: 갤러리 목록 가져오기 (GET) ---
-    if (req.method === 'GET') {
+    // --- CASE 1: 갤러리 목록 가져오기 (전체 목록) ---
+    if (req.method === 'GET' && !req.query.id) {
       const { data, error } = await supabase
         .from('readplay_history')
         .select('id, title, mode, created_at')

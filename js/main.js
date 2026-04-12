@@ -210,6 +210,8 @@ function initEventListeners() {
   if (continueBtn) {
     continueBtn.addEventListener('click', () => {
       if (loadProgress()) {
+        // 이어서 하기도 VN 모드 토글 필요
+        document.body.classList.toggle('mode-vn', state.selectedMode === 'visual_novel');
         showScreen('game');
         renderScene();
       }
@@ -333,6 +335,9 @@ async function loadGameFromGallery(id) {
     state.selectedMode = gameData.mode || 'adventure';
     state.bookTitle = gameData.title_ko || gameData.title;
     state.isGalleryMode = true;
+    
+    // 갤러리 로딩 시에도 VN 모드 토글
+    document.body.classList.toggle('mode-vn', state.selectedMode === 'visual_novel');
     
     // 게임 시작
     import('./game-engine.js').then(m => m.startGame());

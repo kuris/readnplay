@@ -78,12 +78,32 @@ export function renderScene() {
   
   saveProgress();
   
-  // 강제 가시성 확보 (Nuclear Fix)
+  // 0. 화면 가시성 통합 관리 (Nuclear Fix + Reset)
   const advArea = $('adventure-area');
-  if (advArea) {
-    advArea.style.display = 'block';
-    advArea.style.opacity = '1';
-    advArea.style.zIndex = '500';
+  const quizArea = $('quiz-area');
+  const endingArea = $('ending-area');
+
+  if (advArea) advArea.style.display = 'none';
+  if (quizArea) quizArea.style.display = 'none';
+  if (endingArea) endingArea.style.display = 'none';
+
+  // 현재 모드 식별 (데이터가 없으면 세션 설정을 따름)
+  const currentMode = state.gameData.mode || state.selectedMode || 'adventure';
+
+  // 가시성 강제 확보
+  if (currentMode === 'adventure' || currentMode === 'visual_novel' || currentMode === 'study') {
+    if (advArea) {
+      advArea.style.display = 'block';
+      advArea.style.opacity = '1';
+      advArea.style.zIndex = '500';
+    }
+  } else if (currentMode === 'quiz') {
+    if (quizArea) quizArea.style.display = 'block';
+  }
+
+  // 안전장치: 현재 화면이 game이 아니면 강제 전환
+  if (document.getElementById('screen-game') && !document.getElementById('screen-game').classList.contains('active')) {
+    showScreen('game');
   }
 
   const total = state.gameData.scenes.length;
@@ -306,17 +326,13 @@ export function renderScene() {
   const origToggle = $('orig-toggle');
   if (origToggle) origToggle.textContent = '원문 발췌 보기 ▾';
 
-  if (advArea) advArea.style.display = 'none';
-  $('quiz-area').style.display = 'none';
-  $('ending-area').style.display = 'none';
-
-  if (state.gameData.mode === 'quiz' || (state.gameData.mode === 'study' && scene.quiz)) {
-    $('quiz-area').style.display = 'block';
+  if (currentMode === 'quiz' || (currentMode === 'study' && scene.quiz)) {
+    if (quizArea) quizArea.style.display = 'block';
     renderQuiz(scene);
-  } else if (state.gameData.mode === 'adventure' || state.gameData.mode === 'visual_novel') {
+  } else if (currentMode === 'adventure' || currentMode === 'visual_novel') {
     if (advArea) advArea.style.display = 'block';
     renderChoices(scene);
-  } else if (state.gameData.mode === 'study') {
+  } else if (currentMode === 'study') {
     if (advArea) advArea.style.display = 'block';
     const cont = $('g-choices');
     if (cont) {
@@ -477,8 +493,10 @@ export function renderQuiz(scene) {
 }
 
 export function showGameOver(reason) {
+  const advArea = $('adventure-area');
+  const quizArea = $('quiz-area');
   if (advArea) advArea.style.display = 'none';
-  $('quiz-area').style.display = 'none';
+  if (quizArea) quizArea.style.display = 'none';
   const endArea = $('ending-area');
   if (endArea) endArea.style.display = 'grid';
   const progFill = $('g-prog');

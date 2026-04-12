@@ -108,7 +108,6 @@ export function renderScene() {
   if (speakerTag) speakerTag.classList.remove('show');
 
   // 상호작용 초기화: 이전 씬이나 다른 모드에서의 설정을 리셋
-  const advArea = $('adventure-area');
   if (advArea) {
     advArea.onclick = null;
     advArea.style.cursor = 'default';
@@ -151,12 +150,10 @@ export function renderScene() {
     if (choicesList) choicesList.style.display = 'none';
 
     const renderStep = () => {
-      const advArea = $('adventure-area');
       
       // 현재 대사의 남은 페이지가 있는지 확인
       if (currentChunks.length > 0 && subStep < currentChunks.length) {
         const chunk = currentChunks[subStep];
-        const sceneEl = $('g-scene');
         if (sceneEl) sceneEl.innerHTML = `<div class="dialogue-line fadein">${chunk}</div>`;
         subStep++;
         return;
@@ -220,7 +217,6 @@ export function renderScene() {
       }
       
       // 렌더링
-      const sceneEl = $('g-scene');
       if (sceneEl) {
         const chunk = currentChunks[subStep] || '';
         const isNextPage = subStep < currentChunks.length - 1;
@@ -264,7 +260,6 @@ export function renderScene() {
       }
     };
 
-    const advArea = $('adventure-area');
     if (advArea) {
       advArea.style.cursor = 'pointer';
       advArea.style.pointerEvents = 'auto'; // 새 장면 시작 시 클릭 활성화
@@ -311,7 +306,7 @@ export function renderScene() {
   const origToggle = $('orig-toggle');
   if (origToggle) origToggle.textContent = '원문 발췌 보기 ▾';
 
-  $('adventure-area').style.display = 'none';
+  if (advArea) advArea.style.display = 'none';
   $('quiz-area').style.display = 'none';
   $('ending-area').style.display = 'none';
 
@@ -319,10 +314,10 @@ export function renderScene() {
     $('quiz-area').style.display = 'block';
     renderQuiz(scene);
   } else if (state.gameData.mode === 'adventure' || state.gameData.mode === 'visual_novel') {
-    $('adventure-area').style.display = 'block';
+    if (advArea) advArea.style.display = 'block';
     renderChoices(scene);
   } else if (state.gameData.mode === 'study') {
-    $('adventure-area').style.display = 'block';
+    if (advArea) advArea.style.display = 'block';
     const cont = $('g-choices');
     if (cont) {
       cont.innerHTML = '';

@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { $ } from './utils.js';
+import { $, log } from './utils.js';
 import { STAGE_PROGRESS as SP, STAGE_TEXTS as ST } from './constants.js';
 
 /**

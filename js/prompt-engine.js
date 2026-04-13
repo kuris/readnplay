@@ -407,7 +407,7 @@ export function buildDrawThingsPrompt(imageData = {}, mode = 'portrait') {
     };
   }
 
-  // 👤 인물/장면 혼합 모드 (새로운 연출 가이드 적용)
+  // 👤 인물/장면 통합 모드 ('scene' 또는 'portrait')
   const parts = [
     imageData.style_hint,
     imageData.shot_type,

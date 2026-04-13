@@ -184,7 +184,7 @@ export async function ensureCharacterPortraits(characters) {
       const tryGenerate = async (retriesInner = 1) => {
         try {
           const genData = await safeFetchImagen({ 
-            prompt: `(Masterpiece, top quality, consistent high-quality 2D digital illustration, semi-realistic anime, vibrant colors, cinematic lighting, artstation style), ${char.image_prompt}, (medium thigh-up shot, standing, looking at viewer:1.3), detailed eyes and face, highly detailed scenery background, (rim lighting, cinematic atmospheric light:1.2)`,
+            prompt: `(Masterpiece, top quality, consistent high-quality 2D digital illustration, semi-realistic anime, vibrant colors, cinematic lighting, artstation style), ${char.image_prompt}, detailed eyes and face, looking at viewer, highly detailed background, (rim lighting, cinematic atmospheric light:1.2)`,
             negativePrompt: "(text, letters, words, logo, signature, watermark, credits, billboard, placeholder:1.5), sketch, rough, draft, monochrome, black and white, lowres, bad anatomy, bad hands, distorted face, figurine, toy, 3d, render, miniature, doll, pedestal, plastic, statue, blurry, two people, twins, duplicated character",
             aspectRatio: "1:1", numImages: 1,
             mimeType: "image/png"

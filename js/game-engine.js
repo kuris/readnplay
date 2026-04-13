@@ -262,6 +262,9 @@ export function renderScene() {
       // 얼굴 이미지 처리 (첫 페이지에서만 또는 매 페이지 업데이트)
       const portraitArea = $('vn-portrait-area');
       if (portraitArea) {
+        // 🎞️ 통합 장면(Scene) 이미지가 있을 경우 초상화 영역에 스타일 클래스 부여
+        portraitArea.classList.toggle('is-scenic', !!scene.image_data);
+        
         const char = (state.gameData.characters || []).find(c => String(c.id) === String(line.speaker));
         const avatarUrl = char ? (char.avatar_url || '') : '';
         
@@ -368,7 +371,9 @@ async function handleBackdropUpdate(keyword) {
   let finalNegativePrompt = "";
 
   if (scene && scene.image_data) {
-    const drawPrompt = buildDrawThingsPrompt(scene.image_data, 'backdrop');
+    // 🎭 비주얼 노벨 모드에서는 배경 자리에 인물과 상황이 포함된 '통합 장면'을 생성합니다.
+    const mode = (state.selectedMode === 'visual_novel') ? 'scene' : 'backdrop';
+    const drawPrompt = buildDrawThingsPrompt(scene.image_data, mode);
     finalPrompt = drawPrompt.prompt;
     finalNegativePrompt = drawPrompt.negative_prompt;
   } else {

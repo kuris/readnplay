@@ -8,7 +8,9 @@ import {
   initWorkflowUI, 
   postAiMessage, 
   renderWorkflowCard, 
-  renderWorkflowSidebar 
+  renderWorkflowSidebar,
+  updateWorkflowMetadata,
+  updateWorkflowSummary
 } from './workflow-ui.js';
 import { 
   buildScenePrompt, 
@@ -163,9 +165,6 @@ export async function generate(retryCount = 0) {
   state.selectedLength = config.length;
   updateWorkflowMetadata();
   updateWorkflowSummary();
-
-  const { updateWorkflowSummary: updateSumUI } = await import('./workflow-ui.js');
-  updateSumUI();
 
   // ── 도서 데이터 다운로드 (Gutenberg인 경우) ──
   if (state.selectedGutenbergBook) {

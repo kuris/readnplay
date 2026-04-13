@@ -2201,25 +2201,32 @@ body.mode-vn #screen-game.active {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 1rem 1.5rem;
-  display: flex;
+  padding: 1.25rem 1.5rem;
+  display: flex !important;
+  flex-direction: row !important;
   align-items: center;
   gap: 1.25rem;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
 .wf-option-item:hover {
   border-color: var(--gold);
-  background: rgba(184, 134, 11, 0.03);
-  transform: translateX(8px);
-  box-shadow: -4px 4px 15px rgba(0,0,0,0.05);
+  background: #fffdf5;
+  transform: scale(1.015) translateX(6px);
+  box-shadow: 0 10px 30px rgba(184, 134, 11, 0.08);
+  z-index: 2;
+}
+.wf-option-item:active {
+  transform: scale(0.98);
 }
 .wf-option-item.selected {
   border-color: var(--gold);
-  background: rgba(184, 134, 11, 0.08);
-  box-shadow: inset 4px 0 0 var(--gold);
+  background: #fffcf0;
+  box-shadow: inset 4px 0 0 var(--gold), 0 5px 15px rgba(184, 134, 11, 0.1);
 }
 .wf-option-icon {
   width: 40px;

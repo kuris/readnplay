@@ -368,7 +368,7 @@ async function handleBackdropUpdate(keyword) {
   let finalNegativePrompt = "";
 
   if (scene && scene.image_data) {
-    const drawPrompt = buildDrawThingsPrompt(scene.image_data);
+    const drawPrompt = buildDrawThingsPrompt(scene.image_data, 'backdrop');
     finalPrompt = drawPrompt.prompt;
     finalNegativePrompt = drawPrompt.negative_prompt;
   } else {

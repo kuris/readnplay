@@ -1076,14 +1076,14 @@ body.mode-vn .game-lang-pill:hover { opacity: 1; }
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  height: 85vh;
+  height: 92vh; /* 조금 더 크게 상향 */
   justify-content: center;
   align-items: flex-end;
   pointer-events: none;
-  z-index: 10;
-  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 20; /* 배경보다 확실히 앞에 위치 */
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
-  filter: drop-shadow(0 0 30px rgba(0,0,0,0.4));
+  filter: drop-shadow(0 0 40px rgba(0,0,0,0.6));
 }
 .vn-portrait-area img {
   height: 100%;
@@ -1117,9 +1117,13 @@ body.mode-vn #adventure-area {
   bottom: 0px;
   left: 50%;
   transform: translateX(-50%);
-  width: 96%;
-  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.85) 35%, #000 100%);
-  padding: 4rem 2rem 5rem; /* 여백 증가로 이름표 짤림 방지 */
+  width: 100%; /* 너비 100%로 꽉 채움 */
+  background: linear-gradient(to top, 
+    #000 0%, 
+    rgba(0,0,0,0.95) 60%, 
+    rgba(0,0,0,0.8) 80%, 
+    transparent 100%);
+  padding: 5rem 3rem 4rem;
   z-index: 500;
   display: block !important;
 }

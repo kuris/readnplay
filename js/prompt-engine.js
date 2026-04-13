@@ -465,22 +465,41 @@ export function normalizeSceneResult(result) {
 
 /**
  * 이미지 생성 엔진(Draw Things/SD)용 프롬프트를 구성합니다.
+ * @param {Object} imageData 이미지 관련 데이터
+ * @param {'backdrop'|'portrait'} mode 생성 모드
  */
-export function buildDrawThingsPrompt(imageData = {}) {
-  const parts = [
+export function buildDrawThingsPrompt(imageData = {}, mode = 'portrait') {
+  if (mode === 'backdrop') {
+    // 🏷 배경 전용 모드: 인물 관련 묘사를 완전히 제외
+    const bgParts = [
+      imageData.style_hint,
+      imageData.background_focus,
+      imageData.lighting,
+      "cinematic wide shot",
+      "landscape scenery focus",
+      "(strictly NO people, NO humans, NO characters, empty scenery:1.5)"
+    ].filter(Boolean);
+
+    return {
+      prompt: bgParts.join(", "),
+      negative_prompt: "(human, people, person, character, man, woman:1.5), " + 
+        (imageData.negative_prompt_seed_text || "low quality, blurry, text, watermark")
+    };
+  }
+
+  // 👤 인물 전용 모드
+  const portraitParts = [
     imageData.style_hint,
     imageData.character_focus,
-    imageData.background_focus,
-    imageData.lighting,
-    imageData.composition,
     imageData.core_moment,
-    imageData.prompt_seed_text,
+    imageData.lighting,
+    imageData.composition || "thigh-up portrait",
+    imageData.prompt_seed_text
   ].filter(Boolean);
 
   return {
-    prompt: parts.join(", "),
-    negative_prompt:
-      imageData.negative_prompt_seed_text ||
-      "low quality, blurry, bad hands, extra fingers, text, watermark",
+    prompt: portraitParts.join(", "),
+    negative_prompt: imageData.negative_prompt_seed_text || 
+      "(text, letters, words, logo, signature, watermark:1.5), low quality, blurry, bad anatomy, bad hands, distorted face"
   };
 }

@@ -1828,12 +1828,13 @@ body.mode-vn #screen-game.active {
 
 .wf-chat-area {
   flex: 1;
-  padding: 3rem 4rem 1rem;
+  padding: 2rem 4rem 1rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   scroll-behavior: smooth;
+  border-bottom: 1px solid rgba(0,0,0,0.05); /* 경계선 추가 */
 }
 
 .wf-msg {
@@ -1873,8 +1874,12 @@ body.mode-vn #screen-game.active {
 }
 
 .wf-card-area {
-  padding: 1rem 4rem 4rem;
-  min-height: 300px;
+  flex: 1;
+  padding: 2rem 4rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 카드 중앙 정렬 유지 */
 }
 
 .wf-card {

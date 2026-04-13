@@ -11,6 +11,11 @@ export function ensureString(val, fallback = '') {
   return String(val);
 }
 
+export function safely(val, fallback = '-') {
+  if (val === null || val === undefined || val === 'undefined') return fallback;
+  return ensureString(val, fallback);
+}
+
 /**
  * 말뭉치가 잘린 JSON 또는 문법 오류가 있는 JSON을 최대한 복구합니다.
  */

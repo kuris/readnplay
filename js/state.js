@@ -28,9 +28,11 @@ export const state = {
   activeSidePanel: null,    // 현재 열린 사이드 패널 (info, characters, timeline 등)
   // --- WORKFLOW NEW ---
   workflow: {
-    stage: 'idle', // 'mode_select', 'entity_resolve', 'style_select', 'plan_confirm'
+    stageIdx: 0, 
     isProcessing: false,
     results: {
+      book: null,
+      config: null,
       analysis: null,
       entities: null,
       style: null,

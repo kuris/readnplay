@@ -3,29 +3,34 @@ import { $, log } from './utils.js';
 import { WORKFLOW_STAGES } from './constants.js';
 import { showScreen } from './ui-manager.js';
 
-/**
- * 워크플로우 화면을 초기화하고 사이드바를 그립니다.
- */
 export function initWorkflowUI() {
   showScreen('workflow');
-  renderWorkflowSidebar();
   
   const chatArea = $('wf-chat-area');
   const cardArea = $('wf-card-area');
   if (chatArea) chatArea.innerHTML = '';
   if (cardArea) cardArea.innerHTML = '<div class="wf-card-empty"><span class="book-anim">⏳</span><p>AI가 데이터를 정리하고 있습니다...</p></div>';
   
-  // 프로젝트 정보 업데이트
-  const titleEl = $('wf-book-title');
-  if (titleEl) titleEl.textContent = state.bookTitle || state.selectedGutenbergBook?.title || '새 프로젝트';
-  
-  const metaEl = $('wf-book-meta');
-  if (metaEl) metaEl.textContent = `${state.selectedMode} / ${state.selectedLang}`;
+  updateWorkflowMetadata();
+  renderWorkflowSidebar();
+  updateWorkflowSummary();
 }
 
 /**
- * 사이드바의 단계 목록을 렌더링합니다.
+ * 프로젝트 정보를 업데이트합니다.
  */
+export function updateWorkflowMetadata() {
+  const titleEl = $('wf-book-title');
+  if (titleEl) titleEl.textContent = state.bookTitle || state.selectedGutenbergBook?.title || '도서 선택 대기 중...';
+  
+  const metaEl = $('wf-book-meta');
+  if (metaEl) {
+    const mode = state.selectedMode || '-';
+    const lang = state.selectedLang || '-';
+    metaEl.textContent = `${mode} / ${lang}`;
+  }
+}
+
 export function renderWorkflowSidebar() {
   const stepsEl = $('wf-steps');
   if (!stepsEl) return;
@@ -39,6 +44,29 @@ export function renderWorkflowSidebar() {
       <div class="wf-step-label">${stage.label}</div>
     </div>
   `).join('');
+}
+
+/**
+ * 우측 라이브 요약 패널을 업데이트합니다.
+ */
+export function updateWorkflowSummary() {
+  const modeEl = $('sum-mode');
+  const langEl = $('sum-lang');
+  const lengthEl = $('sum-length');
+  const styleEl = $('sum-style');
+
+  if (modeEl) modeEl.textContent = state.selectedMode === 'adventure' ? '⚔ 주인공 빙의' : (state.selectedMode === 'visual_novel' ? '🎭 비주얼 노벨' : '-');
+  if (langEl) langEl.textContent = state.selectedLang === 'ko' ? '🇰🇷 한국어' : (state.selectedLang === 'en' ? '🇺🇸 영어' : '-');
+  if (lengthEl) lengthEl.textContent = state.selectedLength === 'short' ? '⚡ 빠른 전개' : (state.selectedLength === 'medium' ? '📖 표준' : (state.selectedLength === 'long' ? '🎯 심화' : '-'));
+  if (styleEl) {
+    const styleName = {
+      'semi_realistic_anime': '세미리얼 애니',
+      'webtoon_korean': '한국 웹툰풍',
+      'classic_watercolor': '클래식 수채화',
+      'cyberpunk_noir': '사이버펑크 누아르'
+    }[state.userDecisions.visualStyle.profile] || '-';
+    styleEl.textContent = styleName;
+  }
 }
 
 /**
@@ -73,6 +101,12 @@ export function renderWorkflowCard(type, data, onDecision) {
   card.className = 'wf-card';
 
   switch (type) {
+    case 'BOOK_SELECT':
+      renderBookSelectCard(card, data, onDecision);
+      break;
+    case 'CONFIG_SELECT':
+      renderConfigSelectCard(card, data, onDecision);
+      break;
     case 'MODE_SELECT':
       renderModeSelectCard(card, data, onDecision);
       break;
@@ -88,6 +122,151 @@ export function renderWorkflowCard(type, data, onDecision) {
   }
 
   cardArea.appendChild(card);
+}
+
+/**
+ * Step 0: 도서 선택 카드
+ */
+function renderBookSelectCard(container, data, resolve) {
+  container.innerHTML = `
+    <div class="wf-card-h">📖 어떤 이야기를 시작할까요?</div>
+    <div class="wf-book-options">
+      <div class="wf-option-group">
+        <div class="field-label">내 기기의 파일</div>
+        <div class="wf-drop-zone" id="wf-drop-zone">
+          <span class="icon">📁</span>
+          <div class="txt">EPUB 파일을 드래그하거나 클릭하세요</div>
+        </div>
+        <input type="file" id="wf-file-input" accept=".epub" style="display:none">
+      </div>
+      
+      <div class="wf-option-group">
+        <div class="field-label">무료 고전 도서 (Gutenberg)</div>
+        <div class="wf-search-box">
+          <input type="text" id="wf-gb-search" placeholder="제목이나 작가 검색..." class="field-input">
+          <button class="btn-wf-sm" id="btn-gb-search">🔍</button>
+        </div>
+        <div class="wf-book-mini-grid" id="wf-book-grid">
+          <!-- 추천/검색 결과 -->
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 파일 업로드 처리
+  const dropZone = container.querySelector('#wf-drop-zone');
+  const fileInput = container.querySelector('#wf-file-input');
+  dropZone.onclick = () => fileInput.click();
+  fileInput.onchange = async () => {
+    const file = fileInput.files[0];
+    if (file) {
+      resolve({ type: 'upload', file });
+    }
+  };
+
+  // 구텐베르크 추천 도서 렌더링
+  const grid = container.querySelector('#wf-book-grid');
+  const { FEATURED_BOOKS } = data; // constants에서 전달받음
+  
+  function renderList(books) {
+    grid.innerHTML = books.map(b => `
+      <div class="wf-book-mini-card" data-id="${b.id}">
+        <div class="title">${b.title}</div>
+        <div class="author">${b.author}</div>
+      </div>
+    `).join('');
+    grid.querySelectorAll('.wf-book-mini-card').forEach(c => {
+      c.onclick = () => {
+        const book = books.find(x => String(x.id) === String(c.dataset.id));
+        resolve({ type: 'gutenberg', book });
+      };
+    });
+  }
+
+  renderList(FEATURED_BOOKS.slice(0, 4));
+
+  // 검색 처리
+  const searchInput = container.querySelector('#wf-gb-search');
+  container.querySelector('#btn-gb-search').onclick = async () => {
+    const query = searchInput.value.trim();
+    if (!query) return;
+    grid.innerHTML = '<div style="font-size:11px; color:var(--ink3); padding:10px;">검색 중...</div>';
+    try {
+      const { searchGutenberg } = await import('./gutenberg.js');
+      const { results } = await searchGutenberg(query, 10);
+      if (results && results.length > 0) {
+        const mapped = results.map(r => ({
+          id: r.id, title: r.title, author: r.authors?.[0]?.name || 'Unknown'
+        }));
+        renderList(mapped);
+      } else {
+        grid.innerHTML = '<div style="font-size:11px; color:var(--ink3); padding:10px;">결과 없음</div>';
+      }
+    } catch(e) {
+      grid.innerHTML = '<div style="font-size:11px; color:var(--red); padding:10px;">검색 실패</div>';
+    }
+  };
+}
+
+/**
+ * Step 1: 환경 설정 카드
+ */
+function renderConfigSelectCard(container, data, resolve) {
+  container.innerHTML = `
+    <div class="wf-card-h">⚙️ 리딩 환경 설정</div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+      <div class="wf-option-group">
+        <div class="field-label">언어</div>
+        <select id="sel-wf-lang" class="field-input">
+          <option value="ko" ${state.selectedLang === 'ko' ? 'selected' : ''}>🇰🇷 한국어</option>
+          <option value="en" ${state.selectedLang === 'en' ? 'selected' : ''}>🇺🇸 영어 원문</option>
+        </select>
+      </div>
+      <div class="wf-option-group">
+        <div class="field-label">읽기 강도 (분량)</div>
+        <select id="sel-wf-length" class="field-input">
+          <option value="short" ${state.selectedLength === 'short' ? 'selected' : ''}>⚡ 빠른 전개</option>
+          <option value="medium" ${state.selectedLength === 'medium' ? 'selected' : ''}>📖 표준</option>
+          <option value="long" ${state.selectedLength === 'long' ? 'selected' : ''}>🎯 심화</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="wf-option-group" style="margin-top:1.5rem;">
+      <div class="field-label">장르 및 모드</div>
+      <div class="wf-mode-grid mini">
+        <div class="wf-mode-card ${state.selectedMode === 'adventure' ? 'selected' : ''}" data-mode="adventure">
+          <div class="title">⚔ 주인공 빙의</div>
+          <div class="desc">선택지로 스토리를 개척</div>
+        </div>
+        <div class="wf-mode-card ${state.selectedMode === 'visual_novel' ? 'selected' : ''}" data-mode="visual_novel">
+          <div class="title">🎭 비주얼 노벨</div>
+          <div class="desc">캐릭터 관계 및 전개</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wf-actions">
+      <button class="btn-wf-primary" id="btn-wf-confirm">설정 완료 →</button>
+    </div>
+  `;
+
+  let selectedMode = state.selectedMode;
+  container.querySelectorAll('.wf-mode-card').forEach(c => {
+    c.onclick = () => {
+      container.querySelectorAll('.wf-mode-card').forEach(x => x.classList.remove('selected'));
+      c.classList.add('selected');
+      selectedMode = c.dataset.mode;
+    };
+  });
+
+  container.querySelector('#btn-wf-confirm').onclick = () => {
+    resolve({
+      lang: container.querySelector('#sel-wf-lang').value,
+      length: container.querySelector('#sel-wf-length').value,
+      mode: selectedMode
+    });
+  };
 }
 
 /**

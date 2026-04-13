@@ -30,184 +30,10 @@
   </svg>
 <div class="page">
 
-  <!-- ── SETUP ── -->
-  <div id="screen-setup" class="screen active">
-    <div class="masthead fadein">
-      <div class="logo">READ<span>PLAY</span></div>
-      <div class="tagline">epub을 인터랙티브 텍스트 게임으로</div>
-    </div>
-
-    <div class="field-group fadein" style="animation-delay:0.05s; display:none">
-      <label class="field-label">Vertex AI API Key</label>
-      <input class="field-input" type="password" id="api-key" placeholder="AIza..." autocomplete="off">
-    </div>
-
-    <div class="main-tabs fadein">
-      <button class="tab-btn active" data-tab="library">🏛 도서관</button>
-      <button class="tab-btn" data-tab="gallery">🖼 갤러리</button>
-    </div>
-
-    <div id="tab-library" class="tab-content active">
-      <div class="opt-section fadein" style="animation-delay:0.05s">
-      <label class="field-label">책 선택 방법</label>
-      <div class="source-toggle" id="source-toggle">
-        <button class="source-btn active" data-source="upload">
-          📁 내 파일 업로드
-        </button>
-        <button class="source-btn" data-source="gutenberg">
-          📚 무료 고전 도서관
-        </button>
-      </div>
-    </div>
-
-    <!-- 구텐베르크 브라우저 -->
-    <div id="gutenberg-browser" class="gb-container">
-      <div class="gb-search-bar">
-        <input type="text" id="gb-search-input" class="field-input" 
-               placeholder="작품명이나 작가명으로 검색... (예: sherlock, austen)">
-        <button class="btn-ghost" id="gb-search-btn">🔍 검색</button>
-      </div>
-      
-      <div class="gb-categories">
-        <div style="display:flex; align-items:center; gap:4px;">
-          <button class="gb-cat-btn active" data-cat="featured">⭐ 추천</button>
-          <button class="btn-ghost" id="gb-refresh-btn" title="목록 새로고침" style="padding:4px 8px; font-size:14px; border:none; background:none; cursor:pointer; color:var(--gold); opacity:0.8;">↻</button>
-        </div>
-        <button class="gb-cat-btn" data-cat="romance">💕 로맨스</button>
-        <button class="gb-cat-btn" data-cat="mystery">🔍 미스터리</button>
-        <button class="gb-cat-btn" data-cat="adventure">⚔️ 모험</button>
-        <button class="gb-cat-btn" data-cat="horror">👻 공포</button>
-        <button class="gb-cat-btn" data-cat="short">⚡ 단편</button>
-      </div>
-      
-      <div class="gb-books-grid" id="gb-books-grid"></div>
-      
-      <!-- 구텐베르크 페이징 -->
-      <div id="gb-pagination" class="gb-pagination" style="display:none; margin-top:1.5rem; justify-content:center; align-items:center; gap:1.5rem;">
-        <button class="btn-ghost" id="gb-prev-btn" style="min-width:100px;">이전 20개</button>
-        <span id="gb-page-info" style="font-size:12px; font-family:var(--ff-mono); color:var(--gold);">1 / 5</span>
-        <button class="btn-ghost" id="gb-next-btn" style="min-width:100px;">다음 20개</button>
-      </div>
-      
-      <div class="gb-loading" id="gb-loading">
-        <span class="book-anim" style="font-size:2rem">📖</span>
-        <div style="font-size:12px;color:var(--ink3)">책을 불러오는 중...</div>
-      </div>
-    </div>
-
-    <div class="field-group fadein" id="upload-area" style="animation-delay:0.1s">
-      <label class="field-label">epub 파일</label>
-      <div class="drop-zone" id="drop-zone">
-        <span class="dz-icon">📖</span>
-        <div class="dz-main">파일을 드래그하거나 클릭해서 업로드</div>
-        <div class="dz-sub">.epub 파일만 지원</div>
-      </div>
-      <input type="file" id="file-input" accept=".epub" style="display:none">
-      <div class="file-badge" id="file-badge">
-        <span>✓</span>
-        <span id="file-name-label">-</span>
-      </div>
-    </div>
-
-    <div class="opt-section fadein" style="animation-delay:0.15s">
-      <label class="field-label">게임 모드</label>
-      <div class="opt-grid" id="mode-grid">
-        <div class="opt-card sel" data-mode="adventure">
-          <div class="oc-title">⚔ 주인공 빙의</div>
-          <div class="oc-desc">선택지로 스토리를 분기하며 진행</div>
-        </div>
-        <div class="opt-card" data-mode="quiz">
-          <div class="oc-title">✦ 독해 퀴즈</div>
-          <div class="oc-desc">원문 읽고 내용 퀴즈로 학습</div>
-        </div>
-        <div class="opt-card" data-mode="study">
-          <div class="oc-title">📕 기술 학습</div>
-          <div class="oc-desc">전문서적용 핵심 개념 및 실습</div>
-        </div>
-        <div class="opt-card" data-mode="visual_novel">
-          <div class="oc-title">🎭 비주얼 노벨 <span class="beta-tag">BETA</span></div>
-          <div class="oc-desc">캐릭터 관계도 및 멀티 엔딩 시스템</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="opt-section fadein" style="animation-delay:0.25s">
-      <label class="field-label">게임 길이</label>
-      <div class="opt-grid" id="length-grid">
-        <div class="opt-card" data-length="short">
-          <div class="oc-title">⚡ 빠른 체험</div>
-          <div class="oc-desc">3-5 씬, 10분 내외</div>
-        </div>
-        <div class="opt-card sel" data-length="medium">
-          <div class="oc-title">📖 표준</div>
-          <div class="oc-desc">5-8 씬, 20분 내외</div>
-        </div>
-        <div class="opt-card" data-length="long">
-          <div class="oc-title">🎯 심화</div>
-          <div class="oc-desc">10-15 씬, 40분 내외</div>
-        </div>
-        <div class="opt-card" data-length="series" id="opt-series">
-          <div class="oc-title">🎞 시리즈/커스텀</div>
-          <div class="oc-desc">챕터를 분석하여 지점을 선택</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="opt-section fadein" style="animation-delay:0.3s">
-      <label class="field-label">언어 설정</label>
-      <div class="lang-row" id="lang-row">
-        <button class="lang-opt sel" data-lang="ko">🇰🇷 한국어로</button>
-        <button class="lang-opt" data-lang="en">🇺🇸 영어 원문</button>
-        <button class="lang-opt" data-lang="bilingual">🔄 한/영 병행</button>
-      </div>
-    </div>
-
-    <div class="opt-section fadein" style="animation-delay:0.35s">
-      <label class="field-label">생성 데이터 설정</label>
-      <div class="lang-row" id="cache-row">
-        <button class="lang-opt sel" data-strategy="use">⚡ 기존 데이터 활용 (권장)</button>
-        <button class="lang-opt" data-strategy="refresh">✨ 새로 스토리 생성</button>
-      </div>
-    </div>
-
-    <div class="opt-section fadein" id="sd-section" style="animation-delay:0.4s">
-      <label class="field-label">AI 이미지 설정 (Local SD)</label>
-      <div id="sd-settings" style="display:block; padding:12px; background:rgba(184,134,11,0.05); border:1px solid var(--gold); border-radius:4px;">
-        <label class="field-label" style="color:var(--gold); margin-bottom:5px;">Stable Diffusion API URL</label>
-        <input class="field-input" type="text" id="sd-url-input" placeholder="https://****.ngrok-free.app" style="margin-bottom:8px;">
-        <div style="font-size:10px; color:var(--ink3); line-height:1.5;">
-          💡 로컬 PC에서 실행 중인 <b>Stable Diffusion</b>의 API 주소를 입력하세요. <br>
-          💡 <code>--cors-allow-origins https://readplay.vercel.app</code> 옵션이 설정되어 있어야 합니다.
-        </div>
-      </div>
-    </div>
-
-    </div>
-
-    <button class="btn-start fadein" id="btn-start" disabled style="animation-delay:0.25s">
-      ◆ 게임 생성 시작
-    </button>
-    
-    <!-- 이어하기 버튼 -->
-    <div id="continue-section" style="display:none; margin-top:1rem; text-align:center;">
-      <div style="font-size:11px; color:var(--ink3); margin-bottom:0.5rem;">기존에 진행 중인 게임이 있습니다</div>
-      <button class="btn-ghost" id="btn-continue" style="width:100%; padding:11px; border-color:var(--gold); color:var(--gold);">
-        ↻ 이어서 진행하기
-      </button>
-    </div>
-  <!-- ── GALLERY ── -->
-  <div id="tab-gallery" class="tab-content">
-    <div class="gallery-header">
-      <label class="field-label">나의 모험 기록 (Supabase)</label>
-      <button class="btn-ghost" id="btn-refresh-gallery" style="font-size:11px">↻ 목록 갱신</button>
-    </div>
-    <div id="gallery-grid" class="gallery-grid">
-      <!-- 갤러리 아이템 동적 삽입 -->
-      <div class="gallery-empty">아직 기록된 모험이 없습니다.</div>
-    </div>
+  <!-- ── SETUP (Now Backgrounded/Merged) ── -->
+  <div id="screen-setup" class="screen">
+    <!-- Legacy UI removed or hidden -->
   </div>
-</div>
-</div>
 
   <!-- ── CHAPTER SELECTION ── -->
   <div id="screen-chapters" class="screen">
@@ -264,8 +90,8 @@
     </div>
   </div>
 
-  <!-- ── WORKFLOW (Interactive) ── -->
-  <div id="screen-workflow" class="screen">
+  <!-- ── WORKFLOW (NEW DEFAULT ENTRY) ── -->
+  <div id="screen-workflow" class="screen active" style="display:flex; opacity:1; z-index:1000; pointer-events:auto;">
     <div class="wf-container">
       <!-- Left Sidebar: Progress -->
       <div class="wf-sidebar">
@@ -280,7 +106,7 @@
 
         <div class="wf-sidebar-footer">
           <div class="wf-project-info" id="wf-project-info">
-            <div id="wf-book-title">작품 분석 중...</div>
+            <div id="wf-book-title">도서 선택 대기 중...</div>
             <div id="wf-book-meta">-</div>
           </div>
         </div>
@@ -301,11 +127,26 @@
         </div>
       </div>
 
-      <!-- Right Sidebar: Preview (Optional/Contextual) -->
+      <!-- Right Sidebar: Preview (Dynamic Summary) -->
       <div class="wf-preview-bar" id="wf-preview-bar">
-        <div class="wf-preview-header">SUMMARY</div>
+        <div class="wf-preview-header">LIVE SUMMARY</div>
         <div id="wf-preview-content" class="wf-preview-content">
-          <div class="wf-preview-placeholder">현 단계의 요약 정보가<br>여기에 표시됩니다.</div>
+          <div class="wf-summary-card">
+            <div class="wf-summary-label">모드</div>
+            <div id="sum-mode" class="wf-summary-val">-</div>
+          </div>
+          <div class="wf-summary-card">
+            <div class="wf-summary-label">언어</div>
+            <div id="sum-lang" class="wf-summary-val">-</div>
+          </div>
+          <div class="wf-summary-card">
+            <div class="wf-summary-label">분량</div>
+            <div id="sum-length" class="wf-summary-val">-</div>
+          </div>
+          <div class="wf-summary-card">
+            <div class="wf-summary-label">비주얼 스타일</div>
+            <div id="sum-style" class="wf-summary-val">-</div>
+          </div>
         </div>
       </div>
     </div>

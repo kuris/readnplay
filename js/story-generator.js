@@ -132,26 +132,55 @@ async function waitForUserApproval(point, data) {
 }
 
 /**
- * AI 게임 생성을 조율하는 메인 함수입니다.
+ * AI 게임 생성을 조율하는 메인 함수입니다. (Conversational Start)
  */
 export async function generate(retryCount = 0) {
-  showScreen('loading');
-  const maxRetries = 2;
+  initWorkflowUI();
+  
+  // ── Step 0: BOOK_SELECT ──
+  await postAiMessage("반갑습니다! 저는 당신의 독서 여정을 도울 AI 어시스턴트입니다. 오늘은 어떤 이야기를 시네마틱하게 읽어볼까요?");
+  const bookResult = await waitForUserApproval({ idx: 0, type: 'BOOK_SELECT' }, { 
+    FEATURED_BOOKS: (await import('./constants.js')).FEATURED_BOOKS 
+  });
 
-  setStage(0);
-  if (state.selectedSource === 'gutenberg' && state.selectedGutenbergBook) {
-    if (retryCount === 0) log('구텐베르크에서 책을 불러오는 중...');
+  if (bookResult.type === 'upload') {
+    const { handleFile } = await import('./storage.js');
+    await handleFile(bookResult.file);
+    await postAiMessage(`<b>${state.bookTitle}</b> 파일을 성공적으로 불러왔습니다.`);
+  } else {
+    state.selectedGutenbergBook = bookResult.book;
+    state.bookTitle = bookResult.book.title;
+    await postAiMessage(`고전 명작 <b>${state.bookTitle}</b>을(를) 선택하셨군요. 탁월한 선택입니다!`);
+  }
+  updateWorkflowMetadata();
+
+  // ── Step 1: CONFIG_SELECT ──
+  await postAiMessage("본격적으로 시작하기 전에, 어떤 환경에서 읽고 싶으신지 알려주세요.");
+  const config = await waitForUserApproval({ idx: 1, type: 'CONFIG_SELECT' }, {});
+  
+  state.selectedLang = config.lang;
+  state.selectedMode = config.mode;
+  state.selectedLength = config.length;
+  updateWorkflowMetadata();
+  updateWorkflowSummary();
+
+  const { updateWorkflowSummary: updateSumUI } = await import('./workflow-ui.js');
+  updateSumUI();
+
+  // ── 도서 데이터 다운로드 (Gutenberg인 경우) ──
+  if (state.selectedGutenbergBook) {
+    await postAiMessage("도서관 서버에서 본문을 가져오고 있습니다. 잠시만 기다려주세요...");
     try {
       state.epubText = await fetchGutenbergBook(state.selectedGutenbergBook.id);
     } catch(e) {
-      log('다운로드 실패: ' + e.message, 'err');
+      await postAiMessage("도서를 가져오는 중 오류가 발생했습니다: " + e.message);
       return;
     }
   }
 
-  setStage(1);
-  const lengthLimit = 60000;
+  // ── 텍스트 전처리 및 챕터 분석 (시리즈 모드용) ──
   if (state.selectedLength === 'series' && !state.customStartingPoint) {
+    await postAiMessage("책의 전반적인 구조와 챕터를 분석하고 있습니다. 시작하고 싶은 지점을 고르실 수 있습니다.");
     try {
       const chapters = await extractChapters(state.epubText);
       renderChapterList(chapters);
@@ -160,9 +189,11 @@ export async function generate(retryCount = 0) {
     } catch (e) {
       log('챕터 분석 실패, 표준 모드로 진행합니다.', 'warn');
       state.selectedLength = 'medium';
+      updateWorkflowSummary();
     }
   }
 
+  const lengthLimit = 60000;
   const lengthMap = { short: 15000, medium: 30000, long: 60000, series: 60000 };
   const targetChars = lengthMap[state.selectedLength] || 30000;
   let processingText = '';
@@ -175,44 +206,40 @@ export async function generate(retryCount = 0) {
       processingText = state.epubText.slice(0, targetChars);
   }
 
-  log('콘텐츠 준비 완료 (' + Math.round(processingText.length / 1000) + 'k chars)');
-
   const bookIdStr = state.selectedGutenbergBook 
     ? state.selectedGutenbergBook.id.toString() 
     : `custom_${getStringHash(state.epubText)}`;
   
   const cacheKey = `${bookIdStr}_${state.selectedMode}_${state.selectedLang}_${state.selectedLength}_${state.customStartingPoint?.index || 0}_${state.customEndPoint?.index || 'end'}`;
 
+  // 캐시 체크
   if (retryCount === 0 && state.cacheStrategy === 'use') {
     const cachedData = await getGameCache(cacheKey);
     if (cachedData && cachedData.cached && cachedData.gameData) {
-      log('기존 생성 데이터를 불러왔습니다.');
+      await postAiMessage("기존에 이 설정으로 분석해둔 데이터가 있네요! 즉시 구성을 시작합니다.");
       state.gameData = cachedData.gameData;
       if (state.selectedMode === 'visual_novel' && state.gameData.characters) {
         await ensureCharacterPortraits(state.gameData.characters);
       }
-      setStage(3);
-      completeStages();
       setTimeout(startGame, 600);
       return;
     }
   }
 
-  // 🚀 [NEW Workflow] 단계별 인터랙션 시작
-  initWorkflowUI();
-  
-  // -- Interrupt Point 1: Mode Selection --
-  await postAiMessage("반갑습니다! 먼저 텍스트의 길이를 분석해보니, 다음과 같은 생성 방식을 제안해 드립니다.");
-  const chosenMode = await waitForUserApproval({ idx: 0, type: 'MODE_SELECT' }, { 
+  // ── Step 2: PRE_ANALYSIS (장면 밀도 제안) ──
+  await postAiMessage("텍스트 분석을 바탕으로 최적의 리딩 시나리오를 구상하고 있습니다.");
+  const chosenMode = await waitForUserApproval({ idx: 2, type: 'MODE_SELECT' }, { 
     recommendedMode: processingText.length > 25000 ? 'story' : 'teaser' 
   });
   state.userDecisions.generationMode = chosenMode;
-  await postAiMessage(`좋습니다. <b>${chosenMode === 'story' ? '전개 집중 (Full Story)' : '요약 탐색 (Highlights)'}</b> 모드로 진행하겠습니다.`);
+  updateWorkflowSummary();
+
+  await postAiMessage(`좋습니다. <b>${chosenMode === 'story' ? '전개 집중 (Full Story)' : '요약 탐색 (Highlights)'}</b> 모드로 분석을 이어가겠습니다.`);
 
   if (chosenMode === 'teaser') {
-    return generateTeaserMode({ processingText, cacheKey, retryCount });
+    return generateTeaserMode({ processingText, cacheKey, retryCount, idxOffset: 3 });
   } else {
-    return generateStoryMode({ processingText, cacheKey, retryCount });
+    return generateStoryMode({ processingText, cacheKey, retryCount, idxOffset: 3 });
   }
 }
 
@@ -225,8 +252,7 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
 
   try {
     // 1단계: 엔티티 추출
-    setStage(1);
-    await postAiMessage("1단계: 등장인물 및 주요 엔티티를 분석하고 있습니다. 잠시만 기다려주세요...");
+    await postAiMessage("등장인물 및 주요 엔티티를 분석하고 있습니다. 잠시만 기다려주세요...");
     
     const entityPrompt = buildEntityExtractionPrompt({ text: processingText.slice(0, 20000), workTitle });
     const entityResRaw = await fetchGeminiStory(entityPrompt);
@@ -235,7 +261,7 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
 
     // -- Interrupt Point 2: Entity Resolution --
     await postAiMessage(`${rawEntities.length}명의 인물과 장소를 찾아냈습니다. 중복되거나 불필요한 항목이 있는지 확인해주세요.`);
-    const resolution = await waitForUserApproval({ idx: 1, type: 'ENTITY_RESOLVE' }, { entities: rawEntities });
+    const resolution = await waitForUserApproval({ idx: 3, type: 'ENTITY_RESOLVE' }, { entities: rawEntities });
     
     // 사용자의 결정을 반영하여 실제 캐릭터 리스트 구성
     const resolvedEntities = resolution.entities;
@@ -244,24 +270,23 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
     // 2단계: 비주얼 스타일 결정
     // -- Interrupt Point 3: Visual Style Selection --
     await postAiMessage("좋습니다. 이제 작품의 분위기를 결정할 차례입니다. 어떤 화풍으로 그려낼까요?");
-    const chosenStyle = await waitForUserApproval({ idx: 2, type: 'STYLE_SELECT' }, {});
+    const chosenStyle = await waitForUserApproval({ idx: 4, type: 'STYLE_SELECT' }, {});
     state.userDecisions.visualStyle.profile = chosenStyle;
+    updateWorkflowSummary();
 
     // 3단계: 마스터 인물화 생성
-    setStage(2);
-    await postAiMessage(`${chosenStyle} 스타일로 주요 인물들의 마스터 포트레이트를 생성합니다. 이 이미지는 게임 전체의 일관성을 유지하는 기준이 됩니다.`);
+    await postAiMessage(`${state.userDecisions.visualStyle.profile} 스타일로 주요 인물들의 마스터 포트레이트를 생성합니다.`);
     
     const majorChars = resolvedEntities.filter(e => ['person_major', 'person_minor'].includes(e.type));
     state.gameData = { characters: majorChars, scenes: [], metadata: { title: workTitle } };
     
-    // 캐릭터 생성 전 스타일 가이드 주입 (ensureCharacterPortraits 내부에서 state.userDecisions 참조하게 수정 필요)
     await ensureCharacterPortraits(state.gameData.characters);
 
     // 4단계: 생성 계획 확인
     // -- Interrupt Point 4: Plan Confirmation --
     await postAiMessage("모든 준비가 끝났습니다! 분석된 정보로 구성한 최종 생성 계획입니다.");
-    const confirmed = await waitForUserApproval({ idx: 3, type: 'PLAN_CONFIRM' }, {
-      sceneCount: state.userDecisions.generationMode === 'story' ? 12 : 5, // 예상치
+    const confirmed = await waitForUserApproval({ idx: 5, type: 'PLAN_CONFIRM' }, {
+      sceneCount: state.userDecisions.generationMode === 'story' ? 12 : 5, 
       characterCount: state.gameData.characters.length
     });
 
@@ -316,9 +341,8 @@ async function generateTeaserMode({ processingText, cacheKey, retryCount }) {
   const chapterTitles = state.customStartingPoint ? [state.customStartingPoint.name] : ["시작 지점"];
 
   try {
-    // 1단계: 엔티티 추출 (Teaser에서도 인물을 먼저 알아야 함)
-    setStage(1);
-    await postAiMessage("1단계: 작품의 핵심 인물을 빠르게 분석하고 있습니다...");
+    // 1단계: 엔티티 추출
+    await postAiMessage("작품의 핵심 인물을 빠르게 분석하고 있습니다...");
     
     const entityPrompt = buildEntityExtractionPrompt({ text: processingText.slice(0, 15000), workTitle });
     const entityResRaw = await fetchGeminiStory(entityPrompt);
@@ -327,7 +351,7 @@ async function generateTeaserMode({ processingText, cacheKey, retryCount }) {
 
     // -- Interrupt Point 2: Entity Resolution --
     await postAiMessage(`${rawEntities.length}명의 인물을 찾았습니다. 티저 모드에 포함할 주인공들을 확인해주세요.`);
-    const resolution = await waitForUserApproval({ idx: 1, type: 'ENTITY_RESOLVE' }, { entities: rawEntities });
+    const resolution = await waitForUserApproval({ idx: 3, type: 'ENTITY_RESOLVE' }, { entities: rawEntities });
     
     const resolvedEntities = resolution.entities;
     state.userDecisions.entityResolution.mergeGroups = resolution.mergeGroups;
@@ -335,11 +359,11 @@ async function generateTeaserMode({ processingText, cacheKey, retryCount }) {
     // 2단계: 비주얼 스타일 결정
     // -- Interrupt Point 3: Visual Style Selection --
     await postAiMessage("좋습니다! 어떤 화풍으로 인물들을 그려낼까요?");
-    const chosenStyle = await waitForUserApproval({ idx: 2, type: 'STYLE_SELECT' }, {});
+    const chosenStyle = await waitForUserApproval({ idx: 4, type: 'STYLE_SELECT' }, {});
     state.userDecisions.visualStyle.profile = chosenStyle;
+    updateWorkflowSummary();
 
     // 3단계: 마스터 인물화 생성
-    setStage(2);
     await postAiMessage("핵심 인물의 마스터 포트레이트를 생성합니다.");
     const majorChars = resolvedEntities.filter(e => ['person_major', 'person_minor'].includes(e.type));
     state.gameData = { characters: majorChars, scenes: [], metadata: { title: workTitle } };
@@ -348,7 +372,7 @@ async function generateTeaserMode({ processingText, cacheKey, retryCount }) {
     // 4단계: 생성 계획 확인
     // -- Interrupt Point 4: Plan Confirmation --
     await postAiMessage("티저 생성을 시작할 준비가 되었습니다.");
-    const confirmed = await waitForUserApproval({ idx: 3, type: 'PLAN_CONFIRM' }, {
+    const confirmed = await waitForUserApproval({ idx: 5, type: 'PLAN_CONFIRM' }, {
       sceneCount: 5,
       characterCount: state.gameData.characters.length
     });

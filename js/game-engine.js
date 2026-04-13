@@ -100,6 +100,9 @@ export function renderScene() {
     advArea.style.zIndex = '2000';
   }
 
+  // 0.1 브라우저 리플로우 강제 유도 (화면 깨움)
+  void document.body.offsetHeight;
+
   const sceneEl = $('g-scene'); 
   if (quizArea) quizArea.style.display = 'none';
   if (endingArea) endingArea.style.display = 'none';

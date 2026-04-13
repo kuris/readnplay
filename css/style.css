@@ -1012,18 +1012,22 @@ body.is-ending #character-panel {
 /* VISUAL NOVEL MODE (PREMIUM LANDSCAPE) */
 body.mode-vn { overflow: hidden; background: #000; }
 body.mode-vn .page { 
-  max-width: 100vw; 
+  width: 100% !important; 
+  max-width: none !important;
   padding: 0; 
-  height: 100vh; 
+  min-height: 100vh !important; 
+  height: auto !important;
   position: relative;
-  overflow: hidden;
+  overflow: visible !important;
 }
 body.mode-vn #screen-game.active {
   flex: 1;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   position: relative;
-  height: 100vh;
+  min-height: 100vh !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 body.mode-vn .game-backdrop {
   z-index: 1;

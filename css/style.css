@@ -1033,9 +1033,17 @@ body.mode-vn #screen-game.active {
   z-index: 99999 !important;
   background: #000;
 }
+body.mode-vn .masthead, 
+body.mode-vn .progress-rail, 
+body.mode-vn .game-lang-pill {
+  display: none !important;
+}
+
 body.mode-vn .game-backdrop {
   z-index: 1;
-  filter: brightness(0.6) contrast(1.1); /* 배경을 어둡게 하여 인물/대사 강조 */
+  background-size: cover !important;
+  background-position: center center !important;
+  filter: brightness(0.7) contrast(1.1);
 }
 body.mode-vn .game-backdrop::after {
   content: "";
@@ -1110,8 +1118,8 @@ body.mode-vn #adventure-area {
   left: 50%;
   transform: translateX(-50%);
   width: 96%;
-  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.85) 30%, #000 100%);
-  padding: 3rem 2rem 4rem;
+  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.85) 35%, #000 100%);
+  padding: 4rem 2rem 5rem; /* 여백 증가로 이름표 짤림 방지 */
   z-index: 500;
   display: block !important;
 }
@@ -1137,12 +1145,12 @@ body.mode-vn .dialogue-line {
 body.mode-vn .speaker-tag {
   background: transparent !important;
   color: #f0c050 !important;
-  font-size: 26px !important;
+  font-size: 28px !important;
   font-weight: 700 !important;
-  top: -45px !important;
-  left: 10px !important;
+  top: -60px !important; /* 조금 더 위로 올려서 가독성 확보 */
+  left: 20px !important;
   border-bottom: 3px solid #f0c050 !important;
-  padding: 0 20px 8px 0 !important;
+  padding: 0 10px 4px 0 !important;
   text-shadow: 0 0 8px rgba(0,0,0,0.8) !important; /* 가독성을 위해 쉐도우 단순화 */
   box-shadow: none !important;
   border-radius: 0 !important;

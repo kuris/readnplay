@@ -137,85 +137,128 @@ export function renderWorkflowCard(type, data, onDecision) {
 /**
  * Step 0: 도서 선택 카드
  */
-function renderBookSelectCard(container, data, resolve) {
-  container.innerHTML = `
-    <div class="wf-card-h">📖 어떤 이야기를 시작할까요?</div>
-    <div class="wf-book-options">
-      <div class="wf-option-group">
-        <div class="field-label">내 기기의 파일</div>
-        <div class="wf-drop-zone" id="wf-drop-zone">
+/**
+ * Step 0: 도서 선택 카드 (대화형 개편)
+ */
+async function renderBookSelectCard(container, data, resolve) {
+  const { FEATURED_BOOKS } = data;
+
+  // 1단계: 소스 선택
+  async function showSourceSelect() {
+    container.innerHTML = `
+      <div class="wf-card-h">📖 시작할 방법을 골라주세요</div>
+      <div class="wf-btn-grid">
+        <div class="wf-btn-card" id="btn-wf-upload">
           <span class="icon">📁</span>
-          <div class="txt">EPUB 파일을 드래그하거나 클릭하세요</div>
+          <span class="label">파일 업로드</span>
+        </div>
+        <div class="wf-btn-card" id="btn-wf-browse">
+          <span class="icon">🔍</span>
+          <span class="label">고전 도서 탐색</span>
+        </div>
+      </div>
+    `;
+
+    container.querySelector('#btn-wf-upload').onclick = () => showUploadZone();
+    container.querySelector('#btn-wf-browse').onclick = () => showSearchOrFeatured();
+  }
+
+  // 2-A: 업로드 존
+  function showUploadZone() {
+    container.innerHTML = `
+      <div class="wf-card-h">📁 로컬 파일 업로드</div>
+      <div class="wf-option-group">
+        <div class="wf-drop-zone" id="wf-drop-zone" style="margin-top:0.5rem; padding: 3rem 2rem;">
+          <span class="icon" style="font-size: 2.5rem; display:block; margin-bottom:1rem;">📤</span>
+          <div class="txt" style="font-size:14px; font-weight:500;">EPUB 파일을 여기에 놓으세요</div>
         </div>
         <input type="file" id="wf-file-input" accept=".epub" style="display:none">
       </div>
-      
-      <div class="wf-option-group">
-        <div class="field-label">무료 고전 도서 (Gutenberg)</div>
-        <div class="wf-search-box">
-          <input type="text" id="wf-gb-search" placeholder="제목이나 작가 검색..." class="field-input">
-          <button class="btn-wf-sm" id="btn-gb-search">🔍</button>
-        </div>
-        <div class="wf-book-mini-grid" id="wf-book-grid">
-          <!-- 추천/검색 결과 -->
-        </div>
+      <div class="wf-actions">
+        <button class="btn-wf-sm" id="btn-wf-back">← 뒤로</button>
       </div>
-    </div>
-  `;
+    `;
 
-  // 파일 업로드 처리
-  const dropZone = container.querySelector('#wf-drop-zone');
-  const fileInput = container.querySelector('#wf-file-input');
-  dropZone.onclick = () => fileInput.click();
-  fileInput.onchange = async () => {
-    const file = fileInput.files[0];
-    if (file) {
-      resolve({ type: 'upload', file });
-    }
-  };
-
-  // 구텐베르크 추천 도서 렌더링
-  const grid = container.querySelector('#wf-book-grid');
-  const { FEATURED_BOOKS } = data; // constants에서 전달받음
-  
-  function renderList(books) {
-    grid.innerHTML = books.map(b => `
-      <div class="wf-book-mini-card" data-id="${b.id}">
-        <div class="title">${b.title}</div>
-        <div class="author">${b.author}</div>
-      </div>
-    `).join('');
-    grid.querySelectorAll('.wf-book-mini-card').forEach(c => {
-      c.onclick = () => {
-        const book = books.find(x => String(x.id) === String(c.dataset.id));
-        resolve({ type: 'gutenberg', book });
-      };
-    });
+    const dropZone = container.querySelector('#wf-drop-zone');
+    const fileInput = container.querySelector('#wf-file-input');
+    dropZone.onclick = () => fileInput.click();
+    fileInput.onchange = () => {
+      const file = fileInput.files[0];
+      if (file) resolve({ type: 'upload', file });
+    };
+    container.querySelector('#btn-wf-back').onclick = showSourceSelect;
   }
 
-  renderList(FEATURED_BOOKS.slice(0, 4));
+  // 2-B: 검색 또는 추천 도서
+  function showSearchOrFeatured() {
+    container.innerHTML = `
+      <div class="wf-card-h">🏛 고전 도서 탐색</div>
+      <div class="wf-search-box" style="margin-bottom:1.5rem;">
+        <input type="text" id="wf-gb-search" placeholder="보고 싶은 도서의 제목이나 작가를 입력하세요..." class="field-input">
+        <button class="btn-wf-sm" id="btn-gb-search">찾기</button>
+      </div>
+      
+      <div class="field-label" id="list-header">추천 도서</div>
+      <div class="wf-option-list" id="wf-book-list">
+        <!-- 리스트 아이템 동적 삽입 -->
+      </div>
+      
+      <div class="wf-actions">
+        <button class="btn-wf-sm" id="btn-wf-back">← 뒤로</button>
+      </div>
+    `;
 
-  // 검색 처리
-  const searchInput = container.querySelector('#wf-gb-search');
-  container.querySelector('#btn-gb-search').onclick = async () => {
-    const query = searchInput.value.trim();
-    if (!query) return;
-    grid.innerHTML = '<div style="font-size:11px; color:var(--ink3); padding:10px;">검색 중...</div>';
-    try {
-      const { searchGutenberg } = await import('./gutenberg.js');
-      const { results } = await searchGutenberg(query, 10);
-      if (results && results.length > 0) {
-        const mapped = results.map(r => ({
-          id: r.id, title: r.title, author: r.authors?.[0]?.name || 'Unknown'
-        }));
-        renderList(mapped);
-      } else {
-        grid.innerHTML = '<div style="font-size:11px; color:var(--ink3); padding:10px;">결과 없음</div>';
-      }
-    } catch(e) {
-      grid.innerHTML = '<div style="font-size:11px; color:var(--red); padding:10px;">검색 실패</div>';
+    const listContainer = container.querySelector('#wf-book-list');
+    
+    function renderPremiumList(books) {
+      listContainer.innerHTML = books.map(b => `
+        <div class="wf-option-item" data-id="${b.id}">
+          <div class="wf-option-icon">📖</div>
+          <div class="wf-option-main">
+            <div class="wf-option-title">${b.title}</div>
+            <div class="wf-option-desc">${b.author}</div>
+          </div>
+          <div class="wf-option-arrow">→</div>
+        </div>
+      `).join('');
+
+      listContainer.querySelectorAll('.wf-option-item').forEach(item => {
+        item.onclick = () => {
+          const book = books.find(x => String(x.id) === String(item.dataset.id));
+          resolve({ type: 'gutenberg', book });
+        };
+      });
     }
-  };
+
+    renderPremiumList(FEATURED_BOOKS.slice(0, 5));
+
+    container.querySelector('#btn-gb-search').onclick = async () => {
+      const query = container.querySelector('#wf-gb-search').value.trim();
+      if (!query) return;
+      
+      listContainer.innerHTML = '<div style="padding:2rem; text-align:center; opacity:0.5; font-size:13px;">AI가 도서관에서 찾는 중...</div>';
+      container.querySelector('#list-header').textContent = `'${query}' 검색 결과`;
+
+      try {
+        const { searchGutenberg } = await import('./gutenberg.js');
+        const { results } = await searchGutenberg(query, 10);
+        if (results && results.length > 0) {
+          const mapped = results.map(r => ({
+            id: r.id, title: r.title, author: r.authors?.[0]?.name || 'Unknown'
+          }));
+          renderPremiumList(mapped);
+        } else {
+          listContainer.innerHTML = '<div style="padding:2rem; text-align:center; opacity:0.5; font-size:13px;">검색 결과가 없습니다</div>';
+        }
+      } catch(e) {
+        listContainer.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--red); font-size:12px;">검색 실패</div>';
+      }
+    };
+
+    container.querySelector('#btn-wf-back').onclick = showSourceSelect;
+  }
+
+  showSourceSelect();
 }
 
 /**

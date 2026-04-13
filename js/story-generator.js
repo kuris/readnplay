@@ -5,7 +5,14 @@ import { fetchGutenbergBook } from './gutenberg.js';
 import { getGameCache, fetchGeminiStory, ensureCharacterPortraits, saveGameCache } from './api-service.js';
 import { startGame } from './game-engine.js';
 import { 
+  initWorkflowUI, 
+  postAiMessage, 
+  renderWorkflowCard, 
+  renderWorkflowSidebar 
+} from './workflow-ui.js';
+import { 
   buildScenePrompt, 
+  buildEntityExtractionPrompt,
   extractJsonFromModelResponse, 
   normalizeSceneResult 
 } from './prompt-engine.js';
@@ -111,6 +118,20 @@ function validateAndRepairGameData(data) {
 }
 
 /**
+ * 사용자 승인을 기다리는 Promise 래퍼입니다.
+ */
+async function waitForUserApproval(point, data) {
+  state.workflow.stageIdx = point.idx;
+  renderWorkflowSidebar();
+  
+  return new Promise(resolve => {
+    renderWorkflowCard(point.type, data, (decision) => {
+      resolve(decision);
+    });
+  });
+}
+
+/**
  * AI 게임 생성을 조율하는 메인 함수입니다.
  */
 export async function generate(retryCount = 0) {
@@ -129,32 +150,27 @@ export async function generate(retryCount = 0) {
   }
 
   setStage(1);
-  const lengthMap = { short: 15000, medium: 25000, long: 40000 };
-  const scenesCountMap = { short: '3~5', medium: '5~8', long: '10~15', series: '5~8' };
-  
-  // --- 시리즈/커스텀 모드 특별 처리 ---
+  const lengthLimit = 60000;
   if (state.selectedLength === 'series' && !state.customStartingPoint) {
     try {
       const chapters = await extractChapters(state.epubText);
       renderChapterList(chapters);
       showScreen('chapters');
-      return; // 사용자가 선택할 때까지 중단
+      return;
     } catch (e) {
       log('챕터 분석 실패, 표준 모드로 진행합니다.', 'warn');
       state.selectedLength = 'medium';
     }
   }
 
-  const targetChars = lengthMap[state.selectedLength] || 25000;
+  const lengthMap = { short: 15000, medium: 30000, long: 60000, series: 60000 };
+  const targetChars = lengthMap[state.selectedLength] || 30000;
   let processingText = '';
   
   if (state.selectedLength === 'series' && state.customStartingPoint) {
       const startPos = state.customStartingPoint.index || 0;
-      const endPos = state.customEndPoint ? state.customEndPoint.index : (startPos + 40000);
-      
-      // 최소 10000자, 최대 제한 없이 선택한 만큼 처리 (Gemini 컨텍스트 고려)
-      processingText = state.epubText.substring(startPos, Math.max(startPos + 10000, endPos));
-      log(`선택된 구간(${state.customStartingPoint.name} ~ ${state.customEndPoint?.name || '끝'}) 분석을 시작합니다.`);
+      const endPos = state.customEndPoint ? state.customEndPoint.index : (startPos + lengthLimit);
+      processingText = state.epubText.substring(startPos, Math.min(startPos + lengthLimit, endPos));
   } else {
       processingText = state.epubText.slice(0, targetChars);
   }
@@ -172,15 +188,9 @@ export async function generate(retryCount = 0) {
     if (cachedData && cachedData.cached && cachedData.gameData) {
       log('기존 생성 데이터를 불러왔습니다.');
       state.gameData = cachedData.gameData;
-      
       if (state.selectedMode === 'visual_novel' && state.gameData.characters) {
-        const missingPortraits = state.gameData.characters.some(c => !c.avatar_url);
-        if (missingPortraits) {
-          log('일부 캐릭터 이미지가 누락되어 생성을 시작합니다...');
-          await ensureCharacterPortraits(state.gameData.characters);
-        }
+        await ensureCharacterPortraits(state.gameData.characters);
       }
-
       setStage(3);
       completeStages();
       setTimeout(startGame, 600);
@@ -188,127 +198,205 @@ export async function generate(retryCount = 0) {
     }
   }
 
-  log('AI 시네마틱 프롬프트 구성 중...');
+  // 🚀 [NEW Workflow] 단계별 인터랙션 시작
+  initWorkflowUI();
   
-  const workTitle = state.selectedGutenbergBook?.title || state.bookTitle || "";
-  const chapterTitle = state.customStartingPoint?.name || "";
-  
-  const prompt = buildScenePrompt({
-    text: processingText.slice(0, 15000), 
-    chapterTitles: [chapterTitle],
-    workTitle,
-    maxCandidates: state.selectedLength === 'long' ? 12 : 8,
-    maxSelectedScenes: state.selectedLength === 'short' ? 3 : (state.selectedLength === 'long' ? 8 : 5),
-    styleHint: "digital art style, semi-realistic anime, cinematic lighting, masterpiece, clean lineart"
+  // -- Interrupt Point 1: Mode Selection --
+  await postAiMessage("반갑습니다! 먼저 텍스트의 길이를 분석해보니, 다음과 같은 생성 방식을 제안해 드립니다.");
+  const chosenMode = await waitForUserApproval({ idx: 0, type: 'MODE_SELECT' }, { 
+    recommendedMode: processingText.length > 25000 ? 'story' : 'teaser' 
   });
+  state.userDecisions.generationMode = chosenMode;
+  await postAiMessage(`좋습니다. <b>${chosenMode === 'story' ? '전개 집중 (Full Story)' : '요약 탐색 (Highlights)'}</b> 모드로 진행하겠습니다.`);
 
-  setStage(2);
-  log('AI 생성 시작 (시네마틱 엔진)...');
+  if (chosenMode === 'teaser') {
+    return generateTeaserMode({ processingText, cacheKey, retryCount });
+  } else {
+    return generateStoryMode({ processingText, cacheKey, retryCount });
+  }
+}
+
+/**
+ * [STORY MODE] 멀티 스테이지 정밀 생성 파이프라인
+ */
+async function generateStoryMode({ processingText, cacheKey, retryCount }) {
+  const workTitle = state.selectedGutenbergBook?.title || state.bookTitle || "";
+  const chapterTitles = state.customStartingPoint ? [state.customStartingPoint.name] : ["시작 지점"];
 
   try {
+    // 1단계: 엔티티 추출
+    setStage(1);
+    await postAiMessage("1단계: 등장인물 및 주요 엔티티를 분석하고 있습니다. 잠시만 기다려주세요...");
+    
+    const entityPrompt = buildEntityExtractionPrompt({ text: processingText.slice(0, 20000), workTitle });
+    const entityResRaw = await fetchGeminiStory(entityPrompt);
+    const entityData = extractJsonFromModelResponse(entityResRaw);
+    const rawEntities = entityData.entities || [];
+
+    // -- Interrupt Point 2: Entity Resolution --
+    await postAiMessage(`${rawEntities.length}명의 인물과 장소를 찾아냈습니다. 중복되거나 불필요한 항목이 있는지 확인해주세요.`);
+    const resolution = await waitForUserApproval({ idx: 1, type: 'ENTITY_RESOLVE' }, { entities: rawEntities });
+    
+    // 사용자의 결정을 반영하여 실제 캐릭터 리스트 구성
+    const resolvedEntities = resolution.entities;
+    state.userDecisions.entityResolution.mergeGroups = resolution.mergeGroups;
+
+    // 2단계: 비주얼 스타일 결정
+    // -- Interrupt Point 3: Visual Style Selection --
+    await postAiMessage("좋습니다. 이제 작품의 분위기를 결정할 차례입니다. 어떤 화풍으로 그려낼까요?");
+    const chosenStyle = await waitForUserApproval({ idx: 2, type: 'STYLE_SELECT' }, {});
+    state.userDecisions.visualStyle.profile = chosenStyle;
+
+    // 3단계: 마스터 인물화 생성
+    setStage(2);
+    await postAiMessage(`${chosenStyle} 스타일로 주요 인물들의 마스터 포트레이트를 생성합니다. 이 이미지는 게임 전체의 일관성을 유지하는 기준이 됩니다.`);
+    
+    const majorChars = resolvedEntities.filter(e => ['person_major', 'person_minor'].includes(e.type));
+    state.gameData = { characters: majorChars, scenes: [], metadata: { title: workTitle } };
+    
+    // 캐릭터 생성 전 스타일 가이드 주입 (ensureCharacterPortraits 내부에서 state.userDecisions 참조하게 수정 필요)
+    await ensureCharacterPortraits(state.gameData.characters);
+
+    // 4단계: 생성 계획 확인
+    // -- Interrupt Point 4: Plan Confirmation --
+    await postAiMessage("모든 준비가 끝났습니다! 분석된 정보로 구성한 최종 생성 계획입니다.");
+    const confirmed = await waitForUserApproval({ idx: 3, type: 'PLAN_CONFIRM' }, {
+      sceneCount: state.userDecisions.generationMode === 'story' ? 12 : 5, // 예상치
+      characterCount: state.gameData.characters.length
+    });
+
+    if (!confirmed) return; // 취소 시 중단 (또는 처음으로)
+
+    // 5단계: 장면 생성 실행
+    await postAiMessage("✨ 이제 AI가 본격적으로 이야기를 풀어냅니다. 잠시만 기다려주세요!");
+    
+    const scenePrompt = buildScenePrompt({
+      text: processingText,
+      entities: state.gameData.characters.map(c => ({ id: c.id, name: c.canonical_name || c.name, appearance: c.appearance })),
+      chapterTitles,
+      workTitle,
+      mode: 'story'
+    });
+    
+    const sceneResRaw = await fetchGeminiStory(scenePrompt);
+    const parsed = extractJsonFromModelResponse(sceneResRaw);
+    const normalized = normalizeSceneResult(parsed);
+    const scenes = normalized.selected_scenes;
+    
+    log(`${scenes.length}개의 장면이 생성되었습니다.`);
+
+    state.gameData.scenes = scenes.map(s => ({
+      ...s,
+      context: s.title,
+      bg_keyword: s.image_data?.visual_narrative || s.title
+    }));
+
+    state.gameData = validateAndRepairGameData(state.gameData);
+    await saveGameCache(cacheKey, state.gameData);
+
+    completeStages();
+    await postAiMessage("🎊 작가가 집필을 마쳤습니다! 모험을 떠날 준비가 되셨나요?");
+    setTimeout(startGame, 1200);
+
+  } catch (e) {
+    console.error("Story Mode Error:", e);
+    log('스토리 모드 생성 실패: ' + e.message, 'err');
+    if (retryCount < 2) {
+      log('재시도 중...', 'warn');
+      return generate(retryCount + 1);
+    }
+  }
+}
+
+/**
+ * [TEASER MODE] 기존 하이라이트 요약 생성 파이프라인
+ */
+async function generateTeaserMode({ processingText, cacheKey, retryCount }) {
+  const workTitle = state.selectedGutenbergBook?.title || state.bookTitle || "";
+  const chapterTitles = state.customStartingPoint ? [state.customStartingPoint.name] : ["시작 지점"];
+
+  try {
+    // 1단계: 엔티티 추출 (Teaser에서도 인물을 먼저 알아야 함)
+    setStage(1);
+    await postAiMessage("1단계: 작품의 핵심 인물을 빠르게 분석하고 있습니다...");
+    
+    const entityPrompt = buildEntityExtractionPrompt({ text: processingText.slice(0, 15000), workTitle });
+    const entityResRaw = await fetchGeminiStory(entityPrompt);
+    const entityData = extractJsonFromModelResponse(entityResRaw);
+    const rawEntities = entityData.entities || [];
+
+    // -- Interrupt Point 2: Entity Resolution --
+    await postAiMessage(`${rawEntities.length}명의 인물을 찾았습니다. 티저 모드에 포함할 주인공들을 확인해주세요.`);
+    const resolution = await waitForUserApproval({ idx: 1, type: 'ENTITY_RESOLVE' }, { entities: rawEntities });
+    
+    const resolvedEntities = resolution.entities;
+    state.userDecisions.entityResolution.mergeGroups = resolution.mergeGroups;
+
+    // 2단계: 비주얼 스타일 결정
+    // -- Interrupt Point 3: Visual Style Selection --
+    await postAiMessage("좋습니다! 어떤 화풍으로 인물들을 그려낼까요?");
+    const chosenStyle = await waitForUserApproval({ idx: 2, type: 'STYLE_SELECT' }, {});
+    state.userDecisions.visualStyle.profile = chosenStyle;
+
+    // 3단계: 마스터 인물화 생성
+    setStage(2);
+    await postAiMessage("핵심 인물의 마스터 포트레이트를 생성합니다.");
+    const majorChars = resolvedEntities.filter(e => ['person_major', 'person_minor'].includes(e.type));
+    state.gameData = { characters: majorChars, scenes: [], metadata: { title: workTitle } };
+    await ensureCharacterPortraits(state.gameData.characters);
+
+    // 4단계: 생성 계획 확인
+    // -- Interrupt Point 4: Plan Confirmation --
+    await postAiMessage("티저 생성을 시작할 준비가 되었습니다.");
+    const confirmed = await waitForUserApproval({ idx: 3, type: 'PLAN_CONFIRM' }, {
+      sceneCount: 5,
+      characterCount: state.gameData.characters.length
+    });
+
+    if (!confirmed) return;
+
+    // 5단계: 티저 장면 생성
+    await postAiMessage("✨ 가장 임팩트 있는 장면들로 요약 중입니다...");
+    
+    const prompt = buildScenePrompt({
+      text: processingText.slice(0, 20000), 
+      chapterTitles,
+      workTitle,
+      mode: 'teaser',
+      entities: state.gameData.characters.map(c => ({ id: c.id, name: c.canonical_name || c.name, appearance: c.appearance }))
+    });
+
     const rawResponse = await fetchGeminiStory(prompt);
     const parsed = extractJsonFromModelResponse(rawResponse);
     const normalized = normalizeSceneResult(parsed);
     
-    log('시네마틱 데이터 수신 및 정규화 완료.');
+    state.gameData.scenes = normalized.selected_scenes.map((s, idx) => ({
+      id: idx + 1,
+      context: s.title,
+      narrative: s.context_for_new_viewer,
+      script: [
+         ...(s.dialogue.opening_hook_line?.line ? [{ speaker: s.dialogue.opening_hook_line.speaker || 'narrator', text: s.dialogue.opening_hook_line.line }] : []),
+         ...s.dialogue.core_dialogue_lines.map(l => ({ speaker: l.speaker || 'narrator', text: l.line })),
+         ...(s.dialogue.closing_hook_line?.line ? [{ speaker: s.dialogue.closing_hook_line.speaker || 'narrator', text: s.dialogue.closing_hook_line.line }] : [])
+      ],
+      choices: s.choices || [],
+      image_data: s.image_data,
+      bg_keyword: s.image_data.prompt_seed_text || s.title
+    }));
 
-    // 앱 데이터 구조로 매핑
-    state.gameData = {
-      title_ko: workTitle,
-      title: workTitle,
-      mode: state.selectedMode,
-      characters: [], // 나중에 추출됨
-      scenes: normalized.selected_scenes.map((s, idx) => {
-        // 스크립트 결합 (Opening + Core + Closing)
-        const script = [];
-        if (s.dialogue.opening_hook_line?.line) {
-          script.push({ 
-            speaker: s.dialogue.opening_hook_line.speaker || 'narrator', 
-            text: s.dialogue.opening_hook_line.line 
-          });
-        }
-        s.dialogue.core_dialogue_lines.forEach(line => {
-          if (line.line) {
-            script.push({ speaker: line.speaker || 'narrator', text: line.line });
-          }
-        });
-        if (s.dialogue.closing_hook_line?.line) {
-          script.push({ 
-            speaker: s.dialogue.closing_hook_line.speaker || 'narrator', 
-            text: s.dialogue.closing_hook_line.line 
-          });
-        }
-
-        return {
-          id: idx + 1,
-          context: s.title,
-          narrative: s.context_for_new_viewer,
-          script: script,
-          choices: s.choices || [], // 선택지 데이터 매핑
-          image_data: s.image_data, 
-          bg_keyword: s.image_data.prompt_seed_text 
-        };
-      })
-    };
-
-    // 캐릭터 목록 및 상세 메타데이터 추출 (candidates 정보 활용)
-    const charMap = new Map();
-    normalized.scene_candidates.forEach(c => {
-      if (Array.isArray(c.characters)) {
-        c.characters.forEach(char => {
-          if (char.name && !charMap.has(char.name)) {
-            charMap.set(char.name, {
-              id: char.name,
-              name: char.name,
-              gender: char.gender || 'unknown',
-              appearance: char.appearance || '',
-              image_prompt: `${char.name}, ${char.gender}, ${char.appearance || 'detailed character design'}`
-            });
-          }
-        });
-      }
-    });
-
-    state.gameData.characters = Array.from(charMap.values());
-    
-    // 데이터 검증 및 보정 (기존 로직 활용)
     state.gameData = validateAndRepairGameData(state.gameData);
-    
-    // 데이터 정규화 (필드 타입 보장)
-    if (state.gameData) {
-      state.gameData.title_ko = ensureString(state.gameData.title_ko);
-      state.gameData.title = ensureString(state.gameData.title);
-      if (state.gameData.scenes) {
-        state.gameData.scenes.forEach(s => { s.context = ensureString(s.context); });
-      }
-      state.gameData.mode = state.selectedMode;
-    }
-    
-    if (!state.gameData.scenes || !Array.isArray(state.gameData.scenes) || state.gameData.scenes.length === 0) {
-       throw new Error('유효한 장면(scenes) 데이터가 생성되지 않았습니다.');
-    }
-    
-    if (state.selectedMode === 'visual_novel' && state.gameData.characters) {
-      log('캐릭터 로딩 중...');
-      await ensureCharacterPortraits(state.gameData.characters);
-    }
-
-    log('스토리 캐시 저장 중...');
     await saveGameCache(cacheKey, state.gameData);
 
-    setStage(3);
-    state.gameStartTime = Date.now();
     completeStages();
-    setTimeout(startGame, 900);
-    
-  } catch(e) {
+    await postAiMessage("🎊 티저 시뮬레이션이 준비되었습니다!");
+    setTimeout(startGame, 1200);
+
+  } catch (e) {
     log('오류: ' + e.message, 'err');
-    if (retryCount < maxRetries) {
-      log('재시도 중...', 'warn');
-      setTimeout(() => generate(retryCount + 1), 2000);
-    }
+    if (retryCount < 2) return generate(retryCount + 1);
   }
 }
+
 
 /**
  * 책의 챕터 구성과 주요 시점을 분석합니다.

@@ -264,6 +264,53 @@
     </div>
   </div>
 
+  <!-- ── WORKFLOW (Interactive) ── -->
+  <div id="screen-workflow" class="screen">
+    <div class="wf-container">
+      <!-- Left Sidebar: Progress -->
+      <div class="wf-sidebar">
+        <div class="wf-logo">
+          <span class="logo">READ<span>PLAY</span></span>
+          <div class="wf-status">AI WORKFLOW</div>
+        </div>
+        
+        <div class="wf-steps" id="wf-steps">
+          <!-- Dynamically filled by js/workflow-ui.js -->
+        </div>
+
+        <div class="wf-sidebar-footer">
+          <div class="wf-project-info" id="wf-project-info">
+            <div id="wf-book-title">작품 분석 중...</div>
+            <div id="wf-book-meta">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content: Interruption Point -->
+      <div class="wf-main">
+        <div class="wf-chat-area" id="wf-chat-area">
+          <!-- Chat bubbles for AI explanations -->
+        </div>
+
+        <div class="wf-card-area" id="wf-card-area">
+          <!-- Interactive cards (Mode selection, Entity merging, etc.) -->
+          <div class="wf-card-empty">
+            <span class="book-anim">⏳</span>
+            <p>AI가 데이터를 정리하고 있습니다...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar: Preview (Optional/Contextual) -->
+      <div class="wf-preview-bar" id="wf-preview-bar">
+        <div class="wf-preview-header">SUMMARY</div>
+        <div id="wf-preview-content" class="wf-preview-content">
+          <div class="wf-preview-placeholder">현 단계의 요약 정보가<br>여기에 표시됩니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── GAME ── -->
   <div id="screen-game" class="screen">
     <!-- 가로 모드 안내 (VN 전용) -->
@@ -288,6 +335,31 @@
       <div class="progress-fill" id="g-prog" style="width:0%"></div>
     </div>
 
+    <!-- Reader Dashboard Controls -->
+    <div class="reader-controls fadein">
+      <div class="rc-group">
+        <button class="rc-btn" id="btn-side-info" title="장면 정보">ℹ️</button>
+        <button class="rc-btn" id="btn-side-chars" title="인물 사전">👥</button>
+        <button class="rc-btn" id="btn-side-time" title="타임라인">🗺️</button>
+      </div>
+      <div class="rc-divider"></div>
+      <div class="rc-group">
+        <button class="rc-btn" id="btn-toggle-source" title="원문/각색 전환">📄</button>
+        <button class="rc-btn" id="btn-auto-read" title="자동 넘기기">▶️</button>
+      </div>
+    </div>
+
+    <!-- Side Panels -->
+    <div id="reader-side-panel" class="side-panel">
+      <div class="sp-header">
+        <span id="sp-title">장면 정보</span>
+        <button class="sp-close" id="btn-close-side">✕</button>
+      </div>
+      <div id="sp-content" class="sp-content">
+        <!-- Content injected by game-engine.js -->
+      </div>
+    </div>
+
     <div class="game-lang-pill" id="lang-pill">
       <button class="glp-btn active" id="glp-ko">한국어</button>
       <button class="glp-btn" id="glp-en">English</button>
@@ -310,7 +382,18 @@
         <!-- Cinematic Dialogue UI -->
         <div class="dialogue-container">
           <div id="speaker-tag" class="speaker-tag"></div>
-          <div class="scene-body" id="g-scene">게임을 불러오는 중...</div>
+          
+          <div id="reader-text-area">
+            <!-- Adaptation View -->
+            <div class="scene-body" id="g-scene">게임을 불러오는 중...</div>
+            
+            <!-- Source View (Hidden by default) -->
+            <div id="source-viewer" class="source-viewer" style="display:none">
+              <div class="sv-header">원문 발췌 (Source Excerpt)</div>
+              <div id="sv-body" class="sv-body"></div>
+              <div class="sv-note">※ AI가 독해 보드를 위해 추출한 원문 구간입니다.</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

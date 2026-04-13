@@ -10,38 +10,142 @@ export function startGame() {
   state.curIdx = 0;
   state.activeLang = 'ko';
   state.characterRelationships = {};
+  state.gameStartTime = Date.now();
   
-  document.body.classList.toggle('mode-vn', state.selectedMode === 'visual_novel');
+  // 리더 전용 초기화
+  state.isSourceVisible = false;
+  state.activeSidePanel = null;
+  
+  document.body.classList.add('mode-vn'); // 리더는 항상 시네마틱 모드 기반
   document.body.classList.remove('is-ending');
   
   const rawTitle = state.selectedLang === 'en' ? state.gameData.title : (state.gameData.title_ko || state.gameData.title);
   const titleEl = $('g-title');
   if (titleEl) titleEl.textContent = ensureString(rawTitle || state.bookTitle);
   
-  // 비주얼 노벨 모드일 때 캐릭터 초기화
-  const charPanel = $('character-panel');
-  if (state.selectedMode === 'visual_novel' && state.gameData.characters) {
-    if (charPanel) charPanel.classList.add('show');
-    state.gameData.characters.forEach(char => {
-      state.characterRelationships[char.id] = char.initial_relationship || 0;
-    });
-    renderCharacterPanel();
-  } else {
-    if (charPanel) charPanel.classList.remove('show');
-  }
-
-  updateLangTabs('ko');
+  // 리더 상호작용 바인딩
+  initReaderControls();
   
-  // 화면 전환 전 상태 체크 및 강제 적용
   showScreen('game');
-  
-  // 렌더링 시작 전 잠깐 대기 (DOM 안정화)
   setTimeout(() => {
     renderScene();
-    // ✅ 시작 시점에 갤러리에 기록 (나중에 엔딩 시 업데이트됨)
     saveToGallery().catch(e => console.warn('Early save failed:', e));
   }, 100);
 }
+
+/**
+ * 리더 대시보드 컨트롤 이벤트 바인딩
+ */
+function initReaderControls() {
+  const btnInfo = $('btn-side-info');
+  const btnChars = $('btn-side-chars');
+  const btnTime = $('btn-side-time');
+  const btnClose = $('btn-close-side');
+  const btnSource = $('btn-toggle-source');
+
+  if (btnInfo) btnInfo.onclick = () => toggleSidePanel('info');
+  if (btnChars) btnChars.onclick = () => toggleSidePanel('characters');
+  if (btnTime) btnTime.onclick = () => toggleSidePanel('timeline');
+  if (btnClose) btnClose.onclick = () => toggleSidePanel(null);
+  
+  if (btnSource) {
+    btnSource.onclick = () => {
+      state.isSourceVisible = !state.isSourceVisible;
+      btnSource.classList.toggle('active', state.isSourceVisible);
+      renderScene(); // 다시 렌더링하여 뷰 교체
+    };
+  }
+}
+
+/**
+ * 사이드 패널 토글 및 렌더링
+ */
+function toggleSidePanel(type) {
+  const panel = $('reader-side-panel');
+  const btns = {
+    info: $('btn-side-info'),
+    characters: $('btn-side-chars'),
+    timeline: $('btn-side-time')
+  };
+
+  if (state.activeSidePanel === type || type === null) {
+    state.activeSidePanel = null;
+    panel.classList.remove('active');
+    Object.values(btns).forEach(b => b?.classList.remove('active'));
+    return;
+  }
+
+  state.activeSidePanel = type;
+  panel.classList.add('active');
+  Object.entries(btns).forEach(([k, b]) => b?.classList.toggle('active', k === type));
+  
+  renderSidePanelContent(type);
+}
+
+function renderSidePanelContent(type) {
+  const title = $('sp-title');
+  const content = $('sp-content');
+  const scene = state.gameData.scenes[state.curIdx];
+
+  if (type === 'info') {
+    title.textContent = '장면 정보';
+    content.innerHTML = `
+      <div class="meta-card">
+        <div class="meta-label">Title</div>
+        <div class="meta-value">${scene.title}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-label">Setting</div>
+        <div class="meta-value">${scene.setting || '정보 없음'}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-label">Time Context</div>
+        <div class="meta-value">${scene.time_context || '현재'}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-label">Narrative Role</div>
+        <div class="meta-value">${scene.narrative_function || '-'}</div>
+      </div>
+      <div class="meta-card">
+        <div class="meta-label">Emotions</div>
+        <div>
+          ${(scene.emotion_tags || []).map(t => `<span class="emotion-tag">${t}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  } else if (type === 'characters') {
+    title.textContent = '인물 사전';
+    const participants = (state.gameData.characters || []).filter(c => 
+      (scene.participants || []).includes(c.id) || (scene.current_characters || []).includes(c.id)
+    );
+    content.innerHTML = participants.map(c => `
+      <div class="char-info-card" style="background:var(--paper2); padding:1rem; border-radius:10px; margin-bottom:1rem; border:1px solid var(--border)">
+        <div style="display:flex; gap:12px; align-items:center; margin-bottom:8px;">
+          <img src="${c.avatar_url}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid var(--gold)">
+          <div>
+            <div style="font-weight:700; font-size:14px;">${c.canonical_name || c.name}</div>
+            <div style="font-size:10px; color:var(--ink3);">${c.aliases?.join(', ') || ''}</div>
+          </div>
+        </div>
+        <div style="font-size:12px; color:var(--ink2); line-height:1.5;">${c.role_summary || c.summary || ''}</div>
+      </div>
+    `).join('') || '<p style="font-size:12px; color:var(--ink3); text-align:center;">이 장면에 등장하는 주요 인물이 없습니다.</p>';
+  } else if (type === 'timeline') {
+    title.textContent = '스토리 타임라인';
+    content.innerHTML = state.gameData.scenes.map((s, i) => `
+      <div class="tl-item ${i === state.curIdx ? 'current' : ''}" onclick="window.jumpToScene(${i})">
+        <div class="tl-num">SCENE ${i + 1}</div>
+        <div class="tl-title">${s.title}</div>
+      </div>
+    `).join('');
+  }
+}
+
+window.jumpToScene = (idx) => {
+  state.curIdx = idx;
+  renderScene();
+  if (state.activeSidePanel) renderSidePanelContent(state.activeSidePanel);
+};
 
 export function renderCharacterPanel() {
   const cont = $('character-panel');
@@ -250,12 +354,27 @@ export function renderScene() {
       if (sceneEl) {
         const chunk = currentChunks[subStep] || '';
         const isNextPage = subStep < currentChunks.length - 1;
-        sceneEl.innerHTML = `
-          <div class="dialogue-line fadein ${line.speaker === 'narrator' ? 'is-narrator' : ''}">
-            <span>${chunk}</span>
-            ${isNextPage ? '<div style="font-size:12px; margin-top:10px; opacity:0.5; text-align:right;">▼</div>' : ''}
-          </div>
-        `;
+        
+        // 원문 보기 모드일 경우 대사 영역 업데이트 방식 변경
+        if (state.isSourceVisible) {
+          const sv = $('source-viewer');
+          const svBody = $('sv-body');
+          if (sv) sv.style.display = 'block';
+          if (svBody) svBody.textContent = scene.source_excerpt || '원문 정보를 가져오지 못했습니다.';
+          if (sceneEl) sceneEl.style.display = 'none';
+        } else {
+          const sv = $('source-viewer');
+          if (sv) sv.style.display = 'none';
+          if (sceneEl) {
+            sceneEl.style.display = 'block';
+            sceneEl.innerHTML = `
+              <div class="dialogue-line fadein ${line.speaker === 'narrator' ? 'is-narrator' : ''}">
+                <span>${chunk}</span>
+                ${isNextPage ? '<div style="font-size:12px; margin-top:10px; opacity:0.5; text-align:right;">▼</div>' : ''}
+              </div>
+            `;
+          }
+        }
       }
       subStep++;
 
@@ -323,6 +442,8 @@ export function renderScene() {
     }
   }
 
+  if (state.activeSidePanel) renderSidePanelContent(state.activeSidePanel);
+
   // 비주얼 노벨 모드: 현재 씬 등장 캐릭터 하이라이트
   if (state.selectedMode === 'visual_novel' && scene.current_characters) {
     document.querySelectorAll('.char-card').forEach(card => {
@@ -331,13 +452,7 @@ export function renderScene() {
     });
   }
 
-  const origBox = $('orig-box');
-  if (origBox) {
-    origBox.textContent = scene.original_excerpt || '';
-    origBox.classList.remove('show');
-  }
-  const origToggle = $('orig-toggle');
-  if (origToggle) origToggle.textContent = '원문 발췌 보기 ▾';
+  // [Reader] 원문 보기 초기화 (불필요한 기능 제거)
 
   if (currentMode === 'quiz' || (currentMode === 'study' && scene.quiz)) {
     if (quizArea) quizArea.style.display = 'block';
@@ -409,51 +524,55 @@ export function renderChoices(scene) {
   const cont = $('g-choices');
   if (!cont) return;
   cont.innerHTML = '';
-  (scene.choices || []).forEach(c => {
+  
+  const choices = scene.choices || [];
+  
+  // 만약 선택지가 하나도 없다면 '다음 장면으로' 기본 버튼 생성
+  if (choices.length === 0) {
     const btn = document.createElement('button');
-    btn.className = 'choice';
-    if (c.risk_level === 'high') btn.classList.add('choice-risky');
-    if (c.risk_level === 'low') btn.classList.add('choice-safe');
+    btn.className = 'choice choice-progression';
+    btn.innerHTML = '<div class="choice-main">다음 장면으로 이동 →</div>';
+    btn.onclick = () => { state.curIdx++; renderScene(); };
+    cont.appendChild(btn);
+    return;
+  }
 
-    const koText = c.text || '';
-    const enText = c.en_text || '';
-    let choiceContent = '';
-    if (state.activeLang === 'bi' && koText && enText) {
-      choiceContent = `<div class="bilingual-choice"><div class="bi-choice-ko">${koText}</div><div class="bi-choice-en">${enText}</div></div>`;
-    } else {
-      choiceContent = state.activeLang === 'en' ? (enText || koText) : koText;
-    }
-    const hintHTML = c.consequence_hint
-      ? `<div class="choice-hint">💭 ${c.consequence_hint}</div>` : '';
-    btn.innerHTML = `<div class="choice-main">${choiceContent}</div>${hintHTML}`;
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    const type = c.type || 'progression'; // 기본값은 진행
+    btn.className = `choice choice-${type}`;
+    
+    const choiceContent = state.activeLang === 'en' ? (c.en_text || c.text) : c.text;
+    btn.innerHTML = `<div class="choice-main">${type === 'exploration' ? '🔍 ' : ''}${choiceContent}</div>`;
 
     btn.addEventListener('click', () => {
-      cont.querySelectorAll('.choice').forEach(b => b.disabled = true);
-      // 모바일 진동 (high risk)
-      if (navigator.vibrate && c.risk_level === 'high') navigator.vibrate(200);
-      // 점수 애니메이션
-      if (c.score_impact) animateScore(c.score_impact);
-      
-      // 비주얼 노벨 모드: 캐릭터 호감도 처리
-      if (state.selectedMode === 'visual_novel' && c.character_effects) {
-        Object.entries(c.character_effects).forEach(([charId, effect]) => {
-          state.characterRelationships[charId] = (state.characterRelationships[charId] || 0) + effect;
-          showRelationshipPopup(charId, effect);
-        });
-        renderCharacterPanel(); // 패널 갱신
+      if (type === 'exploration') {
+        const lowerText = choiceContent.toLowerCase();
+        if (lowerText.includes('인물') || lowerText.includes('character')) toggleSidePanel('characters');
+        else if (lowerText.includes('배경') || lowerText.includes('setting') || lowerText.includes('정보')) toggleSidePanel('info');
+        else if (lowerText.includes('원문') || lowerText.includes('source')) {
+          state.isSourceVisible = true;
+          const btnSource = $('btn-toggle-source');
+          if (btnSource) btnSource.classList.add('active');
+          renderScene();
+        } else {
+          toggleSidePanel('info');
+        }
+      } else {
+        cont.querySelectorAll('.choice').forEach(b => b.disabled = true);
+        const out = document.createElement('div');
+        out.className = 'outcome';
+        const outcomeText = (state.activeLang === 'en' ? (c.en_outcome || c.outcome) : c.outcome) || '다음 장면으로 이동합니다.';
+        out.innerHTML = `<span>→</span> ${outcomeText}`;
+        cont.appendChild(out);
+        
+        setTimeout(() => {
+          if (c.is_game_over) { showGameOver(outcomeText); return; }
+          const rawNext = c.next ? c.next - 1 : state.curIdx + 1;
+          state.curIdx = Math.max(rawNext, state.curIdx + 1);
+          renderScene();
+        }, 1000);
       }
-
-      const out = document.createElement('div');
-      out.className = 'outcome';
-      const outcomeText = (state.activeLang === 'en' ? (c.en_outcome || c.outcome) : c.outcome) || '';
-      out.innerHTML = `<span>${c.score_impact > 0 ? '✨' : c.score_impact < 0 ? '⚠️' : '→'}</span> ${outcomeText}`;
-      cont.appendChild(out);
-      setTimeout(() => {
-        if (c.is_game_over) { showGameOver(outcomeText); return; }
-        const rawNext = c.next ? c.next - 1 : state.curIdx + 1;
-        state.curIdx = Math.max(rawNext, state.curIdx + 1);
-        renderScene();
-      }, 1400);
     });
     cont.appendChild(btn);
   });

@@ -1,6 +1,13 @@
 export const STAGE_TEXTS = ['책을 불러오는 중...', '텍스트를 분석하는 중...', 'AI가 게임을 생성하는 중...', '마지막 마무리 중...'];
 export const STAGE_PROGRESS = [0, 30, 60, 90];
 
+export const WORKFLOW_STAGES = {
+  PRE_ANALYSIS: { idx: 0, label: '분석 및 모드 제안', icon: '🔍' },
+  ENTITY_RESOLUTION: { idx: 1, label: '인물 정제 및 병합', icon: '👥' },
+  STYLE_SELECTION: { idx: 2, label: '비주얼 스타일 결정', icon: '🎨' },
+  PLAN_CONFIRMATION: { idx: 3, label: '생성 계획 확인', icon: '🗺️' }
+};
+
 export const GUTENBERG_API = 'https://gutendex.com/books/';
 export const GUTENBERG_MIRROR = 'https://www.gutenberg.org/files/';
 
@@ -20,3 +27,24 @@ export const FEATURED_BOOKS = [
 export const GB_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 
 export const BOOK_LIST_API = '/api/classic-books';
+
+// 🎨 전역 이미지 스타일 가이드 (일관성 유지)
+export const STYLE_PROFILES = {
+  semi_realistic_anime: "semi-realistic anime, cinematic lighting, clean lineart, muted realistic colors, consistent facial proportions, no exaggerated anime expressions, high-quality digital illustration, masterpiece, detailed atmosphere",
+  webtoon_korean: "modern korean webtoon style, high contrast, vibrant cinematic lighting, sharp lineart, professional digital coloring, manhwa aesthetics, high quality",
+  classic_watercolor: "classic watercolor painting, soft edges, paper texture, traditional book illustration, delicate colors, artistic, dreamy atmosphere",
+  cyberpunk_noir: "cyberpunk noir style, neon lighting, heavy shadows, high contrast, futuristic city atmosphere, rain, cinematic fog, sharp details"
+};
+
+export const GLOBAL_STYLE_PROFILE = STYLE_PROFILES.semi_realistic_anime;
+
+// 🎭 엔티티 타입 분류
+export const ENTITY_TYPES = {
+  MAJOR: 'person_major',
+  MINOR: 'person_minor',
+  GROUP: 'group',
+  LOCATION: 'location',
+  OBJECT: 'object',
+  ALIAS: 'alias',
+  UNKNOWN: 'unknown'
+};

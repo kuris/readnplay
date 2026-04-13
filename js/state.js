@@ -22,5 +22,35 @@ export const state = {
   customEndPoint: null,      // 시리즈/커스텀 모드 선택 종료 지점
   isGalleryMode: false,
   gutenbergSearchResults: [],
-  gutenbergSearchPage: 1
+  gutenbergSearchPage: 1,
+  // --- READER NEW ---
+  isSourceVisible: false,    // 원문 보기 활성화 여부
+  activeSidePanel: null,    // 현재 열린 사이드 패널 (info, characters, timeline 등)
+  // --- WORKFLOW NEW ---
+  workflow: {
+    stage: 'idle', // 'mode_select', 'entity_resolve', 'style_select', 'plan_confirm'
+    isProcessing: false,
+    results: {
+      analysis: null,
+      entities: null,
+      style: null,
+      plan: null
+    }
+  },
+  userDecisions: {
+    generationMode: null, // teaser, story, hybrid
+    entityResolution: {
+      mergeGroups: [], // list of lists of character IDs
+      excludedEntities: [],
+      typeOverrides: {} // { entityId: 'location' }
+    },
+    visualStyle: {
+      profile: 'semi_realistic_anime',
+      lighting: 'cinematic'
+    },
+    imagePlan: {
+      portraitScope: 'major_only', // 'all', 'major_only', 'none'
+      generateScenes: true
+    }
+  }
 };

@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { log, sleep } from './utils.js';
 import { buildDrawThingsPrompt } from './prompt-engine.js';
+import { STYLE_PROFILES } from './constants.js';
 
 /**
  * Gemini API를 통해 스토리를 생성합니다.
@@ -173,66 +174,68 @@ export async function safeFetchImagen(params) {
  * 캐릭터들의 인물화를 생성하고 저장합니다.
  */
 export async function ensureCharacterPortraits(characters) {
-  const total = characters.length;
+  // 중요도 순으로 정렬 (A -> B -> C)
+  const sortedChars = [...characters].sort((a, b) => {
+    const rank = { 'A': 1, 'B': 2, 'C': 3 };
+    return (rank[a.importance] || 4) - (rank[b.importance] || 4);
+  });
+
+  const total = sortedChars.length;
   for (let i = 0; i < total; i++) {
-    const char = characters[i];
-    if (char.avatar_url && char.avatar_url.includes('vercel-storage.com')) continue;
+    const char = sortedChars[i];
     
-    if (char.image_prompt) {
-      log(`[${i + 1}/${total}] ${char.name} 인물화 생성 대기 중...`);
+    // 이미 URL이 있거나, 인물이 아닌 경우(location, object 등) 제외
+    if (char.avatar_url && (char.avatar_url.includes('supabase.co') || char.avatar_url.includes('vercel-storage.com'))) continue;
+    if (char.type && !['person_major', 'person_minor'].includes(char.type)) {
+      log(`[${i + 1}/${total}] ${char.name} (엔티티) 이미지는 장면 생성에서 처리합니다.`, 'warn');
+      continue;
+    }
+
+    if (char.appearance || char.image_prompt) {
+      log(`[${i + 1}/${total}] ${char.name} (${char.importance}급) 인물화 생성 중...`);
       
       const tryGenerate = async (retriesInner = 1) => {
         try {
+          const charPrompt = char.appearance || char.image_prompt;
+          const styleProfile = STYLE_PROFILES[state.userDecisions.visualStyle.profile] || STYLE_PROFILES.semi_realistic_anime;
+          
           const genData = await safeFetchImagen({ 
-            prompt: `(Masterpiece, top quality, consistent high-quality 2D digital illustration, semi-realistic anime, vibrant colors, cinematic lighting, artstation style), ${char.image_prompt}, detailed eyes and face, looking at viewer, highly detailed background, (rim lighting, cinematic atmospheric light:1.2)`,
+            prompt: `(${styleProfile}), ${charPrompt}, detailed eyes and face, looking at viewer, highly detailed background, (rim lighting, cinematic atmospheric light:1.2)`,
             negativePrompt: "(text, letters, words, logo, signature, watermark, credits, billboard, placeholder:1.5), sketch, rough, draft, monochrome, black and white, lowres, bad anatomy, bad hands, distorted face, figurine, toy, 3d, render, miniature, doll, pedestal, plastic, statue, blurry, two people, twins, duplicated character",
             aspectRatio: "1:1", numImages: 1,
             mimeType: "image/png"
           });
           
           if (genData) {
-            // 이미 원격 URL(Supabase 등)이 있는 경우 재저장 생략
+            // URL 직접 반환 처리
             if (genData.url && (genData.url.includes('supabase.co') || genData.url.includes('vercel-storage.com'))) {
               char.avatar_url = genData.url;
-              log(`${char.name} 생성 완료 (Direct)!`);
+              log(`${char.name} 생성 완료!`);
               return true;
             }
 
             const base64Data = genData.imageBinary || (genData.images && genData.images[0]);
-            if (!base64Data || base64Data.length < 100) {
-              if (genData.url) {
-                char.avatar_url = genData.url;
+            if (base64Data) {
+              const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.png`;
+              const saveRes = await fetch('/api/save-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageBinary: base64Data, fileName, mimeType: 'image/png' })
+              });
+              
+              if (saveRes.ok) {
+                const resData = await saveRes.json();
+                char.avatar_url = resData.url;
+                log(`${char.name} 생성 완료!`);
                 return true;
               }
-              throw new Error('Invalid or missing image data');
-            }
-
-            const fileName = `${char.name.replace(/\s+/g, '_')}_${Date.now()}.png`;
-            const saveRes = await fetch('/api/save-image', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ imageBinary: base64Data, fileName, mimeType: 'image/png' })
-            });
-            
-            if (saveRes.ok) {
-              const resData = await saveRes.json();
-              char.avatar_url = resData.url;
-              log(`${char.name} 생성 완료!`);
-              return true;
-            } else {
-              // Supabase 저장 실패 시 Base64 데이터를 그대로 사용 (배경 이미지처럼)
-              char.avatar_url = `data:image/png;base64,${base64Data}`;
-              log(`${char.name} 생성 완료 (임시 저장)!`, 'warn');
-              return true;
             }
           }
         } catch (e) {
           console.error(`Generation error for ${char.name}:`, e.message);
         }
 
-        if (retriesInner > 0) {
-          return await tryGenerate(retriesInner - 1);
-        }
+        if (retriesInner > 0) return await tryGenerate(retriesInner - 1);
         return false;
       };
 

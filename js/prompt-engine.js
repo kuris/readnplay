@@ -1,4 +1,5 @@
 import { repairJson } from "./utils.js";
+import { GLOBAL_STYLE_PROFILE, ENTITY_TYPES } from "./constants.js";
 
 /**
  * 문자열에서 유해한 문자를 제거하고 정리합니다.
@@ -116,6 +117,132 @@ JSON 외 텍스트는 절대 출력하지 마라.
 }
 
 /**
+ * 텍스트에서 캐릭터, 장소, 사물 등 엔티티를 추출하고 canonicalize합니다.
+ */
+export function buildEntityExtractionPrompt({ text, workTitle = "" }) {
+  const cleanText = sanitizeText(text);
+
+  return `
+다음 텍스트는 소설의 일부이다. 이 텍스트에서 등장인물, 별칭, 집단, 장소, 중요한 사물을 추출하라.
+
+작품명: ${workTitle || "알 수 없음"}
+
+요구사항:
+1. **Canonicalization (표준화)**: 
+   - 동일 인물이 별명(예: "주인공", "그"), 직함(예: "김 중위", "소대장"), 실명(예: "김유나")으로 불릴 경우 이를 하나의 대표 이름(canonical_name)으로 통합하라.
+   - aliases 배열에 모든 알려진 호칭을 포함하라.
+2. **Entity Classification**:
+   - type을 다음 중 하나로 분류하라: [${Object.values(ENTITY_TYPES).join(', ')}]
+   - person_major: 핵심 주인공 및 주연
+   - person_minor: 조연 및 단역
+   - group: 소대, 부대, 팀 등 집단
+   - location: 배경이 되는 장소
+   - object: 중요한 장비나 사물
+3. **Importance Ranking**:
+   - importance를 A(핵심), B(전개에 필요), C(배경/단역) 중 하나로 지정하라.
+4. **Visual Signature**:
+   - 인물의 경우 외모 특징(appearance)을 **영문(English)**으로 상세히 기술하라.
+   - **GLOBAL STYLE**: 모든 이미지 관련 묘사는 "${GLOBAL_STYLE_PROFILE}" 스타일을 염두에 두라.
+
+응답 형식 (JSON만):
+{
+  "entities": [
+    {
+      "id": "char_001",
+      "canonical_name": "대표 이름 (한국어)",
+      "aliases": ["이름1", "이름2"],
+      "type": "person_major",
+      "importance": "A",
+      "gender": "male|female|unknown",
+      "role_summary": "서사 내 핵심 역할 (예: 복수를 꿈꾸는 퇴역 장교)",
+      "relationship_tags": ["주인공의 스승", "비밀의 수호자"],
+      "appearance": "Detailed English description of face, hair, eyes, build, clothing style",
+      "summary": "엔티티 설명 (한국어)"
+    }
+  ]
+}
+
+텍스트:
+"""${cleanText}"""
+`.trim();
+}
+
+/**
+ * 장편의 호흡을 유지하는 "Story Mode" 장면 분해 프롬프트를 생성합니다.
+ */
+export function buildStoryModeScenePrompt({
+  text,
+  entities = [],
+  chapterTitles = [],
+  workTitle = "",
+  minScenes = 10,
+  maxScenes = 20,
+}) {
+  const cleanText = sanitizeText(text);
+  const entitiesJson = JSON.stringify(entities, null, 2);
+
+  return `
+다음 텍스트를 장편 비주얼 노벨의 "Story Mode"로 변환하라. 
+이 모드는 요약이 목적이 아니라, 원작의 호흡과 세부 감정을 최대한 보존하는 것이 목적이다.
+
+작품명: ${workTitle || "알 수 없음"}
+대상 챕터: ${chapterTitles.join(", ")}
+
+사전에 정의된 엔티티 목록 (반드시 이 ID들을 사용하라):
+${entitiesJson}
+
+요구사항:
+1. **장면 밀도 (Scene Density)**:
+   - 전체 텍스트를 최소 ${minScenes}개에서 최대 ${maxScenes}개의 장면으로 촘촘하게 분해하라.
+   - 사건 전개, 장소 이동, 감정의 변화가 있을 때마다 장면을 분리하라.
+2. **연속성 (Continuity)**:
+   - script 내의 speaker는 반드시 사전 정의된 엔티티 ID를 사용하라.
+   - 인물 이름 뒤에 (학생 시절), (군인 시절) 등 시기를 붙여야 한다면 ID는 유지하되 display_name으로 처리하라.
+3. **내레이션 보존**:
+   - 대사가 없는 구간도 내레이션 블록으로 충분히 보존하여 "읽는 맛"을 유지하라.
+4. **이미지 연출**:
+   - image_data의 style_hint는 반드시 "${GLOBAL_STYLE_PROFILE}"을 포함하라.
+   - 단순 초상화가 아닌, 해당 순간의 "결정적 컷"을 묘사하라.
+
+응답 형식 (JSON):
+{
+  "scenes": [
+    {
+      "id": 1,
+      "title": "장면 제목",
+      "chapter_range": "${chapterTitles[0]}",
+      "setting": "구체적인 시간과 장소 (예: 18세기 어느 겨울 밤, 런던의 부둣가)",
+      "participants": ["char_001", "char_002"],
+      "time_context": "과거 회상 | 현재 진행 | 미래 암시",
+      "emotion_tags": ["긴장감", "슬픔", "비장함"],
+      "narrative_function": "major turning point | character intro | foreshadowing",
+      "source_excerpt": "장면의 근거가 되는 원작의 핵심 문장 2-3줄 (반드시 원문 그대로 보존)",
+      "narrative": "장면의 분위기와 상황 설명 (독자가 읽기 좋게 각색)",
+      "script": [
+        { "speaker": "char_id", "text": "대사", "display_name": "표시될 이름" }
+      ],
+      "choices": [
+        { "type": "exploration", "text": "배경 정보 보기", "outcome": "배경 설명" },
+        { "type": "progression", "text": "다음 장면으로", "outcome": "진행" }
+      ],
+      "related_scene_ids": [2, 5],
+      "image_data": {
+        "shot_type": "...",
+        "visual_narrative": "...",
+        "character_focus": "...",
+        "background_focus": "...",
+        "style_hint": "${GLOBAL_STYLE_PROFILE}"
+      }
+    }
+  ]
+}
+
+텍스트:
+"""${cleanText}"""
+`.trim();
+}
+
+/**
  * 다중 챕터용 시네마틱 프롬프트를 생성합니다.
  */
 export function buildMultiChapterScenePrompt({
@@ -195,7 +322,7 @@ export function buildMultiChapterScenePrompt({
         "must_show": ["narrative prop A", "atmospheric detail B"],
         "must_avoid": ["boring centered portrait", "generic character card"],
         "lighting": "moody lighting, high contrast, cinematic shadow",
-        "style_hint": "${styleHint}",
+        "style_hint": "${GLOBAL_STYLE_PROFILE}",
         "prompt_seed_text": "Cinematic visual narrative prompt (English)",
         "negative_prompt_seed_text": "centered framing, single character portrait, flat lighting, text, logo"
       }
@@ -211,25 +338,33 @@ JSON 외 텍스트는 절대 출력하지 마라.
 }
 
 /**
- * 챕터 수에 따라 적절한 장면 생성 프롬프트를 반환합니다.
+ * 설정에 따라 적절한 장면 생성 프롬프트를 반환합니다.
  */
 export function buildScenePrompt({
   text,
+  entities = [],
   chapterTitles = [],
   workTitle = "",
-  maxCandidates,
-  maxSelectedScenes,
-  styleHint = "anime visual novel illustration",
+  mode = 'teaser', // 'teaser' or 'story'
+  styleHint = GLOBAL_STYLE_PROFILE,
 }) {
-  const mode = chapterLabel(chapterTitles.length || 1);
+  if (mode === 'story') {
+    return buildStoryModeScenePrompt({
+      text,
+      entities,
+      chapterTitles,
+      workTitle,
+      minScenes: text.length > 50000 ? 15 : 10,
+      maxScenes: text.length > 50000 ? 25 : 15,
+    });
+  }
 
-  if (mode === "single") {
+  const chapterCount = chapterTitles.length || 1;
+  if (chapterCount <= 1) {
     return buildSingleChapterScenePrompt({
       text,
       chapterTitle: chapterTitles[0] || "",
       workTitle,
-      maxCandidates: maxCandidates ?? 8,
-      maxSelectedScenes: maxSelectedScenes ?? 4,
       styleHint,
     });
   }
@@ -238,8 +373,6 @@ export function buildScenePrompt({
     text,
     chapterTitles,
     workTitle,
-    maxCandidates: maxCandidates ?? 12,
-    maxSelectedScenes: maxSelectedScenes ?? 6,
     styleHint,
   });
 }
@@ -310,7 +443,7 @@ export function normalizeSceneResult(result) {
     chapter_mode: result.chapter_mode || "single",
     overview: result.overview || null,
     scene_candidates: Array.isArray(result.scene_candidates) ? result.scene_candidates : [],
-    selected_scenes: Array.isArray(result.selected_scenes) ? result.selected_scenes : [],
+    selected_scenes: Array.isArray(result.selected_scenes) ? result.selected_scenes : (Array.isArray(result.scenes) ? result.scenes : []),
   };
 
   normalized.scene_candidates = normalized.scene_candidates.map((scene, index) => ({
@@ -378,6 +511,14 @@ export function normalizeSceneResult(result) {
         scene?.image_data?.negative_prompt_seed_text ||
         "low quality, blurry, bad hands, extra fingers, text, watermark",
     },
+    // --- READER METADATA ---
+    setting: scene.setting || "",
+    participants: Array.isArray(scene.participants) ? scene.participants : [],
+    time_context: scene.time_context || "",
+    emotion_tags: Array.isArray(scene.emotion_tags) ? scene.emotion_tags : [],
+    narrative_function: scene.narrative_function || "",
+    source_excerpt: scene.source_excerpt || scene.source_span || "",
+    related_scene_ids: Array.isArray(scene.related_scene_ids) ? scene.related_scene_ids : [],
   }));
 
   return normalized;

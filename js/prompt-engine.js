@@ -129,13 +129,13 @@ export function buildSingleChapterScenePrompt({
       },
       "image_data": {
         "core_moment": "핵심 순간",
-        "character_focus": "인물의 성별(gender), 나이, 외형, 의상, 반드시 'Wide long shot' 또는 'Full body shot from a distance' 포함",
-        "background_focus": "배경과 풍경 위주, 인물 얼굴보다 장소의 미학 강조",
-        "lighting": "조명",
-        "composition": "wide landscape long shot, full body from a distance",
+        "character_focus": "인물의 성별(gender), 나이, 고화질 외형 묘사 (반드시 'Medium thigh-up shot' 포함)",
+        "background_focus": "상세한 배경과 장소의 미학 강조, (strictly NO people in background focus)",
+        "lighting": "cinematic lighting, soft global illumination",
+        "composition": "cinematic medium shot, thigh-up portrait",
         "style_hint": "${styleHint}",
-        "prompt_seed_text": "짧고 시각적인 생성용 문장 (Wide angle scenic view)",
-        "negative_prompt_seed_text": "low quality, blurry, bad hands, extra fingers, text, watermark"
+        "prompt_seed_text": "고화질 시각적 생성 문장 (Highly detailed illustration)",
+        "negative_prompt_seed_text": "sketch, rough, draft, monochrome, black and white, low quality, blurry, bad hands, extra fingers, text, watermark, two people, twins"
       }
     }
   ]
@@ -275,13 +275,13 @@ export function buildMultiChapterScenePrompt({
       },
       "image_data": {
         "core_moment": "핵심 순간",
-        "character_focus": "인물의 성별(gender), 나이, 외형 구체적 묘사 (반드시 'Long shot' 또는 'Full body' 포함)",
-        "background_focus": "풍경과 장소 중심의 묘사, 대서사적인 배경 강조",
-        "lighting": "조명",
-        "composition": "wide landscape long shot, full body portrait from a distance",
+        "character_focus": "성별(gender)과 외형의 고화질 묘사 (반드시 'Medium thigh-up shot' 포함)",
+        "background_focus": "풍경과 장소의 대서사적인 배경 강조, (strictly no people descriptions here)",
+        "lighting": "masterpiece lighting, vibrant colors",
+        "composition": "stunning cinematic shot, thigh-up portrait",
         "style_hint": "${styleHint}",
-        "prompt_seed_text": "시각적 생성 문장 (Wide angle scenery)",
-        "negative_prompt_seed_text": "low quality, blurry, bad hands, extra fingers, text, watermark"
+        "prompt_seed_text": "고화질 시각적 장면 (highly detailed background)",
+        "negative_prompt_seed_text": "sketch, rough, draft, monochrome, black and white, low quality, blurry, bad hands, extra fingers, text, watermark, two people, duplicated character"
       }
     }
   ]

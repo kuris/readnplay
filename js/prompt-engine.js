@@ -129,10 +129,10 @@ export function buildSingleChapterScenePrompt({
       },
       "image_data": {
         "core_moment": "핵심 순간",
-        "character_focus": "인물의 성별(gender), 나이, 외형, 의상, 반드시 'Small figure in distance' 또는 'Full body shot' 포함",
+        "character_focus": "인물의 성별(gender), 나이, 외형, 의상, 반드시 'Wide long shot' 또는 'Full body shot from a distance' 포함",
         "background_focus": "배경과 풍경 위주, 인물 얼굴보다 장소의 미학 강조",
         "lighting": "조명",
-        "composition": "wide scenic shot, small figure from a distance",
+        "composition": "wide landscape long shot, full body from a distance",
         "style_hint": "${styleHint}",
         "prompt_seed_text": "짧고 시각적인 생성용 문장 (Wide angle scenic view)",
         "negative_prompt_seed_text": "low quality, blurry, bad hands, extra fingers, text, watermark"
@@ -275,10 +275,10 @@ export function buildMultiChapterScenePrompt({
       },
       "image_data": {
         "core_moment": "핵심 순간",
-        "character_focus": "인물의 성별(gender), 나이, 외형 구체적 묘사 (반드시 'Small character' 또는 'Full body' 포함)",
+        "character_focus": "인물의 성별(gender), 나이, 외형 구체적 묘사 (반드시 'Long shot' 또는 'Full body' 포함)",
         "background_focus": "풍경과 장소 중심의 묘사, 대서사적인 배경 강조",
         "lighting": "조명",
-        "composition": "wide landscape shot, character from a distance",
+        "composition": "wide landscape long shot, full body portrait from a distance",
         "style_hint": "${styleHint}",
         "prompt_seed_text": "시각적 생성 문장 (Wide angle scenery)",
         "negative_prompt_seed_text": "low quality, blurry, bad hands, extra fingers, text, watermark"

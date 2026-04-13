@@ -55,17 +55,27 @@ export function updateWorkflowSummary() {
   const lengthEl = $('sum-length');
   const styleEl = $('sum-style');
 
-  if (modeEl) modeEl.textContent = state.selectedMode === 'adventure' ? '⚔ 주인공 빙의' : (state.selectedMode === 'visual_novel' ? '🎭 비주얼 노벨' : '-');
-  if (langEl) langEl.textContent = state.selectedLang === 'ko' ? '🇰🇷 한국어' : (state.selectedLang === 'en' ? '🇺🇸 영어' : '-');
-  if (lengthEl) lengthEl.textContent = state.selectedLength === 'short' ? '⚡ 빠른 전개' : (state.selectedLength === 'medium' ? '📖 표준' : (state.selectedLength === 'long' ? '🎯 심화' : '-'));
+  const safelyVal = (el, val) => {
+    if (el) el.innerHTML = `<span>${val}</span>`;
+  };
+
+  const modeMap = { 'adventure': '⚔ 주인공 빙의', 'visual_novel': '🎭 비주얼 노벨' };
+  const langMap = { 'ko': '🇰🇷 한국어', 'en': '🇺🇸 영어' };
+  const lengthMap = { 'short': '⚡ 빠른 전개', 'medium': '📖 표준', 'long': '🎯 심화' };
+  const styleMap = {
+    'semi_realistic_anime': '🎨 세미리얼 애니',
+    'webtoon_korean': '🎨 한국 웹툰풍',
+    'classic_watercolor': '🎨 클래식 수채화',
+    'cyberpunk_noir': '🎨 사이버펑크 누아르'
+  };
+
+  safelyVal(modeEl, modeMap[state.selectedMode] || '-');
+  safelyVal(langEl, langMap[state.selectedLang] || '-');
+  safelyVal(lengthEl, lengthMap[state.selectedLength] || '-');
+  
   if (styleEl) {
-    const styleName = {
-      'semi_realistic_anime': '세미리얼 애니',
-      'webtoon_korean': '한국 웹툰풍',
-      'classic_watercolor': '클래식 수채화',
-      'cyberpunk_noir': '사이버펑크 누아르'
-    }[state.userDecisions.visualStyle.profile] || '-';
-    styleEl.textContent = styleName;
+    const styleProfile = state.userDecisions?.visualStyle?.profile || 'semi_realistic_anime';
+    safelyVal(styleEl, styleMap[styleProfile] || '-');
   }
 }
 

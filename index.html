@@ -28,65 +28,70 @@
       </filter>
     </defs>
   </svg>
-<div class="page">
 
   <!-- ── SETUP (Now Backgrounded/Merged) ── -->
   <div id="screen-setup" class="screen">
-    <!-- Legacy UI removed or hidden -->
+    <div class="page">
+      <!-- Legacy UI removed or hidden -->
+    </div>
   </div>
 
   <!-- ── CHAPTER SELECTION ── -->
   <div id="screen-chapters" class="screen">
-    <div class="masthead">
-      <div class="logo">READ<span>PLAY</span></div>
-      <div class="tagline">어느 지점에서 시작할까요?</div>
-    </div>
-    <div class="chapter-list-container">
-      <div id="chapter-list" class="chapter-grid">
-        <!-- 챕터 목록 동적 삽입 -->
+    <div class="page">
+      <div class="masthead">
+        <div class="logo">READ<span>PLAY</span></div>
+        <div class="tagline">어느 지점에서 시작할까요?</div>
       </div>
-    </div>
-    <div style="margin-top:2rem; text-align:center; display:flex; flex-direction:column; gap:10px; align-items:center;">
-      <button class="btn-start" id="btn-chapters-confirm" disabled style="width:200px; margin:0 auto;">
-        선택한 구간으로 시작하기
-      </button>
-      <button class="btn-ghost" onclick="window.location.reload()">처음으로</button>
+      <div class="chapter-list-container">
+        <div id="chapter-list" class="chapter-grid">
+          <!-- 챕터 목록 동적 삽입 -->
+        </div>
+      </div>
+      <div style="margin-top:2rem; text-align:center; display:flex; flex-direction:column; gap:10px; align-items:center;">
+        <button class="btn-start" id="btn-chapters-confirm" disabled style="width:200px; margin:0 auto;">
+          선택한 구간으로 시작하기
+        </button>
+        <button class="btn-ghost" onclick="window.location.reload()">처음으로</button>
+      </div>
     </div>
   </div>
 
   <!-- ── LOADING ── -->
   <div id="screen-loading" class="screen">
-    <div class="loading-center">
-      <span class="book-anim">📖</span>
-      <div class="loading-h">Gemini가 책을 읽고 있어요</div>
-      <div class="loading-sub" id="loading-stage-text">준비 중...</div>
+    <div class="page">
+      <div class="loading-center">
+        <span class="book-anim">📖</span>
+        <div class="loading-h">Gemini가 책을 읽고 있어요</div>
+        <div class="loading-sub" id="loading-stage-text">준비 중...</div>
 
-      <!-- 단계별 진행 표시 -->
-      <div class="stage-bar-wrap">
-        <div class="stage-bar-track">
-          <div class="stage-bar-fill" id="stage-bar"></div>
+        <!-- 단계별 진행 표시 -->
+        <div class="stage-bar-wrap">
+          <div class="stage-bar-track">
+            <div class="stage-bar-fill" id="stage-bar"></div>
+          </div>
+          <div class="stages">
+            <div class="stage-item" id="stage-0">
+              <div class="stage-dot">📥</div>
+              <div class="stage-label">책 불러오기</div>
+            </div>
+            <div class="stage-item" id="stage-1">
+              <div class="stage-dot">🔍</div>
+              <div class="stage-label">텍스트 분석</div>
+            </div>
+            <div class="stage-item" id="stage-2">
+              <div class="stage-dot">✨</div>
+              <div class="stage-label">AI 생성</div>
+            </div>
+            <div class="stage-item" id="stage-3">
+              <div class="stage-dot">🎮</div>
+              <div class="stage-label">게임 완성</div>
+            </div>
+          </div>
         </div>
-        <div class="stages">
-          <div class="stage-item" id="stage-0">
-            <div class="stage-dot">📥</div>
-            <div class="stage-label">책 불러오기</div>
-          </div>
-          <div class="stage-item" id="stage-1">
-            <div class="stage-dot">🔍</div>
-            <div class="stage-label">텍스트 분석</div>
-          </div>
-          <div class="stage-item" id="stage-2">
-            <div class="stage-dot">✨</div>
-            <div class="stage-label">AI 생성</div>
-          </div>
-          <div class="stage-item" id="stage-3">
-            <div class="stage-dot">🎮</div>
-            <div class="stage-label">게임 완성</div>
-          </div>
-        </div>
+
+        <div class="log-terminal" id="log"></div>
       </div>
-
-      <div class="log-terminal" id="log"></div>
     </div>
   </div>
 
@@ -165,112 +170,112 @@
     <div id="game-backdrop" class="game-backdrop"></div>
     <div id="vn-portrait-area" class="vn-portrait-area"></div>
 
-    <div class="game-masthead fadein">
-      <div class="game-book-title" id="g-title">-</div>
-      <div class="game-stats">
-        <span class="score" id="g-score">0</span>
-        <span id="g-chap">1 / 1</span>
-      </div>
-    </div>
-    <div class="progress-rail">
-      <div class="progress-fill" id="g-prog" style="width:0%"></div>
-    </div>
-
-    <!-- Reader Dashboard Controls -->
-    <div class="reader-controls fadein">
-      <div class="rc-group">
-        <button class="rc-btn" id="btn-side-info" title="장면 정보">ℹ️</button>
-        <button class="rc-btn" id="btn-side-chars" title="인물 사전">👥</button>
-        <button class="rc-btn" id="btn-side-time" title="타임라인">🗺️</button>
-      </div>
-      <div class="rc-divider"></div>
-      <div class="rc-group">
-        <button class="rc-btn" id="btn-toggle-source" title="원문/각색 전환">📄</button>
-        <button class="rc-btn" id="btn-auto-read" title="자동 넘기기">▶️</button>
-      </div>
-    </div>
-
-    <!-- Side Panels -->
-    <div id="reader-side-panel" class="side-panel">
-      <div class="sp-header">
-        <span id="sp-title">장면 정보</span>
-        <button class="sp-close" id="btn-close-side">✕</button>
-      </div>
-      <div id="sp-content" class="sp-content">
-        <!-- Content injected by game-engine.js -->
-      </div>
-    </div>
-
-    <div class="game-lang-pill" id="lang-pill">
-      <button class="glp-btn active" id="glp-ko">한국어</button>
-      <button class="glp-btn" id="glp-en">English</button>
-      <button class="glp-btn" id="glp-bi">한/영</button>
-    </div>
-
-    <!-- 캐릭터 패널 (비주얼 노벨 모드용) -->
-    <div id="character-panel" class="char-panel"></div>
-
-    <button class="orig-toggle" id="orig-toggle">원문 발췌 보기 ▾</button>
-    <div class="orig-box" id="orig-box"></div>
-
-    <div id="adventure-area">
-      <div class="scene-wrap fadein">
-        <div class="scene-header">
-          <span id="g-context">장면</span>
-          <span id="g-chapter-label">chapter 1</span>
+    <div class="page">
+      <div class="game-masthead fadein">
+        <div class="game-book-title" id="g-title">-</div>
+        <div class="game-stats">
+          <span class="score" id="g-score">0</span>
+          <span id="g-chap">1 / 1</span>
         </div>
-        
-        <!-- Cinematic Dialogue UI -->
-        <div class="dialogue-container">
-          <div id="speaker-tag" class="speaker-tag"></div>
+      </div>
+      <div class="progress-rail">
+        <div class="progress-fill" id="g-prog" style="width:0%"></div>
+      </div>
+
+      <!-- Reader Dashboard Controls -->
+      <div class="reader-controls fadein">
+        <div class="rc-group">
+          <button class="rc-btn" id="btn-side-info" title="장면 정보">ℹ️</button>
+          <button class="rc-btn" id="btn-side-chars" title="인물 사전">👥</button>
+          <button class="rc-btn" id="btn-side-time" title="타임라인">🗺️</button>
+        </div>
+        <div class="rc-divider"></div>
+        <div class="rc-group">
+          <button class="rc-btn" id="btn-toggle-source" title="원문/각색 전환">📄</button>
+          <button class="rc-btn" id="btn-auto-read" title="자동 넘기기">▶️</button>
+        </div>
+      </div>
+
+      <!-- Side Panels -->
+      <div id="reader-side-panel" class="side-panel">
+        <div class="sp-header">
+          <span id="sp-title">장면 정보</span>
+          <button class="sp-close" id="btn-close-side">✕</button>
+        </div>
+        <div id="sp-content" class="sp-content">
+          <!-- Content injected by game-engine.js -->
+        </div>
+      </div>
+
+      <div class="game-lang-pill" id="lang-pill">
+        <button class="glp-btn active" id="glp-ko">한국어</button>
+        <button class="glp-btn" id="glp-en">English</button>
+        <button class="glp-btn" id="glp-bi">한/영</button>
+      </div>
+
+      <!-- 캐릭터 패널 (비주얼 노벨 모드용) -->
+      <div id="character-panel" class="char-panel"></div>
+
+      <button class="orig-toggle" id="orig-toggle">원문 발췌 보기 ▾</button>
+      <div class="orig-box" id="orig-box"></div>
+
+      <div id="adventure-area">
+        <div class="scene-wrap fadein">
+          <div class="scene-header">
+            <span id="g-context">장면</span>
+            <span id="g-chapter-label">chapter 1</span>
+          </div>
           
-          <div id="reader-text-area">
-            <!-- Adaptation View -->
-            <div class="scene-body" id="g-scene">게임을 불러오는 중...</div>
+          <!-- Cinematic Dialogue UI -->
+          <div class="dialogue-container">
+            <div id="speaker-tag" class="speaker-tag"></div>
             
-            <!-- Source View (Hidden by default) -->
-            <div id="source-viewer" class="source-viewer" style="display:none">
-              <div class="sv-header">원문 발췌 (Source Excerpt)</div>
-              <div id="sv-body" class="sv-body"></div>
-              <div class="sv-note">※ AI가 독해 보드를 위해 추출한 원문 구간입니다.</div>
+            <div id="reader-text-area">
+              <!-- Adaptation View -->
+              <div class="scene-body" id="g-scene">게임을 불러오는 중...</div>
+              
+              <!-- Source View (Hidden by default) -->
+              <div id="source-viewer" class="source-viewer" style="display:none">
+                <div class="sv-header">원문 발췌 (Source Excerpt)</div>
+                <div id="sv-body" class="sv-body"></div>
+                <div class="sv-note">※ AI가 독해 보드를 위해 추출한 원문 구간입니다.</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="choices-header">선택지</div>
-    <div class="choices-list" id="g-choices"></div>
+      <div class="choices-header">선택지</div>
+      <div class="choices-list" id="g-choices"></div>
 
-    <div id="quiz-area" style="display:none">
-      <div class="quiz-wrap">
-        <div class="quiz-header">퀴즈</div>
-        <div class="quiz-body">
-          <div class="quiz-q" id="q-text"></div>
-          <div class="choices-list" id="q-choices"></div>
-          <div id="q-result"></div>
+      <div id="quiz-area" style="display:none">
+        <div class="quiz-wrap">
+          <div class="quiz-header">퀴즈</div>
+          <div class="quiz-body">
+            <div class="quiz-q" id="q-text"></div>
+            <div class="choices-list" id="q-choices"></div>
+            <div id="q-result"></div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div id="ending-area" style="display:none">
-      <div class="ending-wrap fadein">
-        <span class="ending-mark">✦</span>
-        <div class="ending-h" id="ending-title">완독</div>
-        <div class="ending-sub" id="ending-sub"></div>
-        <span class="ending-score" id="ending-score" style="display:none"></span>
-        <div class="ending-score-label" id="ending-score-label" style="display:none">최종 점수</div>
+      <div id="ending-area" style="display:none">
+        <div class="ending-wrap fadein">
+          <span class="ending-mark">✦</span>
+          <div class="ending-h" id="ending-title">완독</div>
+          <div class="ending-sub" id="ending-sub"></div>
+          <span class="ending-score" id="ending-score" style="display:none"></span>
+          <div class="ending-score-label" id="ending-score-label" style="display:none">최종 점수</div>
+        </div>
       </div>
-    </div>
 
-    <div class="game-footer">
-      <div style="display:flex;gap:6px;">
-        <button class="btn-ghost" id="btn-restart">← 처음으로</button>
+      <div class="game-footer">
+        <div style="display:flex;gap:6px;">
+          <button class="btn-ghost" id="btn-restart">← 처음으로</button>
+        </div>
+        <div style="font-size:10px;color:var(--ink3);letter-spacing:0.1em;">READPLAY</div>
       </div>
-      <div style="font-size:10px;color:var(--ink3);letter-spacing:0.1em;">READPLAY</div>
     </div>
   </div>
-
-</div>
 
 <script type="module" src="js/main.js"></script>
 </body>

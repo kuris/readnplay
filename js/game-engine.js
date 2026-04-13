@@ -227,7 +227,7 @@ export function renderScene() {
   const chapEl = $('g-chap');
   if (chapEl) chapEl.textContent = (state.curIdx + 1) + ' / ' + total;
   const chapLabel = $('g-chapter-label');
-  if (chapLabel) chapLabel.textContent = 'scene ' + ensureString(scene.id);
+  if (chapLabel) chapLabel.textContent = 'scene ' + String(scene.id).replace(/\D/g, ''); // 숫자만 남거가나 간결하게
   const scoreEl = $('g-score');
   if (scoreEl) scoreEl.textContent = state.score;
   const ctxEl = $('g-context');
@@ -340,8 +340,17 @@ export function renderScene() {
       
       // 첫 번째 페이지 렌더링
       const firstChunk = currentChunks[subStep] || '';
-      const char = (state.gameData.characters || []).find(c => String(c.id) === String(line.speaker));
-      const name = ensureString(char ? char.name : (line.speaker === 'narrator' ? '' : line.speaker));
+      
+      // 🎭 지능형 화자 매칭 (ID, 이름, 별명 지원)
+      const speakerId = String(line.speaker).toLowerCase();
+      const char = (state.gameData.characters || []).find(c => 
+        String(c.id).toLowerCase() === speakerId || 
+        String(c.name).toLowerCase() === speakerId ||
+        String(c.canonical_name || '').toLowerCase() === speakerId ||
+        (Array.isArray(c.aliases) && c.aliases.some(a => a.toLowerCase() === speakerId))
+      );
+      
+      const name = ensureString(char ? (char.canonical_name || char.name) : (line.speaker === 'narrator' ? '' : line.speaker));
       
       if (line.speaker !== 'narrator' && speakerTag) {
         speakerTag.textContent = name;
@@ -381,10 +390,9 @@ export function renderScene() {
       // 얼굴 이미지 처리 (첫 페이지에서만 또는 매 페이지 업데이트)
       const portraitArea = $('vn-portrait-area');
       if (portraitArea) {
-        // 🎞️ 통합 장면(Scene) 이미지가 있을 경우 초상화 영역에 스타일 클래스 부여
         portraitArea.classList.toggle('is-scenic', !!scene.image_data);
         
-        const char = (state.gameData.characters || []).find(c => String(c.id) === String(line.speaker));
+        // 위에서 찾은 char 정보를 재사용
         const avatarUrl = char ? (char.avatar_url || '') : '';
         
         if (avatarUrl) {
@@ -395,11 +403,11 @@ export function renderScene() {
           portraitArea.style.display = 'block';
           portraitArea.classList.add('dim');
         } else if (line.speaker !== 'system') {
-          // 캐릭터 이미지가 없을 때 실루엣/이니셜 표시
+          // 캐릭터 이미지가 없을 때 시네마틱 실루엣 표시
           portraitArea.style.display = 'flex';
           portraitArea.innerHTML = `
             <div class="silhouette-placeholder fadein">
-              <img src="https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=1f1f1f&fontFamily=Arial&fontSize=40&textColor=ffffff" style="opacity: 0.6">
+              <img src="https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=1a1a1a&fontFamily=Arial&fontSize=40&textColor=333333" style="filter: brightness(0.2) blur(2px);">
               <div class="placeholder-name">${name}</div>
             </div>
           `;

@@ -3,12 +3,26 @@ export const $ = id => document.getElementById(id);
 
 export function ensureString(val, fallback = '') {
   if (val === null || val === undefined) return fallback;
-  if (typeof val === 'string') return val;
+  if (typeof val === 'string') return stripEbookWatermarks(val);
   if (typeof val === 'object') {
     // 중첩된 객체(예: {ko: '제목'}) 대응
-    return val.ko || val.text || val.name || val.title || JSON.stringify(val);
+    return stripEbookWatermarks(val.ko || val.text || val.name || val.title || JSON.stringify(val));
   }
-  return String(val);
+  return stripEbookWatermarks(String(val));
+}
+
+/**
+ * 전자책 파싱 중 유입되는 워터마크, 시리얼 번호, 라이선스 텍스트 등을 청소합니다.
+ */
+export function stripEbookWatermarks(text) {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/판매본\s*\d+/gi, '')
+    .replace(/ISBN\s*[0-9-xX]+/gi, '')
+    .replace(/Copyright\s*©.*/gi, '')
+    .replace(/Digital\s*(Edition|Version)\s*\d+/gi, '')
+    .replace(/^[0-9A-Z]{12,}$/gm, '') // 의미 없는 긴 영문/숫자 행 삭제
+    .trim();
 }
 
 export function safely(val, fallback = '-') {

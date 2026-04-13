@@ -1036,7 +1036,7 @@ body.mode-vn #screen-game.active {
   opacity: 1 !important;
   overflow: hidden !important;
   z-index: 99999 !important;
-  background: #000;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
 }
 body.mode-vn .masthead, 
 body.mode-vn .progress-rail, 
@@ -1047,8 +1047,9 @@ body.mode-vn .game-lang-pill {
 body.mode-vn .game-backdrop {
   z-index: 1;
   background-size: cover !important;
-  background-position: center center !important;
-  filter: brightness(0.7) contrast(1.1);
+  background-position: center 20% !important;
+  filter: brightness(0.6) contrast(1.1) saturate(0.9);
+  transition: opacity 1s ease-in-out;
 }
 body.mode-vn .game-backdrop::after {
   content: "";
@@ -1057,10 +1058,11 @@ body.mode-vn .game-backdrop::after {
   background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.6) 100%);
   pointer-events: none;
 }
-body.mode-vn .game-masthead, 
-body.mode-vn .progress-rail, 
-body.mode-vn .game-lang-pill {
-  opacity: 0.4; /* 상단 클러터 시인성 더 낮춤 */
+body.mode-vn .game-masthead {
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+  backdrop-filter: blur(5px);
+  padding: 1.5rem 2rem;
+  opacity: 1;
   transition: opacity 0.5s;
   z-index: 100;
   color: #fff !important;
@@ -1094,8 +1096,35 @@ body.mode-vn .game-lang-pill:hover { opacity: 1; }
   height: 100%;
   width: auto;
   object-fit: contain;
-  mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 90%, transparent 100%);
+  transform-origin: bottom center;
+  animation: portraitEntrance 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes portraitEntrance {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); filter: blur(10px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.silhouette-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 70%;
+  padding-bottom: 10vh;
+}
+.silhouette-placeholder img {
+  height: 100%;
+  filter: brightness(0) opacity(0.5);
+}
+.placeholder-name {
+  color: var(--gold);
+  font-family: var(--ff-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: -5rem;
+  text-shadow: 0 0 20px rgba(184, 134, 11, 0.5);
+  z-index: 1;
 }
 .vn-portrait-area::after {
   content: "";
@@ -1122,13 +1151,15 @@ body.mode-vn #adventure-area {
   bottom: 0px;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%; /* 너비 100%로 꽉 채움 */
+  width: 100%;
   background: linear-gradient(to top, 
-    #000 0%, 
-    rgba(0,0,0,0.95) 60%, 
-    rgba(0,0,0,0.8) 80%, 
+    rgba(0,0,0,0.9) 0%, 
+    rgba(10,10,15,0.7) 70%, 
     transparent 100%);
-  padding: 5rem 3rem 4rem;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  padding: 4rem 3rem 4rem;
+  border-top: 1px solid rgba(255,255,255,0.05);
   z-index: 500;
   display: block !important;
 }
@@ -1144,12 +1175,13 @@ body.mode-vn .scene-wrap {
 }
 body.mode-vn #g-scene,
 body.mode-vn .dialogue-line {
-  color: #fff !important; /* 배경이 어두우므로 텍스트는 무조건 흰색 */
+  color: #fff !important;
   font-family: var(--ff-serif);
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   line-height: 1.8;
   font-weight: 400;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1);
+  text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+  font-style: normal !important; /* 이탤릭 제거 */
 }
 body.mode-vn .speaker-tag {
   background: transparent !important;
@@ -1174,10 +1206,41 @@ body.mode-vn #book-title,
 body.mode-vn .orig-toggle,
 body.mode-vn #orig-toggle,
 body.mode-vn #orig-box,
-body.mode-vn .scene-header, /* 장면 컨텍스트 및 번호 숨김 (겹침 방지) */
-body.mode-vn #character-panel, /* 캐릭터 관계도 패널 제거 */
+body.mode-vn .scene-header,
+body.mode-vn #character-panel,
 body.mode-vn .game-footer .copyright { 
   display: none !important; 
+}
+
+body.mode-vn .game-footer {
+  position: absolute;
+  top: 1.5rem;
+  left: 2rem;
+  right: 2rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1000;
+  pointer-events: none;
+}
+body.mode-vn .game-footer > div { pointer-events: auto; }
+body.mode-vn #btn-restart {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6);
+  padding: 8px 16px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+body.mode-vn #btn-restart:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border-color: var(--gold);
 }
 
 /* Choices (인물 카드 우측 배치 - 독립형 대응) */

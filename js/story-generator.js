@@ -262,15 +262,20 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
 
     const characters = rawEntities.filter(e => e.type?.includes('person')).length;
     const locations = rawEntities.filter(e => e.type === 'location').length;
-    const others = rawEntities.length - characters - locations;
+    const trash = rawEntities.filter(e => e.type === 'trash' || e.importance === 'T').length;
+    const others = rawEntities.length - characters - locations - trash;
 
-    await postAiMessage(`분석 결과, 주요 인물 ${characters}명과 장소 ${locations}곳, 그리고 ${others}개의 주요 엔티티를 감지했습니다.`);
-    await postAiMessage("작품의 일관성을 위해 중복되거나 불필요한 항목이 있는지 확인해주세요.");
+    await postAiMessage(`분석 결과, 주요 인물 ${characters}명과 장소 ${locations}곳을 식별했습니다.`);
+    if (trash > 0) {
+      await postAiMessage(`또한, 이야기 전개와 무관한 워터마크나 노이즈 항목 ${trash}개를 자동으로 감지했습니다.`);
+    }
+    await postAiMessage("작품의 일관성을 위해 중복된 인물을 병합하거나, 불필요한 항목이 제외되었는지 확인해 주세요.");
+    
     const resolution = await waitForUserApproval({ idx: 3, type: 'ENTITY_RESOLUTION' }, { entities: rawEntities });
     setWorkflowLoading("선택하신 정보를 바탕으로 세계관의 기초를 다지고 있습니다...");
     
     // 사용자의 결정을 반영하여 실제 캐릭터 리스트 구성
-    const resolvedEntities = resolution.entities;
+    const resolvedEntities = resolution.entities.filter(e => e.type !== 'trash' && e.importance !== 'T');
     state.userDecisions.entityResolution.mergeGroups = resolution.mergeGroups;
 
     // 2단계: 비주얼 스타일 결정
@@ -363,12 +368,18 @@ async function generateTeaserMode({ processingText, cacheKey, retryCount }) {
     const entityResRaw = await fetchGeminiStory(entityPrompt);
     const entityData = extractJsonFromModelResponse(entityResRaw);
     const rawEntities = entityData.entities || [];
+    const trash = rawEntities.filter(e => e.type === 'trash' || e.importance === 'T').length;
 
     // -- Interrupt Point 2: Entity Resolution --
-    await postAiMessage(`${rawEntities.length}명의 인물을 찾았습니다. 티저 모드에 포함할 주인공들을 확인해주세요.`);
+    if (trash > 0) {
+      await postAiMessage(`${rawEntities.length - trash}명의 핵심 인물과 ${trash}개의 불필요한 항목을 찾았습니다. 티저 모드에 포함할 주인공들을 확인해 주세요.`);
+    } else {
+      await postAiMessage(`${rawEntities.length}명의 인물을 찾았습니다. 티저 모드에 포함할 주인공들을 확인해 주세요.`);
+    }
+    
     const resolution = await waitForUserApproval({ idx: 3, type: 'ENTITY_RESOLVE' }, { entities: rawEntities });
     
-    const resolvedEntities = resolution.entities;
+    const resolvedEntities = resolution.entities.filter(e => e.type !== 'trash' && e.importance !== 'T');
     state.userDecisions.entityResolution.mergeGroups = resolution.mergeGroups;
 
     // 2단계: 비주얼 스타일 결정

@@ -410,36 +410,66 @@ function renderModeSelectCard(container, data, resolve) {
 function renderEntityResolveCard(container, data, resolve) {
   const { entities } = data;
   let currentEntities = [...entities];
-  let excludedIds = new Set();
+  
+  // 초기 셋업: 'trash' 타입을 가진 항목들은 기본적으로 제외 목록에 넣음
+  let excludedIds = new Set(currentEntities.filter(e => e.type === 'trash' || e.importance === 'T').map(e => e.id));
 
   function updateList() {
+    // 그룹화 로직
+    const major = currentEntities.filter(e => ['person_major', 'person_minor'].includes(e.type) && e.importance !== 'T');
+    const others = currentEntities.filter(e => ['group', 'location', 'object'].includes(e.type) && e.importance !== 'T');
+    const trash = currentEntities.filter(e => e.type === 'trash' || e.importance === 'T' || e.type === 'unknown');
+
+    const renderRow = (e) => {
+      const isExcluded = excludedIds.has(e.id);
+      return `
+        <div class="wf-entity-row ${isExcluded ? 'excluded' : ''}" data-id="${e.id}">
+          <div class="wf-entity-main">
+            <div class="wf-entity-name">
+              ${e.canonical_name || e.name || e.id}
+              <span class="wf-entity-type-badge">${e.type}</span>
+            </div>
+            <div class="wf-entity-aliases">${Array.isArray(e.aliases) ? e.aliases.join(', ') : (e.aliases || '')}</div>
+          </div>
+          <div class="wf-entity-actions">
+            ${isExcluded 
+              ? `<button class="btn-wf-sm" data-action="restore">복구</button>`
+              : `<button class="btn-wf-sm danger" data-action="exclude">제외</button>`
+            }
+          </div>
+        </div>
+      `;
+    };
+
     container.innerHTML = `
       <div class="wf-card-h">👥 등장인물 및 엔티티 정제</div>
-      <p style="font-size:12px; color:var(--ink2); margin-bottom:1rem;">
-        식별된 인물들입니다. 중복된 이름은 병합하거나, 불필요한 항목은 제외해 주세요.
+      <p style="font-size:12px; color:var(--ink2); margin-bottom:1.5rem;">
+        작품에서 식별된 요소들입니다. 성격에 맞는 그룹으로 분류했습니다. 불필요한 노이즈나 워터마크는 <b>제외</b>해 주세요.
       </p>
-      <div class="wf-entity-list">
-        ${currentEntities.map(e => {
-          const isExcluded = excludedIds.has(e.id);
-          return `
-            <div class="wf-entity-row" data-id="${e.id}" style="${isExcluded ? 'opacity:0.4; background:var(--paper3)' : ''}">
-              <div class="wf-entity-main">
-                <div class="wf-entity-name" style="${isExcluded ? 'text-decoration:line-through' : ''}">
-                  ${e.canonical_name || e.name || e.id}
-                  <span class="wf-entity-type-badge">${e.type}</span>
-                </div>
-                <div class="wf-entity-aliases">${Array.isArray(e.aliases) ? e.aliases.join(', ') : (e.aliases || '')}</div>
-              </div>
-              <div class="wf-entity-actions">
-                ${isExcluded 
-                  ? `<button class="btn-wf-sm" data-action="restore">복구</button>`
-                  : `<button class="btn-wf-sm danger" data-action="exclude">제외</button>`
-                }
-              </div>
-            </div>
-          `;
-        }).join('')}
+
+      <div class="wf-entity-sections">
+        ${major.length > 0 ? `
+          <div class="wf-entity-section">
+            <div class="field-label">주요 인물 (${major.length})</div>
+            <div class="wf-entity-list">${major.map(renderRow).join('')}</div>
+          </div>
+        ` : ''}
+
+        ${others.length > 0 ? `
+          <div class="wf-entity-section" style="margin-top:1.5rem;">
+            <div class="field-label">배경 및 기타 요소 (${others.length})</div>
+            <div class="wf-entity-list">${others.map(renderRow).join('')}</div>
+          </div>
+        ` : ''}
+
+        ${trash.length > 0 ? `
+          <div class="wf-entity-section" style="margin-top:1.5rem;">
+            <div class="field-label" style="color:var(--red);">불필요 항목 감지 (${trash.length})</div>
+            <div class="wf-entity-list trash-list">${trash.map(renderRow).join('')}</div>
+          </div>
+        ` : ''}
       </div>
+
       <div class="wf-actions">
         <button class="btn-wf-primary" id="btn-wf-confirm">구성 완료 →</button>
       </div>
@@ -447,12 +477,9 @@ function renderEntityResolveCard(container, data, resolve) {
 
     container.querySelectorAll('.btn-wf-sm').forEach(btn => {
       btn.onclick = () => {
-        const row = btn.closest('.wf-entity-row');
-        const id = row.dataset.id;
-        const action = btn.dataset.action;
-
-        if (action === 'exclude') excludedIds.add(id);
-        if (action === 'restore') excludedIds.delete(id);
+        const id = btn.closest('.wf-entity-row').dataset.id;
+        if (btn.dataset.action === 'exclude') excludedIds.add(id);
+        else excludedIds.delete(id);
         updateList();
       };
     });

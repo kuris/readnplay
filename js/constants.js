@@ -47,6 +47,7 @@ export const ENTITY_TYPES = {
   GROUP: 'group',
   LOCATION: 'location',
   OBJECT: 'object',
+  TRASH: 'trash',
   ALIAS: 'alias',
   UNKNOWN: 'unknown'
 };

@@ -131,6 +131,7 @@ export function buildEntityExtractionPrompt({ text, workTitle = "" }) {
 1. **Canonicalization (표준화)**: 
    - 동일 인물이 별명(예: "주인공", "그"), 직함(예: "김 중위", "소대장"), 실명(예: "김유나")으로 불릴 경우 이를 하나의 대표 이름(canonical_name)으로 통합하라.
    - aliases 배열에 모든 알려진 호칭을 포함하라.
+   - **전자책 파싱 부산물 추출**: 텍스트 중간에 삽입된 워터마크(예: "모두의 이북", "대여용"), 불필요한 저작권 정보, 상단/하단 메타데이터, 스캔 오류로 인한 깨진 문장 조각 등을 적극적으로 찾아내 'trash' 타입으로 분류하라.
 2. **Entity Classification**:
    - type을 다음 중 하나로 분류하라: [${Object.values(ENTITY_TYPES).join(', ')}]
    - person_major: 핵심 주인공 및 주연
@@ -138,8 +139,9 @@ export function buildEntityExtractionPrompt({ text, workTitle = "" }) {
    - group: 소대, 부대, 팀 등 집단
    - location: 배경이 되는 장소
    - object: 중요한 장비나 사물
+   - trash: 텍스트 노이즈, 전자책 워터마크, 불필요한 메타데이터, 중복된 문장 조각 등 정제가 필요한 항목
 3. **Importance Ranking**:
-   - importance를 A(핵심), B(전개에 필요), C(배경/단역) 중 하나로 지정하라.
+   - importance를 A(핵심), B(전개에 필요), C(배경/단역), T(불필요/제거대상) 중 하나로 지정하라.
 4. **Visual Signature**:
    - 인물의 경우 외모 특징(appearance)을 **영문(English)**으로 상세히 기술하라.
    - **GLOBAL STYLE**: 모든 이미지 관련 묘사는 "${GLOBAL_STYLE_PROFILE}" 스타일을 염두에 두라.

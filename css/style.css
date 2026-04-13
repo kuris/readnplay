@@ -2456,3 +2456,43 @@ body.mode-vn #screen-game.active {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* 👥 Entity Resolution Improvements */
+.wf-entity-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-height: 450px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-bottom: 2rem;
+}
+
+.wf-entity-section .field-label {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+}
+
+.wf-entity-row.excluded {
+  opacity: 0.4;
+  background: var(--paper3);
+  filter: grayscale(1);
+}
+
+.wf-entity-row.excluded .wf-entity-name {
+  text-decoration: line-through;
+  color: var(--ink3);
+}
+
+.trash-list .wf-entity-row {
+  border-style: dashed;
+  background: rgba(139, 32, 32, 0.02);
+}
+
+.trash-list .wf-entity-type-badge {
+  background: var(--red);
+  color: #fff;
+}

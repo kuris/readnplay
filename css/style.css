@@ -2030,30 +2030,30 @@ body.mode-vn #screen-game.active {
 .wf-style-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 .wf-style-card {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s;
   background: #fff;
 }
-.wf-style-card:hover { border-color: var(--gold); transform: translateY(-5px); }
+.wf-style-card:hover { border-color: var(--gold); transform: translateY(-3px); }
 .wf-style-card.selected { border-color: var(--gold); border-width: 3px; }
 .wf-style-img {
   width: 100%;
-  aspect-ratio: 16/9;
+  aspect-ratio: 2/1;
   background: var(--paper3);
   object-fit: cover;
 }
 .wf-style-info {
-  padding: 1rem;
+  padding: 0.75rem;
   background: #fff;
 }
-.wf-style-name { font-weight: 600; font-size: 14px; }
-.wf-style-desc { font-size: 11px; color: var(--ink3); margin-top: 4px; }
+.wf-style-name { font-weight: 600; font-size: 13px; }
+.wf-style-desc { font-size: 10px; color: var(--ink3); margin-top: 2px; }
 
 /* ─── STORY READER DASHBOARD ─── */
 .reader-controls {

@@ -34,6 +34,9 @@ export function repairJson(json) {
   cleaned = cleaned.replace(/}\s*\[/g, '}, [');
   cleaned = cleaned.replace(/]\s*{/g, '], {');
   
+  // 1.1 추가: "key" { 또는 "key" [ 처럼 콜론이 누락된 경우 복구
+  cleaned = cleaned.replace(/"([^"]+)"\s*([{\[])/g, '"$1": $2');
+  
   // 2. 후행 쉼표 제거 (Trailing Commas)
   cleaned = cleaned.replace(/,\s*}/g, '}');
   cleaned = cleaned.replace(/,\s*]/g, ']');

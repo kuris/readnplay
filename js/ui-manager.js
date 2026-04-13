@@ -21,14 +21,23 @@ export function showScreen(name) {
     s.style.opacity = '0';
     s.style.zIndex = '0';
     s.style.pointerEvents = 'none';
+    s.style.position = '';
   });
   
   // 2. 대상 스크린 강제 활성화
   target.classList.add('active');
-  target.style.setProperty('display', 'block', 'important');
-  target.style.setProperty('opacity', '1', 'important');
+  target.style.display = 'flex';
+  target.style.opacity = '1';
   target.style.zIndex = '1000';
   target.style.pointerEvents = 'auto';
+  
+  if (name === 'game') {
+    target.style.position = 'fixed';
+    target.style.top = '0';
+    target.style.left = '0';
+    target.style.width = '100vw';
+    target.style.height = '100vh';
+  }
   
   // 3. 페이지 상단으로 스크롤
   window.scrollTo(0, 0);

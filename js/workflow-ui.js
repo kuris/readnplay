@@ -192,17 +192,82 @@ async function renderBookSelectCard(container, data, resolve) {
           <span class="label">파일 업로드</span>
         </div>
         <div class="wf-btn-card" id="btn-wf-browse">
-          <span class="icon">🔍</span>
+          <span class="icon">🏛</span>
           <span class="label">고전 도서 탐색</span>
         </div>
       </div>
     `;
 
     container.querySelector('#btn-wf-upload').onclick = () => showUploadZone();
-    container.querySelector('#btn-wf-browse').onclick = () => showSearchOrFeatured();
+    container.querySelector('#btn-wf-browse').onclick = () => showGenreSelect();
   }
 
-  // 2-A: 업로드 존
+  // 1.5단계: 장르 및 추천 선택 (NEW)
+  function showGenreSelect() {
+    container.innerHTML = `
+      <div class="wf-card-h">🔍 어떤 이야기를 찾으시나요?</div>
+      <p style="font-size:12px; color:var(--ink2); margin-bottom:1.5rem;">취향에 맞는 테마를 선택하거나 직접 검색해보세요.</p>
+      
+      <div class="wf-option-list">
+        <div class="wf-option-item" data-genre="recommended">
+          <div class="wf-option-icon">✨</div>
+          <div class="wf-option-main">
+            <div class="wf-option-title">AI 추천 도서</div>
+            <div class="wf-option-desc">가장 인기 있는 클래식 입문서들을 추천합니다.</div>
+          </div>
+          <div class="wf-option-arrow">→</div>
+        </div>
+        <div class="wf-option-item" data-genre="romance">
+          <div class="wf-option-icon">🎭</div>
+          <div class="wf-option-main">
+            <div class="wf-option-title">로맨스 / 클래식</div>
+            <div class="wf-option-desc">오만과 편견, 제인 에어 등 감성적인 서사</div>
+          </div>
+          <div class="wf-option-arrow">→</div>
+        </div>
+        <div class="wf-option-item" data-genre="mystery">
+          <div class="wf-option-icon">🔦</div>
+          <div class="wf-option-main">
+            <div class="wf-option-title">추리 / 미스터리</div>
+            <div class="wf-option-desc">셜록 홈즈, 드라큘라 등 긴장감 넘치는 전개</div>
+          </div>
+          <div class="wf-option-arrow">→</div>
+        </div>
+        <div class="wf-option-item" data-genre="adventure">
+          <div class="wf-option-icon">⚔️</div>
+          <div class="wf-option-main">
+            <div class="wf-option-title">모험 / 판타지</div>
+            <div class="wf-option-desc">모비 딕, 이상한 나라의 앨리스 등 역동적인 세계</div>
+          </div>
+          <div class="wf-option-arrow">→</div>
+        </div>
+        <div class="wf-option-item" data-genre="search">
+          <div class="wf-option-icon">🔍</div>
+          <div class="wf-option-main">
+            <div class="wf-option-title">직접 검색</div>
+            <div class="wf-option-desc">제목이나 작가를 직접 입력해서 찾기</div>
+          </div>
+          <div class="wf-option-arrow">→</div>
+        </div>
+      </div>
+
+      <div class="wf-actions">
+        <button class="btn-wf-sm" id="btn-wf-back">← 뒤로</button>
+      </div>
+    `;
+
+    container.querySelectorAll('.wf-option-item').forEach(item => {
+      item.onclick = () => {
+        const genre = item.dataset.genre;
+        if (genre === 'search') showSearchOrFeatured(null);
+        else showSearchOrFeatured(genre);
+      };
+    });
+
+    container.querySelector('#btn-wf-back').onclick = showSourceSelect;
+  }
+
+  // 2-A: 업로드 존 (기존 동일)
   function showUploadZone() {
     container.innerHTML = `
       <div class="wf-card-h">📁 로컬 파일 업로드</div>
@@ -228,8 +293,8 @@ async function renderBookSelectCard(container, data, resolve) {
     container.querySelector('#btn-wf-back').onclick = showSourceSelect;
   }
 
-  // 2-B: 검색 또는 추천 도서
-  function showSearchOrFeatured() {
+  // 2-B: 검색 또는 추천 도서 (필터 추가 개편)
+  function showSearchOrFeatured(genreFilter = null) {
     container.innerHTML = `
       <div class="wf-card-h">🏛 고전 도서 탐색</div>
       <div class="wf-search-box" style="margin-bottom:1.5rem;">
@@ -238,7 +303,7 @@ async function renderBookSelectCard(container, data, resolve) {
       </div>
       
       <div class="field-label" id="list-header">추천 도서</div>
-      <div class="wf-option-list" id="wf-book-list">
+      <div class="wf-option-list" id="wf-book-list" style="max-height: 280px;">
         <!-- 리스트 아이템 동적 삽입 -->
       </div>
       
@@ -248,8 +313,14 @@ async function renderBookSelectCard(container, data, resolve) {
     `;
 
     const listContainer = container.querySelector('#wf-book-list');
+    const listHeader = container.querySelector('#list-header');
     
     function renderPremiumList(books) {
+      if (books.length === 0) {
+        listContainer.innerHTML = '<div style="padding:2rem; text-align:center; opacity:0.5; font-size:13px;">해당하는 도서가 없습니다</div>';
+        return;
+      }
+
       listContainer.innerHTML = books.map(b => `
         <div class="wf-option-item" data-id="${b.id}">
           <div class="wf-option-icon">📖</div>
@@ -269,18 +340,29 @@ async function renderBookSelectCard(container, data, resolve) {
       });
     }
 
-    renderPremiumList(FEATURED_BOOKS.slice(0, 5));
+    // 초기 리스트 필터링
+    let filtered = FEATURED_BOOKS;
+    if (genreFilter && genreFilter !== 'recommended') {
+      filtered = FEATURED_BOOKS.filter(b => b.category === genreFilter);
+      const genreNames = { romance: '로맨스', mystery: '추리/미스터리', adventure: '모험/판타지' };
+      listHeader.textContent = `${genreNames[genreFilter] || genreFilter} 도서 목록`;
+    } else if (genreFilter === 'recommended') {
+      listHeader.textContent = '✨ AI 추천 도서';
+      filtered = [...FEATURED_BOOKS].sort(() => 0.5 - Math.random()).slice(0, 5);
+    }
+
+    renderPremiumList(filtered);
 
     container.querySelector('#btn-gb-search').onclick = async () => {
       const query = container.querySelector('#wf-gb-search').value.trim();
       if (!query) return;
       
       listContainer.innerHTML = '<div style="padding:2rem; text-align:center; opacity:0.5; font-size:13px;">AI가 도서관에서 찾는 중...</div>';
-      container.querySelector('#list-header').textContent = `'${query}' 검색 결과`;
+      listHeader.textContent = `'${query}' 검색 결과`;
 
       try {
         const { searchGutenberg } = await import('./gutenberg.js');
-        const { results } = await searchGutenberg(query, 10);
+        const { results } = await searchGutenberg(query, 14);
         if (results && results.length > 0) {
           const mapped = results.map(r => ({
             id: r.id, title: r.title, author: r.authors?.[0]?.name || 'Unknown'
@@ -294,7 +376,7 @@ async function renderBookSelectCard(container, data, resolve) {
       }
     };
 
-    container.querySelector('#btn-wf-back').onclick = showSourceSelect;
+    container.querySelector('#btn-wf-back').onclick = showGenreSelect;
   }
 
   showSourceSelect();

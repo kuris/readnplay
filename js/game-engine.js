@@ -84,6 +84,8 @@ export function renderScene() {
   document.body.classList.toggle('mode-vn', currentMode === 'visual_novel');
   
   const advArea = $('adventure-area');
+  const quizArea = $('quiz-area');
+  const endingArea = $('ending-area');
   const gameScreen = $('screen-game');
   
   console.log(`[Diagnostic] Mode: ${currentMode}, BodyClasses: ${document.body.className}`);

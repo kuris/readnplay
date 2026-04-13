@@ -1010,24 +1010,24 @@ body.is-ending #character-panel {
   display: none;
 }
 /* VISUAL NOVEL MODE (PREMIUM LANDSCAPE) */
-body.mode-vn { overflow: visible !important; background: #000; }
+body.mode-vn { overflow: hidden !important; background: #000; }
 body.mode-vn .page { 
   width: 100% !important; 
   max-width: none !important;
   padding: 0; 
-  min-height: 100vh !important; 
-  height: auto !important;
+  height: 100vh !important; 
   position: relative;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 body.mode-vn #screen-game.active {
   flex: 1;
   display: flex !important;
   flex-direction: column;
   position: relative;
-  min-height: 100vh !important;
+  height: 100vh !important;
   visibility: visible !important;
   opacity: 1 !important;
+  overflow: hidden !important;
 }
 body.mode-vn .game-backdrop {
   z-index: 1;

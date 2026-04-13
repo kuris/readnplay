@@ -818,6 +818,7 @@ body.is-ending #character-panel {
     order: 2; /* 모바일에서는 정보창 뒤에 배치 */
     padding: 2rem 1rem;
   }
+}
 .fr-title {
   font-family: var(--ff-mono);
   font-size: 10px;
@@ -1282,10 +1283,6 @@ body.mode-vn .choices-header { display: none !important; }
   body.mode-vn .choice { padding: 0.6rem 1.2rem; font-size: 15px; }
   body.mode-vn .choices-list { gap: 4px; bottom: 120px; }
   body.mode-vn .game-masthead { font-size: 12px; }
-}
-
-  50% { transform: translateY(5px); }
-  100% { transform: translateY(0); }
 }
 
 /* 엔딩 피드백 및 통합 컨트롤 패널 */

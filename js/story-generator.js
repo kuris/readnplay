@@ -352,28 +352,39 @@ async function extractChapters(text) {
   const sampleIndices = [0, ...filteredMarkers.map(m => m.index), Math.floor(len * 0.25), Math.floor(len * 0.5), Math.floor(len * 0.75), len - 15000];
   const uniqueIndices = [...new Set(sampleIndices.filter(idx => idx >= 0 && idx < len))].sort((a,b) => a - b);
   
-  // 이전보다 더 촘촘하게 샘플링 (최대 30개 지점)
+  // 도서 길이에 따라 샘플링 밀도 조절 (긴 책은 더 촘촘하게, 최대 50개)
+  const maxSamples = len > 500000 ? 50 : 30;
   const finalIndices = uniqueIndices.filter((idx, i) => {
       if (i === 0 || i === uniqueIndices.length - 1) return true;
-      // 정규식 마커 지점은 무조건 포함하거나, 샘플 간격이 너무 멀지 않게 조절
+      // 정규식 마커 지점은 최대한 포함하되 전체 개수 제한
       return true; 
-  }).slice(0, 30);
+  }).slice(0, maxSamples);
 
   const samples = finalIndices.map(idx => ({
     pos: idx,
     content: text.substring(idx, idx + 8000)
   }));
 
-  const prompt = `다음은 소설의 여러 지점에서 추출한 텍스트 샘플들이다. 
+  // AI에게 줄 정규식 발견 마커 요약 (너무 많으면 생략)
+  const markersSummary = filteredMarkers.length > 0 
+    ? filteredMarkers.map(m => `[위치: ${m.index}자] "${m.text}"`).join('\n')
+    : "명시적 챕터 마커를 찾지 못했습니다.";
+
+  const prompt = `다음은 소설의 여러 지점에서 추출한 텍스트 샘플들과 정규식으로 스캔한 예상 챕터 마커들이다. 
 우리는 이 소설의 전체 챕터 목록(TOC)을 만들고자 한다.
 
-요구사항:
-1. 샘플에 나타난 명시적인 화수(예: 제1화, Chapter 2)를 기반으로 목록을 작성하라.
-2. 만약 숫자가 건너뛰어진다면(예: 5화 다음 7화), 텍스트의 흐름상 그 사이에 존재할 법한 지점을 추론하여 포함하라.
-3. 각 항목의 index는 전체 텍스트 길이(${len}자)를 기준으로 한 절대적 위치여야 한다.
+[정규식 스캔 결과 - 참고용]:
+${markersSummary}
 
-샘플 데이터:
+[텍스트 샘플 데이터]:
 ${samples.map(s => `[위치: ${s.pos}자 지점]:\n${s.content}`).join('\n\n')}
+
+요구사항:
+1. 샘플과 스캔 결과를 바탕으로 1화(Chapter 1)부터 완결까지 순차적인 목록을 작성하라.
+2. 장편 소설의 경우, 샘플 사이에 존재할 법한 지점을 정규식 스캔 결과를 참고하여 최대한 누락 없이 포함하라.
+3. 각 항목의 index는 전체 텍스트 길이(${len}자)를 기준으로 한 절대적 위치여야 한다.
+4. 소설의 주요 사건이나 테마를 짧은 제목(예: "제18화: 무도회")으로 붙여주면 좋다.
+5. 중간에 수십 개의 챕터를 한꺼번에 건너뛰지 마라. 촘촘한 목록을 원한다.
 
 응답 형식 (JSON 리스트만):
 [
@@ -384,6 +395,22 @@ ${samples.map(s => `[위치: ${s.pos}자 지점]:\n${s.content}`).join('\n\n')}
   const raw = await fetchGeminiStory(prompt);
   try {
     let chapters = JSON.parse(repairJson(raw.trim()));
+    
+    // AI 결과가 너무 부실할 경우 (정규식은 많이 찾았는데 AI는 5개 미만 등)
+    if (filteredMarkers.length > 10 && chapters.length < filteredMarkers.length / 2) {
+      console.warn('AI 챕터 분석 결과가 부족하여 정규식 마커 기반으로 보정합니다.');
+      // AI 결과와 정규식 결과를 병합 (중복 제거 로직 필요하지만 여기서는 단순 Fallback)
+      const aiChapters = chapters;
+      const combined = [...aiChapters];
+      
+      filteredMarkers.forEach(m => {
+        if (!combined.some(c => Math.abs(c.index - m.index) < 5000)) {
+           combined.push({ name: m.text, index: m.index });
+        }
+      });
+      chapters = combined;
+    }
+
     // 최종 결과 정렬 및 유효성 체크
     chapters = chapters.filter(c => c.index >= 0 && c.index <= len);
     return chapters.sort((a,b) => a.index - b.index);

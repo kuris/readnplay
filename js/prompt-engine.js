@@ -45,31 +45,19 @@ export function buildSingleChapterScenePrompt({
 - 설명 위주의 장면, 반복 장면, 내면 독백만 길게 이어지는 장면은 제외하라.
 - 장면은 서로 역할이 겹치지 않게 고른다.
 
-반드시 수행할 작업:
-1. 이 챕터에서 영상/비주얼노벨용으로 좋은 장면 후보 ${Math.max(6, maxCandidates - 2)}~${maxCandidates}개를 찾는다.
-2. 각 장면에 대해 처음 보는 사람도 이해할 수 있도록 짧은 context_for_new_viewer를 작성한다.
-3. 각 장면에 대해 opening_hook_line, core_dialogue_lines, closing_hook_line을 만든다.
-4. 상위 ${Math.min(4, maxSelectedScenes - 1)}~${maxSelectedScenes}개 장면만 최종 선택한다.
-유의사항:
-1. 모든 인물 대사(dialogue), 선택지(choices), 스토리 요약(summary, overview)은 **반드시 한국어(Korean)**로 작성한다.
+유의사항 (CRITICAL):
+1. 모든 장면 제목(title), 인물 대사(dialogue), 선택지(choices), 스토리 요약(summary, overview)은 **반드시 한국어(Korean)**로 작성한다.
 2. 이미지 생성을 위한 필드(image_data 하위 및 characters의 appearance)만 **반드시 영어(English)**로 작성한다.
-3. 소설의 분위기를 살려 몰입감 있는 대사를 작성한다.
+3. **단순한 인물 포스터가 아닌, 이야기의 한 장면(Scene)을 그려라.**
+4. 장면의 우선순위: **순간(Moment) > 인물관계(Relationship) > 장소/배경(Setting) > 구도(Composition) > 인물(Character)**.
 
-대사 작성 규칙:
-- 설명문이 아니라 실제 인물이 말할 법한 짧은 대사로 작성한다.
-- opening_hook_line은 장면 첫 줄로서 즉시 긴장감이나 궁금증을 만들어야 한다.
-- core_dialogue_lines는 2~4줄로 작성하고, 감정 충돌이나 관계 변화가 드러나야 한다.
-- closing_hook_line은 다음 장면이 궁금해지게 만들어야 한다.
-- 각 인물의 말투가 최대한 겹치지 않게 한다.
-- 짧고 강하게 작성한다. 장황한 설명을 피한다.
-- "그는 놀랐다", "그녀는 화가 났다" 같은 서술형 문장을 대사로 쓰지 마라.
+대사 작성 및 시각화 규칙:
+- 대사 자체를 이미지에 그리는 것이 아니라, 그 대사가 발생하는 **순간의 감정과 관계를 시각적으로 표현**하라.
+- 배경 설명 시 추상적인 조명보다는 시대감과 장소의 특정 소품(court bench, witness stand, gothic details 등)을 구체적으로 영어로 묘사하라.
 
-이미지 데이터 작성 규칙:
-- 추상적 문학 표현보다 외형, 표정, 행동, 의상, 장소, 조명, 소품, 구도를 우선한다.
-- ${styleHint} 스타일을 기본으로 상정한다.
-- prompt_seed_text는 시각 정보 중심의 짧고 선명한 문장으로 작성한다.
-- negative_prompt_seed_text에는 저품질 요소를 포함한다.
-- "슬픈 분위기"처럼 추상적으로 끝내지 말고, 표정, 자세, 조명, 색감, 배경 요소로 번역하라.
+장면 구도 규칙:
+- **중앙 배치 단독 상반신 초상화 구도를 지양하라.** (전체 시퀀스 중 최대 1개만 허용)
+- shot_type을 다양화하라: wide_establishing, over_the_shoulder, dynamic_action, closeup_reaction 등.
 
 출력은 반드시 아래 JSON 형식만 사용한다:
 
@@ -77,70 +65,44 @@ export function buildSingleChapterScenePrompt({
   "chapter_mode": "single",
   "scene_candidates": [
     {
-      "title": "짧은 장면 제목",
-      "summary": "장면 요약",
-      "context_for_new_viewer": "이전 내용을 몰라도 이해되게 설명",
+      "title": "장면 제목 (한국어)",
+      "summary": "장면 요약 (한국어)",
+      "context_for_new_viewer": "맥락 설명 (한국어)",
       "characters": [
-        {"name": "인물1", "gender": "male|female", "appearance": "핵심 외형 묘사 (English only)"},
-        {"name": "인물2", "gender": "male|female", "appearance": "핵심 외형 묘사 (English only)"}
+        {"name": "인물1", "gender": "male|female", "appearance": "Detailed English description"}
       ],
-      "location": "장소",
-      "mood": "분위기",
-      "visual_hook": "가장 강한 시각 요소",
+      "visual_narrative": "Narrative situation (English only)",
       "emotion_score": 1,
       "thumbnail_score": 1,
-      "dialogue_score": 1,
-      "background_score": 1,
       "start_index": 0
     }
   ],
   "selected_scenes": [
     {
-      "title": "선택된 장면 제목",
-      "selection_reason": "왜 골랐는지",
-      "best_use": "thumbnail | dialogue_cut | story_cut | atmosphere_cut",
-      "context_for_new_viewer": "처음 보는 사람용 짧은 맥락",
+      "title": "장면 제목 (한국어)",
+      "selection_reason": "선택 근거 (한국어)",
+      "best_use": "wide_establishing | confrontation | closeup_emotion | symbolic_detail",
       "choices": [
-        {
-          "text": "선택지 1 (액션/대사)",
-          "character_effects": {"인물ID": 10},
-          "outcome": "선택 후 이어질 짧은 반응"
-        },
-        {
-          "text": "선택지 2",
-          "character_effects": {"인물ID": -5},
-          "outcome": "선택 후 반응"
-        }
+        { "text": "선택지 한국어", "character_effects": {"인물ID": 10}, "outcome": "결과 한국어" }
       ],
       "dialogue": {
-        "opening_hook_line": {
-          "speaker": "인물명",
-          "line": "첫 줄 훅 대사"
-        },
-        "core_dialogue_lines": [
-          {
-            "speaker": "인물명",
-            "line": "핵심 대사 1"
-          },
-          {
-            "speaker": "인물명",
-            "line": "핵심 대사 2"
-          }
-        ],
-        "closing_hook_line": {
-          "speaker": "인물명",
-          "line": "다음 장면이 궁금해지는 마무리 대사"
-        }
+        "opening_hook_line": { "speaker": "인물명", "line": "한국어 대사" },
+        "core_dialogue_lines": [ { "speaker": "인물명", "line": "한국어 대사" } ],
+        "closing_hook_line": { "speaker": "인물명", "line": "한국어 대사" }
       },
       "image_data": {
-        "core_moment": "핵심 순간 (English only)",
-        "character_focus": "인물의 성별(gender), 나이, 고화질 외형 묘사 (English, MUST include 'Medium thigh-up shot')",
-        "background_focus": "상세한 배경과 장소의 미학 강조 (English, strictly NO people in background focus)",
-        "lighting": "cinematic lighting, soft global illumination (English only)",
-        "composition": "cinematic medium shot, thigh-up portrait (English only)",
+        "shot_type": "establishing_wide | medium_two_shot | over_the_shoulder | closeup_reaction",
+        "camera_angle": "low angle | eye level | high angle",
+        "visual_narrative": "One-line narrative context (English)",
+        "core_moment": "Narrative focus (English)",
+        "character_focus": "Action and gaze (English, no 'centered portrait')",
+        "background_focus": "Specific narrative props and setting (English)",
+        "must_show": ["narrative prop A", "atmospheric detail B"],
+        "must_avoid": ["boring centered portrait", "generic character card"],
+        "lighting": "cinematic lighting style (English)",
         "style_hint": "${styleHint}",
-        "prompt_seed_text": "고화질 시각적 생성 문장 (English only, Highly detailed illustration, (rim lighting, depth of field:1.2))",
-        "negative_prompt_seed_text": "(text, letters, words, logo, signature, watermark, billboard:1.5), sketch, rough, draft, monochrome, black and white, low quality, blurry, bad hands, extra fingers, text, watermark, two people, twins"
+        "prompt_seed_text": "Detailed cinematic prompt (English)",
+        "negative_prompt_seed_text": "centered framing, single character portrait, flat lighting, text"
       }
     }
   ]
@@ -170,127 +132,72 @@ export function buildMultiChapterScenePrompt({
     : "알 수 없음";
 
   return `
-다음 텍스트는 소설의 연속된 2~3개 챕터 묶음이다.
-
-작품명: ${workTitle || "알 수 없음"}
-챕터명: ${joinedTitles}
-
-이 텍스트를 "독서 요약"이 아니라 "유튜브 스토리 영상 / 비주얼노벨 컷신 / 이미지 생성" 용도로 분석하라.
-
-중요 전제:
-- 사용자는 이 챕터 묶음 이전 내용을 모를 수 있다.
-- 따라서 전체 흐름을 처음 보는 사람도 따라갈 수 있어야 한다.
-- 문학적 중요도보다 시각적 임팩트, 감정 충돌, 관계 변화, 사건 진전, 장면 다양성, 썸네일 적합도를 우선하라.
-- 비슷한 장면은 합치거나 제외하고, 이야기 진행에 필요한 대표 장면만 남긴다.
-- 결과는 "연속 시청 가능한 장면 흐름"이 되도록 구성한다.
-
-반드시 수행할 작업:
-1. 전체 챕터 묶음의 핵심 흐름을 3~5줄로 요약한다.
-2. 영상/비주얼노벨용 장면 후보 ${Math.max(8, maxCandidates - 2)}~${maxCandidates}개를 찾는다.
-3. 후보 중에서 중복을 제거하고, 흐름상 중요한 대표 장면 ${Math.max(4, maxSelectedScenes - 1)}~${maxSelectedScenes}개를 최종 선택한다.
-4. 최종 선택 장면은 도입 -> 갈등 심화 -> 전환 -> 여운/클리프행어 흐름이 가능하면 유지한다.
-5. 각 최종 장면마다 context_for_new_viewer, opening_hook_line, core_dialogue_lines, closing_hook_line을 만든다.
-6. 각 최종 장면마다 이미지 생성용 구조화 데이터를 만든다.
-
-대사 작성 규칙:
-- 설명문 대신 실제 컷신 대사처럼 짧고 강하게 작성한다.
-- opening_hook_line은 장면 진입 순간 바로 몰입되게 만든다.
-- core_dialogue_lines는 2~4줄로 제한하고, 관계 변화나 감정 충돌이 드러나게 한다.
-- closing_hook_line은 다음 장면으로 이어지는 여운이나 긴장을 남긴다.
-- 앞 장면과 뒤 장면의 정서 연결이 느껴지게 한다.
-- "그는 놀랐다", "그녀는 화가 났다" 같은 서술형 문장을 대사로 쓰지 마라.
-
-장면 선택 규칙:
-- 첫 장면은 진입 장벽이 낮고 흥미를 끌어야 한다.
-- 중간 장면은 갈등, 비밀, 감정 변화, 관계 변화를 보여야 한다.
-- 마지막 장면은 다음 화를 보고 싶게 만들어야 한다.
-- 배경/표정/행동/대사의 다양성을 확보한다.
+장면 선택 및 연출 규칙 (CRITICAL):
+- 첫 장면은 공간적 배경을 보여주는 **wide_establishing** 또는 강렬한 **visual_hook**을 포함하라.
+- **구도 반복 금지**: 한 시퀀스(장면 묶음) 내에서 중앙 정면 상반신 초상화 구도는 최대 1회로 제한한다.
+- **시각적 번역**: 대사를 직접 그리는 것이 아니라, 대사가 발생하는 **감정, 인물 간 거리, 행동, 공간적 맥락**을 영어로 번역하여 image_data에 담아라.
+- 배경은 장소의 시대감과 서사적 소품(gothic bench, witness stand, stained glass 등)을 포함한 서사형 배경으로 작성하라.
+- 결과물의 모든 장면 제목(title)과 요약문은 **반드시 한국어**로 작성한다.
 
 언어 규칙 (CRITICAL):
 - 모든 대사(dialogue), 선택지(choices), 스토리 요약(summary/overview), 장면 제목(title/summary)은 **반드시 한국어(Korean)**로 작성한다.
 - 오직 이미지 데이터(image_data 내 모든 필드 및 characters의 appearance)만 이미지 생성 모델을 위해 **영어(English)**로 작성한다.
 
-이미지 데이터 작성 규칙 (CRITICAL: ALL fields in image_data MUST be in English):
-- 인물 외형, 표정, 동작, 의상, 장소, 조명, 시대감, 소품, 구도를 우선하여 영어로 작성한다.
-- 추상적인 문학 표현은 구체적인 영어 시각 정보로 번역한다.
-- ${styleHint} 스타일을 기본으로 상정한다.
-- prompt_seed_text는 짧고 선명한 영어 문장으로 작성한다.
-- negative_prompt_seed_text에는 저품질 요소를 영어로 포함한다.
+이미지 데이터 작성 규칙:
+- 우선순위: **결정적 순간(Moment) > 인물관계(Relationship) > 장소/배경(Setting) > 구도(Composition) > 인물(Character)**.
+- shot_type과 camera_angle을 다양하게 활용하여 장면의 다이내믹함을 확보하라.
+- visual_narrative 필드에 장면의 핵심 서사적 상황을 짧은 영어 문구로 요약하라.
 
 출력은 반드시 아래 JSON 형식만 사용한다:
 
 {
   "chapter_mode": "multi",
   "overview": {
-    "story_flow_summary": "2~3챕터 흐름 요약",
-    "entry_context_for_new_viewer": "이전 내용을 모르는 사람용 전체 맥락",
+    "story_flow_summary": "2~3챕터 흐름 요약 (한국어)",
+    "entry_context_for_new_viewer": "맥락 설명 (한국어)",
     "recommended_arc": "intro -> conflict -> reveal -> cliffhanger"
   },
   "scene_candidates": [
     {
-      "title": "짧은 장면 제목",
-      "summary": "장면 요약",
-      "chapter_reference": "chapter_1 | chapter_2 | chapter_3",
-      "context_for_new_viewer": "처음 보는 사람도 이해할 수 있는 맥락",
+      "title": "장면 제목 (한국어)",
+      "summary": "장면 요약 (한국어)",
+      "chapter_reference": "chapter_1 | chapter_2",
       "characters": [
-        {"name": "인물1", "gender": "male|female", "appearance": "English description"},
-        {"name": "인물2", "gender": "male|female", "appearance": "English description"}
+        {"name": "인물1", "gender": "male|female", "appearance": "English description"}
       ],
-      "location": "장소",
-      "mood": "분위기",
-      "visual_hook": "가장 강한 시각 요소",
+      "visual_narrative": "Narrative situation (English only)",
       "emotion_score": 1,
       "thumbnail_score": 1,
-      "dialogue_score": 1,
-      "background_score": 1,
-      "story_progress_score": 1,
       "start_index": 0
     }
   ],
   "selected_scenes": [
     {
-      "title": "선택된 장면 제목",
+      "title": "장면 제목 (한국어)",
       "sequence_role": "intro | escalation | turning_point | aftermath | cliffhanger",
-      "chapter_reference": "chapter_1 | chapter_2 | chapter_3",
-      "selection_reason": "왜 골랐는지",
-      "best_use": "thumbnail | dialogue_cut | story_cut | atmosphere_cut",
-      "context_for_new_viewer": "처음 보는 사람용 짧은 맥락",
+      "selection_reason": "선택 근거 (한국어)",
+      "best_use": "establishing_wide | confrontation | closeup_emotion | symbolic_detail",
       "choices": [
-        {
-          "text": "선택지 내용",
-          "character_effects": {"인물ID": 10},
-          "outcome": "결과"
-        }
+        { "text": "선택지 한국어", "character_effects": {"인물ID": 10}, "outcome": "결과 한국어" }
       ],
       "dialogue": {
-        "opening_hook_line": {
-          "speaker": "인물명",
-          "line": "첫 줄 훅 대사"
-        },
-        "core_dialogue_lines": [
-          {
-            "speaker": "인물명",
-            "line": "핵심 대사 1"
-          },
-          {
-            "speaker": "인물명",
-            "line": "핵심 대사 2"
-          }
-        ],
-        "closing_hook_line": {
-          "speaker": "인물명",
-          "line": "다음 장면으로 이어지는 마무리 대사"
-        }
+        "opening_hook_line": { "speaker": "인물명", "line": "한국어 대사" },
+        "core_dialogue_lines": [ { "speaker": "인물명", "line": "한국어 대사" } ],
+        "closing_hook_line": { "speaker": "인물명", "line": "한국어 대사" }
       },
       "image_data": {
-        "core_moment": "key moment (English only)",
-        "character_focus": "English description (MUST include 'Medium thigh-up shot')",
-        "background_focus": "English description, (strictly no people descriptions here)",
-        "lighting": "masterpiece lighting, vibrant colors",
-        "composition": "stunning cinematic shot, thigh-up portrait",
+        "shot_type": "wide_establishing | over_the_shoulder | two_shot_interaction | extreme_closeup_eye",
+        "camera_angle": "low angle | bird's eye view | eye level | Dutch angle",
+        "visual_narrative": "One-line narrative scene summary (English)",
+        "core_moment": "Narrative focus (English)",
+        "character_focus": "Pose, action, and gaze focus (English, no 'centered portrait')",
+        "background_focus": "Specific narrative props and setting (English)",
+        "must_show": ["narrative prop A", "atmospheric detail B"],
+        "must_avoid": ["boring centered portrait", "generic character card"],
+        "lighting": "moody lighting, high contrast, cinematic shadow",
         "style_hint": "${styleHint}",
-        "prompt_seed_text": "English prompt sentence (highly detailed background)",
-        "negative_prompt_seed_text": "sketch, rough, draft, monochrome, black and white, low quality, blurry, bad hands, extra fingers, text, watermark, two people, duplicated character"
+        "prompt_seed_text": "Cinematic visual narrative prompt (English)",
+        "negative_prompt_seed_text": "centered framing, single character portrait, flat lighting, text, logo"
       }
     }
   ]
@@ -413,7 +320,7 @@ export function normalizeSceneResult(result) {
     characters: Array.isArray(scene.characters) ? scene.characters : [],
     location: scene.location || "",
     mood: scene.mood || "",
-    visual_hook: scene.visual_hook || "",
+    visual_narrative: scene.visual_narrative || "",
     emotion_score: Number(scene.emotion_score || 0),
     thumbnail_score: Number(scene.thumbnail_score || 0),
     dialogue_score: Number(scene.dialogue_score || 0),
@@ -429,6 +336,7 @@ export function normalizeSceneResult(result) {
     chapter_reference: scene.chapter_reference || null,
     selection_reason: scene.selection_reason || "",
     best_use: scene.best_use || "story_cut",
+    visual_narrative: scene.visual_narrative || "",
     context_for_new_viewer: scene.context_for_new_viewer || "",
     choices: Array.isArray(scene.choices)
       ? scene.choices.map((c) => ({
@@ -454,9 +362,14 @@ export function normalizeSceneResult(result) {
       },
     },
     image_data: {
+      shot_type: scene?.image_data?.shot_type || "",
+      camera_angle: scene?.image_data?.camera_angle || "",
+      visual_narrative: scene?.image_data?.visual_narrative || "",
       core_moment: scene?.image_data?.core_moment || "",
       character_focus: scene?.image_data?.character_focus || "",
       background_focus: scene?.image_data?.background_focus || "",
+      must_show: Array.isArray(scene?.image_data?.must_show) ? scene.image_data.must_show : [],
+      must_avoid: Array.isArray(scene?.image_data?.must_avoid) ? scene.image_data.must_avoid : [],
       lighting: scene?.image_data?.lighting || "",
       composition: scene?.image_data?.composition || "",
       style_hint: scene?.image_data?.style_hint || "anime visual novel illustration",
@@ -494,19 +407,30 @@ export function buildDrawThingsPrompt(imageData = {}, mode = 'portrait') {
     };
   }
 
-  // 👤 인물 전용 모드
-  const portraitParts = [
+  // 👤 인물/장면 혼합 모드 (새로운 연출 가이드 적용)
+  const parts = [
     imageData.style_hint,
+    imageData.shot_type,
+    imageData.camera_angle,
+    imageData.visual_narrative,
     imageData.character_focus,
+    imageData.background_focus,
     imageData.core_moment,
     imageData.lighting,
-    imageData.composition || "thigh-up portrait",
+    imageData.must_show ? imageData.must_show.join(", ") : null,
+    imageData.composition,
     imageData.prompt_seed_text
   ].filter(Boolean);
 
+  let neg = imageData.negative_prompt_seed_text || 
+    "(text, letters, words, logo, signature, watermark:1.5), low quality, blurry, bad anatomy, bad hands, distorted face";
+  
+  if (imageData.must_avoid && imageData.must_avoid.length > 0) {
+    neg = imageData.must_avoid.join(", ") + ", " + neg;
+  }
+
   return {
-    prompt: portraitParts.join(", "),
-    negative_prompt: imageData.negative_prompt_seed_text || 
-      "(text, letters, words, logo, signature, watermark:1.5), low quality, blurry, bad anatomy, bad hands, distorted face"
+    prompt: parts.join(", "),
+    negative_prompt: neg
   };
 }

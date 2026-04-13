@@ -1,3 +1,5 @@
+import { repairJson } from "./utils.js";
+
 /**
  * 문자열에서 유해한 문자를 제거하고 정리합니다.
  */

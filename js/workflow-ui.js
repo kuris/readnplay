@@ -96,7 +96,27 @@ export async function postAiMessage(text) {
   chatArea.scrollTop = chatArea.scrollHeight;
   
   // 약간의 딜레이로 생동감 부여
-  return new Promise(resolve => setTimeout(resolve, 600));
+  return new Promise(resolve => {
+    setTimeout(() => {
+      chatArea.scrollTop = chatArea.scrollHeight;
+      resolve();
+    }, 600);
+  });
+}
+
+/**
+ * 작업을 진행 중임을 나타내는 로딩 카드를 표시합니다.
+ */
+export function setWorkflowLoading(message = "인공지능이 서사를 분석하고 있습니다...") {
+  const cardArea = $('wf-card-area');
+  if (!cardArea) return;
+
+  cardArea.innerHTML = `
+    <div class="wf-card wf-loading-card">
+      <div class="wf-loading-spinner"></div>
+      <div class="wf-loading-msg">${message}</div>
+    </div>
+  `;
 }
 
 /**
@@ -386,10 +406,10 @@ function renderEntityResolveCard(container, data, resolve) {
             <div class="wf-entity-row" data-id="${e.id}" style="${isExcluded ? 'opacity:0.4; background:var(--paper3)' : ''}">
               <div class="wf-entity-main">
                 <div class="wf-entity-name" style="${isExcluded ? 'text-decoration:line-through' : ''}">
-                  ${e.name}
+                  ${e.canonical_name || e.name || e.id}
                   <span class="wf-entity-type-badge">${e.type}</span>
                 </div>
-                <div class="wf-entity-aliases">${e.aliases?.join(', ') || ''}</div>
+                <div class="wf-entity-aliases">${Array.isArray(e.aliases) ? e.aliases.join(', ') : (e.aliases || '')}</div>
               </div>
               <div class="wf-entity-actions">
                 ${isExcluded 

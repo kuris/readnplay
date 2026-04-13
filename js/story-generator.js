@@ -10,7 +10,8 @@ import {
   renderWorkflowCard, 
   renderWorkflowSidebar,
   updateWorkflowMetadata,
-  updateWorkflowSummary
+  updateWorkflowSummary,
+  setWorkflowLoading
 } from './workflow-ui.js';
 import { 
   buildScenePrompt, 
@@ -215,6 +216,7 @@ export async function generate(retryCount = 0) {
   if (retryCount === 0 && state.cacheStrategy === 'use') {
     const cachedData = await getGameCache(cacheKey);
     if (cachedData && cachedData.cached && cachedData.gameData) {
+      setWorkflowLoading("기존 기록을 불러와 구성을 완료하는 중...");
       await postAiMessage("기존에 이 설정으로 분석해둔 데이터가 있네요! 즉시 구성을 시작합니다.");
       state.gameData = cachedData.gameData;
       if (state.selectedMode === 'visual_novel' && state.gameData.characters) {
@@ -261,6 +263,7 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
     // -- Interrupt Point 2: Entity Resolution --
     await postAiMessage(`${rawEntities.length}명의 인물과 장소를 찾아냈습니다. 중복되거나 불필요한 항목이 있는지 확인해주세요.`);
     const resolution = await waitForUserApproval({ idx: 3, type: 'ENTITY_RESOLVE' }, { entities: rawEntities });
+    setWorkflowLoading("선택하신 인물 정보를 바탕으로 세계관을 구축 중입니다...");
     
     // 사용자의 결정을 반영하여 실제 캐릭터 리스트 구성
     const resolvedEntities = resolution.entities;
@@ -270,6 +273,7 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
     // -- Interrupt Point 3: Visual Style Selection --
     await postAiMessage("좋습니다. 이제 작품의 분위기를 결정할 차례입니다. 어떤 화풍으로 그려낼까요?");
     const chosenStyle = await waitForUserApproval({ idx: 4, type: 'STYLE_SELECT' }, {});
+    setWorkflowLoading(`${chosenStyle} 스타일로 시각 언어를 변환하는 중...`);
     state.userDecisions.visualStyle.profile = chosenStyle;
     updateWorkflowSummary();
 
@@ -288,8 +292,12 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
       sceneCount: state.userDecisions.generationMode === 'story' ? 12 : 5, 
       characterCount: state.gameData.characters.length
     });
-
-    if (!confirmed) return; // 취소 시 중단 (또는 처음으로)
+    
+    if (confirmed) {
+      setWorkflowLoading("작가가 마지막 문장을 집필하는 중입니다. 곧 시작합니다!");
+    } else {
+      return;
+    }
 
     // 5단계: 장면 생성 실행
     await postAiMessage("✨ 이제 AI가 본격적으로 이야기를 풀어냅니다. 잠시만 기다려주세요!");

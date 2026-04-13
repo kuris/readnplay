@@ -452,10 +452,10 @@ function renderEntityResolveCard(container, data, resolve) {
  */
 function renderStyleSelectCard(container, data, resolve) {
   const styles = [
-    { id: 'semi_realistic_anime', name: '세미리얼 애니', desc: '현대적이고 깔끔한 화풍', img: 'https://images.unsplash.com/photo-1578632738908-4521c44b0d38?q=80&w=400&auto=format&fit=crop' },
-    { id: 'webtoon_korean', name: '한국 웹툰풍', desc: '대조가 명확하고 화려한 스타일', img: 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?q=80&w=400&auto=format&fit=crop' },
-    { id: 'classic_watercolor', name: '클래식 수채화', desc: '고전 소설에 어울리는 부드러운 화풍', img: 'https://images.unsplash.com/photo-1541462608141-ad4d719cf080?q=80&w=400&auto=format&fit=crop' },
-    { id: 'cyberpunk_noir', name: '사이버펑크 누아르', desc: '강렬한 조명과 어두운 분위기', img: 'https://images.unsplash.com/photo-1605806616949-1e87b487fc2f?q=80&w=400&auto=format&fit=crop' }
+    { id: 'semi_realistic_anime', name: '세미리얼 애니', desc: '현대적이고 깔끔한 화풍', img: 'https://images.unsplash.com/photo-1580477667995-2b94f01c9516?q=80&w=400&auto=format&fit=crop' },
+    { id: 'webtoon_korean', name: '한국 웹툰풍', desc: '대조가 명확하고 화려한 스타일', img: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=400&auto=format&fit=crop' },
+    { id: 'classic_watercolor', name: '클래식 수채화', desc: '고전 소설에 어울리는 부드러운 화풍', img: 'https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=400&auto=format&fit=crop' },
+    { id: 'cyberpunk_noir', name: '사이버펑크 누아르', desc: '강렬한 조명과 어두운 분위기', img: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=400&auto=format&fit=crop' }
   ];
 
   container.innerHTML = `

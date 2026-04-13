@@ -2030,14 +2030,15 @@ body.mode-vn #screen-game.active {
 .wf-style-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 .wf-style-card {
   border: 1px solid var(--border);
-  border-radius: 1rem;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  background: #fff;
 }
 .wf-style-card:hover { border-color: var(--gold); transform: translateY(-5px); }
 .wf-style-card.selected { border-color: var(--gold); border-width: 3px; }
@@ -2238,6 +2239,9 @@ body.mode-vn #screen-game.active {
   gap: 0.75rem;
   margin-top: 1.5rem;
   animation: wfFadeUp 0.6s ease both;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 .wf-option-item {
   background: #fff;

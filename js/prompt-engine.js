@@ -76,8 +76,8 @@ export function buildSingleChapterScenePrompt({
       "summary": "장면 요약",
       "context_for_new_viewer": "이전 내용을 몰라도 이해되게 설명",
       "characters": [
-        {"name": "인물1", "gender": "male|female", "appearance": "체격, 머리색, 의리 등 핵심 외형"},
-        {"name": "인물2", "gender": "male|female", "appearance": "핵심 외형"}
+        {"name": "인물1", "gender": "male|female", "appearance": "핵심 외형 묘사 (English only)"},
+        {"name": "인물2", "gender": "male|female", "appearance": "핵심 외형 묘사 (English only)"}
       ],
       "location": "장소",
       "mood": "분위기",
@@ -128,13 +128,13 @@ export function buildSingleChapterScenePrompt({
         }
       },
       "image_data": {
-        "core_moment": "핵심 순간",
-        "character_focus": "인물의 성별(gender), 나이, 고화질 외형 묘사 (반드시 'Medium thigh-up shot' 포함)",
-        "background_focus": "상세한 배경과 장소의 미학 강조, (strictly NO people in background focus)",
-        "lighting": "cinematic lighting, soft global illumination",
-        "composition": "cinematic medium shot, thigh-up portrait",
+        "core_moment": "핵심 순간 (English only)",
+        "character_focus": "인물의 성별(gender), 나이, 고화질 외형 묘사 (English, MUST include 'Medium thigh-up shot')",
+        "background_focus": "상세한 배경과 장소의 미학 강조 (English, strictly NO people in background focus)",
+        "lighting": "cinematic lighting, soft global illumination (English only)",
+        "composition": "cinematic medium shot, thigh-up portrait (English only)",
         "style_hint": "${styleHint}",
-        "prompt_seed_text": "고화질 시각적 생성 문장 (Highly detailed illustration, (rim lighting, depth of field:1.2))",
+        "prompt_seed_text": "고화질 시각적 생성 문장 (English only, Highly detailed illustration, (rim lighting, depth of field:1.2))",
         "negative_prompt_seed_text": "(text, letters, words, logo, signature, watermark, billboard:1.5), sketch, rough, draft, monochrome, black and white, low quality, blurry, bad hands, extra fingers, text, watermark, two people, twins"
       }
     }
@@ -201,12 +201,12 @@ export function buildMultiChapterScenePrompt({
 - 마지막 장면은 다음 화를 보고 싶게 만들어야 한다.
 - 배경/표정/행동/대사의 다양성을 확보한다.
 
-이미지 데이터 작성 규칙:
-- 인물 외형, 표정, 동작, 의상, 장소, 조명, 시대감, 소품, 구도를 우선한다.
-- 추상적인 문학 표현은 시각 정보로 번역한다.
+이미지 데이터 작성 규칙 (CRITICAL: ALL fields in image_data MUST be in English):
+- 인물 외형, 표정, 동작, 의상, 장소, 조명, 시대감, 소품, 구도를 우선하여 영어로 작성한다.
+- 추상적인 문학 표현은 구체적인 영어 시각 정보로 번역한다.
 - ${styleHint} 스타일을 기본으로 상정한다.
-- prompt_seed_text는 짧고 선명하게 작성한다.
-- negative_prompt_seed_text에는 저품질 요소를 포함한다.
+- prompt_seed_text는 짧고 선명한 영어 문장으로 작성한다.
+- negative_prompt_seed_text에는 저품질 요소를 영어로 포함한다.
 
 출력은 반드시 아래 JSON 형식만 사용한다:
 
@@ -224,8 +224,8 @@ export function buildMultiChapterScenePrompt({
       "chapter_reference": "chapter_1 | chapter_2 | chapter_3",
       "context_for_new_viewer": "처음 보는 사람도 이해할 수 있는 맥락",
       "characters": [
-        {"name": "인물1", "gender": "male|female", "appearance": "외형 묘사"},
-        {"name": "인물2", "gender": "male|female", "appearance": "외형 묘사"}
+        {"name": "인물1", "gender": "male|female", "appearance": "English description"},
+        {"name": "인물2", "gender": "male|female", "appearance": "English description"}
       ],
       "location": "장소",
       "mood": "분위기",
@@ -274,13 +274,13 @@ export function buildMultiChapterScenePrompt({
         }
       },
       "image_data": {
-        "core_moment": "핵심 순간",
-        "character_focus": "성별(gender)과 외형의 고화질 묘사 (반드시 'Medium thigh-up shot' 포함)",
-        "background_focus": "풍경과 장소의 대서사적인 배경 강조, (strictly no people descriptions here)",
+        "core_moment": "key moment (English only)",
+        "character_focus": "English description (MUST include 'Medium thigh-up shot')",
+        "background_focus": "English description, (strictly no people descriptions here)",
         "lighting": "masterpiece lighting, vibrant colors",
         "composition": "stunning cinematic shot, thigh-up portrait",
         "style_hint": "${styleHint}",
-        "prompt_seed_text": "고화질 시각적 장면 (highly detailed background)",
+        "prompt_seed_text": "English prompt sentence (highly detailed background)",
         "negative_prompt_seed_text": "sketch, rough, draft, monochrome, black and white, low quality, blurry, bad hands, extra fingers, text, watermark, two people, duplicated character"
       }
     }

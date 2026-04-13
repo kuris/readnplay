@@ -49,6 +49,7 @@ body::before {
   pointer-events: auto;
   transition: opacity 0.3s ease;
 }
+.screen.visible { display: block !important; visibility: visible !important; }
 
 /* ─── SCREEN GAME OVERLAY FIX ─── */
 #screen-game {
@@ -1533,3 +1534,22 @@ body.mode-vn .choices-header { display: none !important; }
   margin-left: 8px;
   text-transform: uppercase;
 }
+
+/* 🚨 EMERGENCY VISIBILITY FORCE 🚨 */
+.screen.active {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+}
+#screen-game.active #adventure-area,
+#screen-game.active .game-backdrop {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+body.mode-vn #screen-game.active {
+  background: #000 !important;
+}
+

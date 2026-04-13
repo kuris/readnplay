@@ -6,24 +6,29 @@ import { STAGE_PROGRESS as SP, STAGE_TEXTS as ST } from './constants.js';
  * 특정 화면을 활성화합니다.
  */
 export function showScreen(name) {
-  log(`화면 전환: ${name}`, 'warn');
+  console.log(`[UI] Switching to screen: ${name}`);
   const target = $('screen-' + name);
   if (!target) {
     console.error(`Target screen not found: screen-${name}`);
     return;
   }
 
-  // 1. 모든 스크린 요소에서 active 클래스 제거 (CSS가 display: none을 담당)
+  // 1. 모든 스크린 요소 초기화
   const screens = document.querySelectorAll('.screen');
   screens.forEach(s => {
     s.classList.remove('active');
-    // JS 강제 스타일 제거 (충돌 방지)
-    s.style.display = '';
-    s.style.opacity = '';
+    s.style.display = 'none';
+    s.style.opacity = '0';
+    s.style.zIndex = '0';
+    s.style.pointerEvents = 'none';
   });
   
-  // 2. 대상 스크린 활성화
+  // 2. 대상 스크린 강제 활성화
   target.classList.add('active');
+  target.style.setProperty('display', 'block', 'important');
+  target.style.setProperty('opacity', '1', 'important');
+  target.style.zIndex = '1000';
+  target.style.pointerEvents = 'auto';
   
   // 3. 페이지 상단으로 스크롤
   window.scrollTo(0, 0);

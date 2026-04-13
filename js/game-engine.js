@@ -79,28 +79,30 @@ export function renderScene() {
   
   saveProgress();
   
-  // 0. 화면 가시성 통합 관리 (Nuclear Fix + Reset)
+  // 0. 화면 가시성 통합 관리 (Visibility Heartbeat)
+  const currentMode = state.gameData.mode || state.selectedMode || 'adventure';
+  document.body.classList.toggle('mode-vn', currentMode === 'visual_novel');
+  
   const advArea = $('adventure-area');
   const quizArea = $('quiz-area');
   const endingArea = $('ending-area');
+  const gameScreen = $('screen-game');
+  
+  if (gameScreen) {
+    gameScreen.style.display = 'block';
+    gameScreen.style.opacity = '1';
+    gameScreen.style.zIndex = '1000';
+  }
 
-  if (advArea) advArea.style.display = 'none';
+  if (advArea) {
+    advArea.style.display = 'block';
+    advArea.style.opacity = '1';
+    advArea.style.zIndex = '2000';
+  }
+
+  const sceneEl = $('g-scene'); 
   if (quizArea) quizArea.style.display = 'none';
   if (endingArea) endingArea.style.display = 'none';
-
-  // 현재 모드 식별 (데이터가 없으면 세션 설정을 따름)
-  const currentMode = state.gameData.mode || state.selectedMode || 'adventure';
-
-  // 가시성 강제 확보
-  if (currentMode === 'adventure' || currentMode === 'visual_novel' || currentMode === 'study') {
-    if (advArea) {
-      advArea.style.display = 'block';
-      advArea.style.opacity = '1';
-      advArea.style.zIndex = '500';
-    }
-  } else if (currentMode === 'quiz') {
-    if (quizArea) quizArea.style.display = 'block';
-  }
 
   // 안전장치: 현재 화면이 game이 아니면 강제 전환
   if (document.getElementById('screen-game') && !document.getElementById('screen-game').classList.contains('active')) {
@@ -124,7 +126,6 @@ export function renderScene() {
     handleBackdropUpdate(scene.bg_keyword);
   }
 
-  const sceneEl = $('g-scene');
   const speakerTag = $('speaker-tag');
   if (speakerTag) speakerTag.classList.remove('show');
 
@@ -603,7 +604,6 @@ export function showEnding() {
   // 스크롤 탑
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 function evaluateEndingCondition(condition) {
   if (!condition) return true;
   try {

@@ -134,8 +134,8 @@ export function buildSingleChapterScenePrompt({
         "lighting": "cinematic lighting, soft global illumination",
         "composition": "cinematic medium shot, thigh-up portrait",
         "style_hint": "${styleHint}",
-        "prompt_seed_text": "고화질 시각적 생성 문장 (Highly detailed illustration)",
-        "negative_prompt_seed_text": "sketch, rough, draft, monochrome, black and white, low quality, blurry, bad hands, extra fingers, text, watermark, two people, twins"
+        "prompt_seed_text": "고화질 시각적 생성 문장 (Highly detailed illustration, (rim lighting, depth of field:1.2))",
+        "negative_prompt_seed_text": "(text, letters, words, logo, signature, watermark, billboard:1.5), sketch, rough, draft, monochrome, black and white, low quality, blurry, bad hands, extra fingers, text, watermark, two people, twins"
       }
     }
   ]
@@ -371,11 +371,13 @@ export function extractJsonFromModelResponse(raw = "") {
     throw new Error("Incomplete JSON in model response");
   }
 
-  const finalStr = candidate.slice(0, end + 1).trim();
+  const cleanedStr = candidate.slice(0, end + 1).trim();
+  const repaired = repairJson(cleanedStr);
 
   try {
-    return JSON.parse(finalStr);
+    return JSON.parse(repaired);
   } catch (err) {
+    console.error("JSON Parsing Failed after repair:", repaired);
     throw new Error(`Failed to parse model response JSON: ${err.message}`);
   }
 }

@@ -12,15 +12,28 @@ export function ensureString(val, fallback = '') {
 }
 
 /**
- * 말뭉치가 잘린 JSON을 최대한 복구합니다 (중괄호/대괄호 닫기)
+ * 말뭉치가 잘린 JSON 또는 문법 오류가 있는 JSON을 최대한 복구합니다.
  */
 export function repairJson(json) {
+  if (!json) return '';
   let cleaned = json.trim();
+  
   // 마크다운 코드 블록 제거
   if (cleaned.includes('```')) {
     cleaned = cleaned.replace(/```(json)?/g, '').replace(/```/g, '').trim();
   }
-  // 유효하지 않은 제어 문자 제거
+  
+  // 1. 흔한 AI JSON 오류 수정: 배열/객체 사이 쉼표 누락
+  cleaned = cleaned.replace(/}\s*{/g, '}, {');
+  cleaned = cleaned.replace(/]\s*\[/g, '], [');
+  cleaned = cleaned.replace(/}\s*\[/g, '}, [');
+  cleaned = cleaned.replace(/]\s*{/g, '], {');
+  
+  // 2. 후행 쉼표 제거 (Trailing Commas)
+  cleaned = cleaned.replace(/,\s*}/g, '}');
+  cleaned = cleaned.replace(/,\s*]/g, ']');
+
+  // 3. 제어 문자 및 줄바꿈 정리
   cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, " ");
 
   let stack = [];

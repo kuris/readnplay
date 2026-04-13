@@ -244,27 +244,32 @@ export async function generate(retryCount = 0) {
           context: s.title,
           narrative: s.context_for_new_viewer,
           script: script,
-          image_data: s.image_data, // 신규 데이터 보존
-          bg_keyword: s.image_data.prompt_seed_text // 하위 호환성
+          choices: s.choices || [], // 선택지 데이터 매핑
+          image_data: s.image_data, 
+          bg_keyword: s.image_data.prompt_seed_text 
         };
       })
     };
 
-    // 캐릭터 목록 자동 추출 (장면에 등장하는 모든 화자 수집)
-    const speakerIds = new Set();
-    state.gameData.scenes.forEach(scene => {
-      scene.script.forEach(line => {
-        if (line.speaker && line.speaker !== 'narrator' && line.speaker !== 'system') {
-          speakerIds.add(line.speaker);
-        }
-      });
+    // 캐릭터 목록 및 상세 메타데이터 추출 (candidates 정보 활용)
+    const charMap = new Map();
+    normalized.scene_candidates.forEach(c => {
+      if (Array.isArray(c.characters)) {
+        c.characters.forEach(char => {
+          if (char.name && !charMap.has(char.name)) {
+            charMap.set(char.name, {
+              id: char.name,
+              name: char.name,
+              gender: char.gender || 'unknown',
+              appearance: char.appearance || '',
+              image_prompt: `${char.name}, ${char.gender}, ${char.appearance || 'detailed character design'}`
+            });
+          }
+        });
+      }
     });
 
-    state.gameData.characters = Array.from(speakerIds).map(id => ({
-      id: id,
-      name: id,
-      image_prompt: `${id}, portrait, detailed character design` // 나중에 보강됨
-    }));
+    state.gameData.characters = Array.from(charMap.values());
     
     // 데이터 검증 및 보정 (기존 로직 활용)
     state.gameData = validateAndRepairGameData(state.gameData);

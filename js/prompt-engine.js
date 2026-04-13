@@ -75,7 +75,10 @@ export function buildSingleChapterScenePrompt({
       "title": "짧은 장면 제목",
       "summary": "장면 요약",
       "context_for_new_viewer": "이전 내용을 몰라도 이해되게 설명",
-      "characters": ["인물1", "인물2"],
+      "characters": [
+        {"name": "인물1", "gender": "male|female", "appearance": "체격, 머리색, 의리 등 핵심 외형"},
+        {"name": "인물2", "gender": "male|female", "appearance": "핵심 외형"}
+      ],
       "location": "장소",
       "mood": "분위기",
       "visual_hook": "가장 강한 시각 요소",
@@ -92,6 +95,18 @@ export function buildSingleChapterScenePrompt({
       "selection_reason": "왜 골랐는지",
       "best_use": "thumbnail | dialogue_cut | story_cut | atmosphere_cut",
       "context_for_new_viewer": "처음 보는 사람용 짧은 맥락",
+      "choices": [
+        {
+          "text": "선택지 1 (액션/대사)",
+          "character_effects": {"인물ID": 10},
+          "outcome": "선택 후 이어질 짧은 반응"
+        },
+        {
+          "text": "선택지 2",
+          "character_effects": {"인물ID": -5},
+          "outcome": "선택 후 반응"
+        }
+      ],
       "dialogue": {
         "opening_hook_line": {
           "speaker": "인물명",
@@ -114,12 +129,12 @@ export function buildSingleChapterScenePrompt({
       },
       "image_data": {
         "core_moment": "핵심 순간",
-        "character_focus": "인물 외형, 표정, 의상, 자세",
-        "background_focus": "배경, 장소, 시대감, 소품",
+        "character_focus": "인물의 성별(gender), 나이, 외형, 의상, 반드시 'Small figure in distance' 또는 'Full body shot' 포함",
+        "background_focus": "배경과 풍경 위주, 인물 얼굴보다 장소의 미학 강조",
         "lighting": "조명",
-        "composition": "구도",
+        "composition": "wide scenic shot, small figure from a distance",
         "style_hint": "${styleHint}",
-        "prompt_seed_text": "짧고 시각적인 생성용 문장",
+        "prompt_seed_text": "짧고 시각적인 생성용 문장 (Wide angle scenic view)",
         "negative_prompt_seed_text": "low quality, blurry, bad hands, extra fingers, text, watermark"
       }
     }
@@ -208,7 +223,10 @@ export function buildMultiChapterScenePrompt({
       "summary": "장면 요약",
       "chapter_reference": "chapter_1 | chapter_2 | chapter_3",
       "context_for_new_viewer": "처음 보는 사람도 이해할 수 있는 맥락",
-      "characters": ["인물1", "인물2"],
+      "characters": [
+        {"name": "인물1", "gender": "male|female", "appearance": "외형 묘사"},
+        {"name": "인물2", "gender": "male|female", "appearance": "외형 묘사"}
+      ],
       "location": "장소",
       "mood": "분위기",
       "visual_hook": "가장 강한 시각 요소",
@@ -228,6 +246,13 @@ export function buildMultiChapterScenePrompt({
       "selection_reason": "왜 골랐는지",
       "best_use": "thumbnail | dialogue_cut | story_cut | atmosphere_cut",
       "context_for_new_viewer": "처음 보는 사람용 짧은 맥락",
+      "choices": [
+        {
+          "text": "선택지 내용",
+          "character_effects": {"인물ID": 10},
+          "outcome": "결과"
+        }
+      ],
       "dialogue": {
         "opening_hook_line": {
           "speaker": "인물명",
@@ -250,12 +275,12 @@ export function buildMultiChapterScenePrompt({
       },
       "image_data": {
         "core_moment": "핵심 순간",
-        "character_focus": "인물 외형, 표정, 의상, 자세",
-        "background_focus": "배경, 장소, 시대감, 소품",
+        "character_focus": "인물의 성별(gender), 나이, 외형 구체적 묘사 (반드시 'Small character' 또는 'Full body' 포함)",
+        "background_focus": "풍경과 장소 중심의 묘사, 대서사적인 배경 강조",
         "lighting": "조명",
-        "composition": "구도",
+        "composition": "wide landscape shot, character from a distance",
         "style_hint": "${styleHint}",
-        "prompt_seed_text": "짧고 시각적인 생성용 문장",
+        "prompt_seed_text": "시각적 생성 문장 (Wide angle scenery)",
         "negative_prompt_seed_text": "low quality, blurry, bad hands, extra fingers, text, watermark"
       }
     }
@@ -394,6 +419,13 @@ export function normalizeSceneResult(result) {
     selection_reason: scene.selection_reason || "",
     best_use: scene.best_use || "story_cut",
     context_for_new_viewer: scene.context_for_new_viewer || "",
+    choices: Array.isArray(scene.choices)
+      ? scene.choices.map((c) => ({
+          text: c.text || "",
+          character_effects: c.character_effects || c.impact || {},
+          outcome: c.outcome || c.result_narrative || "",
+        }))
+      : [],
     dialogue: {
       opening_hook_line: {
         speaker: scene?.dialogue?.opening_hook_line?.speaker || "",

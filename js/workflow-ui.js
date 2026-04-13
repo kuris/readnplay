@@ -54,6 +54,8 @@ export function updateWorkflowSummary() {
   const langEl = $('sum-lang');
   const lengthEl = $('sum-length');
   const styleEl = $('sum-style');
+  const entitiesEl = $('sum-entities');
+  const statsEl = $('sum-stats');
 
   const safelyVal = (el, val) => {
     if (el) el.innerHTML = `<span>${val}</span>`;
@@ -63,10 +65,10 @@ export function updateWorkflowSummary() {
   const langMap = { 'ko': '🇰🇷 한국어', 'en': '🇺🇸 영어' };
   const lengthMap = { 'short': '⚡ 빠른 전개', 'medium': '📖 표준', 'long': '🎯 심화' };
   const styleMap = {
-    'semi_realistic_anime': '🎨 세미리얼 애니',
-    'webtoon_korean': '🎨 한국 웹툰풍',
-    'classic_watercolor': '🎨 클래식 수채화',
-    'cyberpunk_noir': '🎨 사이버펑크 누아르'
+    'semi_realistic_anime': '세미리얼 애니',
+    'webtoon_korean': '한국 웹툰풍',
+    'classic_watercolor': '클래식 수채화',
+    'cyberpunk_noir': '사이버펑크 누아르'
   };
 
   safelyVal(modeEl, modeMap[state.selectedMode] || '-');
@@ -76,6 +78,23 @@ export function updateWorkflowSummary() {
   if (styleEl) {
     const styleProfile = state.userDecisions?.visualStyle?.profile || 'semi_realistic_anime';
     safelyVal(styleEl, styleMap[styleProfile] || '-');
+  }
+
+  // Entities Count
+  if (entitiesEl) {
+    const total = state.gameData?.characters?.length || 0;
+    safelyVal(entitiesEl, total > 0 ? `${total}개 (주요 인물)` : '-');
+  }
+
+  // Stats (Scenes / Images)
+  if (statsEl) {
+    const scenes = state.gameData?.scenes?.length || 0;
+    const images = (state.gameData?.characters?.length || 0) + (state.gameData?.scenes?.length || 0);
+    if (scenes > 0) {
+      safelyVal(statsEl, `${scenes}개 장면 / 약 ${images}장`);
+    } else {
+      safelyVal(statsEl, '-');
+    }
   }
 }
 
@@ -472,7 +491,7 @@ function renderStyleSelectCard(container, data, resolve) {
       `).join('')}
     </div>
     <div class="wf-actions">
-      <button class="btn-wf-primary" id="btn-wf-confirm">스타일 확정 →</button>
+      <button class="btn-wf-primary" id="btn-wf-confirm">스타일 확정 및 마스터 생성 →</button>
     </div>
   `;
 
@@ -489,34 +508,37 @@ function renderStyleSelectCard(container, data, resolve) {
 }
 
 /**
- * 최종 계획 확인 카드
+ * 최종 계획 확인 카드 (리딩 플랜 점검)
  */
 function renderPlanConfirmCard(container, data, resolve) {
   const { sceneCount, characterCount } = data;
 
   container.innerHTML = `
-    <div class="wf-card-h">🗺️ 생성 계획 최종 확인</div>
+    <div class="wf-card-h">🗺️ 리딩 플랜 최종 확인</div>
     <div style="background:var(--paper2); padding:1.5rem; border-radius:12px; margin-bottom:1.5rem;">
-      <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-        <span style="font-size:13px; color:var(--ink2);">예상 장면 수</span>
-        <span style="font-weight:600; color:var(--gold);">${sceneCount} 씬</span>
+      <div style="display:flex; justify-content:space-between; margin-bottom:1rem; border-bottom:1px solid rgba(0,0,0,0.05); padding-bottom:1rem;">
+        <span style="color:var(--ink3); font-size:13px;">생성 모드</span>
+        <span style="font-weight:700; color:var(--ink);">${state.selectedMode === 'adventure' ? '⚔ 서사 액션' : '🎭 비주얼 노벨'}</span>
       </div>
-      <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-        <span style="font-size:13px; color:var(--ink2);">핵심 인물 포트레이트</span>
-        <span style="font-weight:600; color:var(--gold);">${characterCount}명</span>
+      <div style="display:flex; justify-content:space-between; margin-bottom:1rem; border-bottom:1px solid rgba(0,0,0,0.05); padding-bottom:1rem;">
+        <span style="color:var(--ink3); font-size:13px;">전개 밀도</span>
+        <span style="font-weight:700; color:var(--ink);">${sceneCount}개 장면 구성</span>
       </div>
-      <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:0.5rem; margin-top:0.5rem;">
-        <span style="font-size:13px; color:var(--ink2);">예상 소요 시간</span>
-        <span style="font-weight:600; color:var(--ink);">약 2~3분</span>
+      <div style="display:flex; justify-content:space-between; margin-bottom:1rem; border-bottom:1px solid rgba(0,0,0,0.05); padding-bottom:1rem;">
+        <span style="color:var(--ink3); font-size:13px;">핵심 인물</span>
+        <span style="font-weight:700; color:var(--ink);">${characterCount}명 마스터 포트레이트</span>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span style="color:var(--ink3); font-size:13px;">시각 스타일</span>
+        <span style="font-weight:700; color:var(--gold);">${state.userDecisions?.visualStyle?.profile === 'webtoon_korean' ? '한국 웹툰풍' : '세미리얼 애니'}</span>
       </div>
     </div>
-    <p style="font-size:12px; color:var(--ink3); line-height:1.6;">
-      위 계획대로 AI가 정밀 생성을 시작합니다. 생성 중에는 브라우저를 닫지 마세요.
-    </p>
     <div class="wf-actions">
-      <button class="btn-wf-primary" id="btn-wf-confirm" style="width:100%; background:var(--gold); color:#fff;">✨ 마법 시작하기</button>
+      <button class="btn-wf-primary" id="btn-wf-confirm">리딩 생성 시작 →</button>
+      <button class="btn-wf-secondary" id="btn-wf-cancel" style="margin-top:0.5rem; background:none; border:none; color:var(--ink3); cursor:pointer; font-size:12px;">취소하고 처음으로</button>
     </div>
   `;
 
   container.querySelector('#btn-wf-confirm').onclick = () => resolve(true);
+  container.querySelector('#btn-wf-cancel').onclick = () => resolve(false);
 }

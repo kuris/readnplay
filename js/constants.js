@@ -4,10 +4,10 @@ export const STAGE_PROGRESS = [0, 30, 60, 90];
 export const WORKFLOW_STAGES = {
   BOOK_SELECT: { idx: 0, label: '도서 선택', icon: '📖' },
   CONFIG_SELECT: { idx: 1, label: '환경 설정', icon: '⚙️' },
-  PRE_ANALYSIS: { idx: 2, label: '작품 분석', icon: '🔍' },
-  ENTITY_RESOLUTION: { idx: 3, label: '인물 정제', icon: '👥' },
-  STYLE_SELECTION: { idx: 4, label: '화풍 결정', icon: '🎨' },
-  PLAN_CONFIRMATION: { idx: 5, label: '확인 및 시작', icon: '✨' }
+  PRE_ANALYSIS: { idx: 2, label: '서사 심층 분석', icon: '🔍' },
+  ENTITY_RESOLUTION: { idx: 3, label: '캐릭터 및 세계관 정제', icon: '👥' },
+  STYLE_SELECTION: { idx: 4, label: '비주얼 스타일 결정', icon: '🎨' },
+  PLAN_CONFIRMATION: { idx: 5, label: '생성 계획 확인', icon: '🗺️' }
 };
 
 export const GUTENBERG_API = 'https://gutendex.com/books/';

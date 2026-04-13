@@ -253,17 +253,21 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
 
   try {
     // 1단계: 엔티티 추출
-    await postAiMessage("등장인물 및 주요 엔티티를 분석하고 있습니다. 잠시만 기다려주세요...");
+    await postAiMessage("작품의 핵심 구성을 분석하고 있습니다. 주요 캐릭터와 배경 장소들을 탐색해 서사 구조를 정리합니다.");
     
     const entityPrompt = buildEntityExtractionPrompt({ text: processingText.slice(0, 20000), workTitle });
     const entityResRaw = await fetchGeminiStory(entityPrompt);
     const entityData = extractJsonFromModelResponse(entityResRaw);
     const rawEntities = entityData.entities || [];
 
-    // -- Interrupt Point 2: Entity Resolution --
-    await postAiMessage(`${rawEntities.length}명의 인물과 장소를 찾아냈습니다. 중복되거나 불필요한 항목이 있는지 확인해주세요.`);
-    const resolution = await waitForUserApproval({ idx: 3, type: 'ENTITY_RESOLVE' }, { entities: rawEntities });
-    setWorkflowLoading("선택하신 인물 정보를 바탕으로 세계관을 구축 중입니다...");
+    const characters = rawEntities.filter(e => e.type?.includes('person')).length;
+    const locations = rawEntities.filter(e => e.type === 'location').length;
+    const others = rawEntities.length - characters - locations;
+
+    await postAiMessage(`분석 결과, 주요 인물 ${characters}명과 장소 ${locations}곳, 그리고 ${others}개의 주요 엔티티를 감지했습니다.`);
+    await postAiMessage("작품의 일관성을 위해 중복되거나 불필요한 항목이 있는지 확인해주세요.");
+    const resolution = await waitForUserApproval({ idx: 3, type: 'ENTITY_RESOLUTION' }, { entities: rawEntities });
+    setWorkflowLoading("선택하신 정보를 바탕으로 세계관의 기초를 다지고 있습니다...");
     
     // 사용자의 결정을 반영하여 실제 캐릭터 리스트 구성
     const resolvedEntities = resolution.entities;
@@ -271,9 +275,13 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
 
     // 2단계: 비주얼 스타일 결정
     // -- Interrupt Point 3: Visual Style Selection --
-    await postAiMessage("좋습니다. 이제 작품의 분위기를 결정할 차례입니다. 어떤 화풍으로 그려낼까요?");
-    const chosenStyle = await waitForUserApproval({ idx: 4, type: 'STYLE_SELECT' }, {});
-    setWorkflowLoading(`${chosenStyle} 스타일로 시각 언어를 변환하는 중...`);
+    await postAiMessage("서사를 시각화할 차례입니다. 작품의 감정선과 분위기에 가장 잘 어울리는 화풍을 제안합니다.");
+    const chosenStyle = await waitForUserApproval({ idx: 4, type: 'STYLE_SELECTION' }, {});
+    
+    const styleMap = { 'semi_realistic_anime': '세미리얼 애니', 'webtoon_korean': '한국 웹툰풍', 'classic_watercolor': '클래식 수채화', 'cyberpunk_noir': '사이버펑크 누아르' };
+    const friendlyStyle = styleMap[chosenStyle] || chosenStyle;
+    
+    setWorkflowLoading(`${friendlyStyle} 스타일을 적용해 인물들의 마스터 이미지를 필터링하고 있습니다...`);
     state.userDecisions.visualStyle.profile = chosenStyle;
     updateWorkflowSummary();
 
@@ -287,14 +295,14 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
 
     // 4단계: 생성 계획 확인
     // -- Interrupt Point 4: Plan Confirmation --
-    await postAiMessage("모든 준비가 끝났습니다! 분석된 정보로 구성한 최종 생성 계획입니다.");
-    const confirmed = await waitForUserApproval({ idx: 5, type: 'PLAN_CONFIRM' }, {
+    await postAiMessage("모든 준비가 끝났습니다! 분석된 구성을 바탕으로 수립된 최적의 리딩 플랜입니다.");
+    const confirmed = await waitForUserApproval({ idx: 5, type: 'PLAN_CONFIRMATION' }, {
       sceneCount: state.userDecisions.generationMode === 'story' ? 12 : 5, 
       characterCount: state.gameData.characters.length
     });
     
     if (confirmed) {
-      setWorkflowLoading("작가가 마지막 문장을 집필하는 중입니다. 곧 시작합니다!");
+      setWorkflowLoading("리딩 플랜을 확정했습니다. AI가 장면별 상세 묘사와 아트워크 생성을 시작합니다!");
     } else {
       return;
     }

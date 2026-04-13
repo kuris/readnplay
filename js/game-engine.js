@@ -84,20 +84,23 @@ export function renderScene() {
   document.body.classList.toggle('mode-vn', currentMode === 'visual_novel');
   
   const advArea = $('adventure-area');
-  const quizArea = $('quiz-area');
-  const endingArea = $('ending-area');
   const gameScreen = $('screen-game');
   
+  console.log(`[Diagnostic] Mode: ${currentMode}, BodyClasses: ${document.body.className}`);
+  
   if (gameScreen) {
-    gameScreen.style.display = 'block';
-    gameScreen.style.opacity = '1';
-    gameScreen.style.zIndex = '1000';
+    gameScreen.style.setProperty('display', 'block', 'important');
+    gameScreen.style.setProperty('opacity', '1', 'important');
+    gameScreen.style.zIndex = '10000';
+    console.log(`[Diagnostic] GameScreen styles: display=${gameScreen.style.display}, opacity=${gameScreen.style.opacity}`);
   }
 
   if (advArea) {
-    advArea.style.display = 'block';
-    advArea.style.opacity = '1';
-    advArea.style.zIndex = '2000';
+    advArea.style.setProperty('display', 'block', 'important');
+    advArea.style.setProperty('opacity', '1', 'important');
+    advArea.style.zIndex = '20000';
+    const rect = advArea.getBoundingClientRect();
+    console.log(`[Diagnostic] AdvArea: ${rect.width}x${rect.height} at pos(${rect.top},${rect.left})`);
   }
 
   // 0.1 브라우저 리플로우 강제 유도 (화면 깨움)

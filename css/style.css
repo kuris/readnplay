@@ -1010,7 +1010,7 @@ body.is-ending #character-panel {
   display: none;
 }
 /* VISUAL NOVEL MODE (PREMIUM LANDSCAPE) */
-body.mode-vn { overflow: hidden; background: #000; }
+body.mode-vn { overflow: visible !important; background: #000; }
 body.mode-vn .page { 
   width: 100% !important; 
   max-width: none !important;

@@ -50,7 +50,10 @@ export function buildSingleChapterScenePrompt({
 2. 각 장면에 대해 처음 보는 사람도 이해할 수 있도록 짧은 context_for_new_viewer를 작성한다.
 3. 각 장면에 대해 opening_hook_line, core_dialogue_lines, closing_hook_line을 만든다.
 4. 상위 ${Math.min(4, maxSelectedScenes - 1)}~${maxSelectedScenes}개 장면만 최종 선택한다.
-5. 최종 선택 장면마다 이미지 생성용 구조화 데이터를 만든다.
+유의사항:
+1. 모든 인물 대사(dialogue), 선택지(choices), 스토리 요약(summary, overview)은 **반드시 한국어(Korean)**로 작성한다.
+2. 이미지 생성을 위한 필드(image_data 하위 및 characters의 appearance)만 **반드시 영어(English)**로 작성한다.
+3. 소설의 분위기를 살려 몰입감 있는 대사를 작성한다.
 
 대사 작성 규칙:
 - 설명문이 아니라 실제 인물이 말할 법한 짧은 대사로 작성한다.
@@ -202,6 +205,10 @@ export function buildMultiChapterScenePrompt({
 - 중간 장면은 갈등, 비밀, 감정 변화, 관계 변화를 보여야 한다.
 - 마지막 장면은 다음 화를 보고 싶게 만들어야 한다.
 - 배경/표정/행동/대사의 다양성을 확보한다.
+
+언어 규칙 (CRITICAL):
+- 모든 대사(dialogue), 선택지(choices), 스토리 요약(summary/overview), 장면 제목(title/summary)은 **반드시 한국어(Korean)**로 작성한다.
+- 오직 이미지 데이터(image_data 내 모든 필드 및 characters의 appearance)만 이미지 생성 모델을 위해 **영어(English)**로 작성한다.
 
 이미지 데이터 작성 규칙 (CRITICAL: ALL fields in image_data MUST be in English):
 - 인물 외형, 표정, 동작, 의상, 장소, 조명, 시대감, 소품, 구도를 우선하여 영어로 작성한다.

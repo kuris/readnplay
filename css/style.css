@@ -628,6 +628,7 @@ body.is-ending .game-backdrop::after {
   box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 .speaker-tag.show { display: block; }
+
 .scene-body {
   font-family: var(--ff-serif); font-size: 17px; line-height: 1.8;
   color: var(--ink); padding: 1.8rem 1.5rem 1.5rem;
@@ -1115,8 +1116,9 @@ body.mode-vn .scene-wrap {
   min-height: auto;
   padding: 0;
 }
+body.mode-vn #g-scene,
 body.mode-vn .dialogue-line {
-  color: #fff;
+  color: #fff !important; /* 배경이 어두우므로 텍스트는 무조건 흰색 */
   font-family: var(--ff-serif);
   font-size: 1.4rem;
   line-height: 1.8;
@@ -1137,6 +1139,7 @@ body.mode-vn .speaker-tag {
   border-radius: 0 !important;
   min-width: auto !important;
   width: max-content !important;
+  z-index: 1000 !important;
 }
 
 /* 상단 책 제목 등 불필요한 클러터 숨기기 */

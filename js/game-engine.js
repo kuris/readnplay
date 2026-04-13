@@ -70,6 +70,7 @@ export function renderScene() {
     showScreen('setup');
     return;
   }
+  console.log(`[Engine] Rendering Scene ${state.curIdx + 1}`);
   const scene = state.gameData.scenes[state.curIdx];
   if (!scene) { 
     showEnding(); 
@@ -330,10 +331,16 @@ export function renderScene() {
     if (quizArea) quizArea.style.display = 'block';
     renderQuiz(scene);
   } else if (currentMode === 'adventure' || currentMode === 'visual_novel') {
-    if (advArea) advArea.style.display = 'block';
+    if (advArea) {
+      advArea.style.display = 'block';
+      advArea.style.opacity = '1';
+    }
     renderChoices(scene);
   } else if (currentMode === 'study') {
-    if (advArea) advArea.style.display = 'block';
+    if (advArea) {
+      advArea.style.display = 'block';
+      advArea.style.opacity = '1';
+    }
     const cont = $('g-choices');
     if (cont) {
       cont.innerHTML = '';

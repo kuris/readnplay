@@ -339,7 +339,12 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
 
     state.gameData.scenes = scenes.map(s => ({
       ...s,
+      title: s.title || "새로운 장면",
       context: s.title,
+      setting: s.setting || "공간적 배경 분석 중",
+      time_context: s.time_context || "현재",
+      emotion_tags: s.emotion_tags || [],
+      narrative_function: s.narrative_function || "서사 진행",
       bg_keyword: s.image_data?.visual_narrative || s.title
     }));
 
@@ -437,7 +442,12 @@ async function generateTeaserMode({ processingText, cacheKey, retryCount }) {
     
     state.gameData.scenes = normalized.selected_scenes.map((s, idx) => ({
       id: idx + 1,
+      title: s.title || "하이라이트 장면",
       context: s.title,
+      setting: s.setting || "공간적 배경 분석 중",
+      time_context: s.time_context || "현재",
+      emotion_tags: s.emotion_tags || [],
+      narrative_function: s.narrative_function || "핵심 전개",
       narrative: s.context_for_new_viewer,
       script: [
          ...(s.dialogue.opening_hook_line?.line ? [{ speaker: s.dialogue.opening_hook_line.speaker || 'narrator', text: s.dialogue.opening_hook_line.line }] : []),

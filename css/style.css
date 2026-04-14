@@ -2538,3 +2538,45 @@ body.mode-vn #screen-game.active {
   z-index: 10;
   border: 1px solid rgba(255,255,255,0.2);
 }
+
+/* 👤 Cinematic Silhouette Placeholder */
+.silhouette-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at center, rgba(184, 134, 11, 0.1) 0%, transparent 70%);
+}
+
+.silhouette-img {
+  width: 200px;
+  height: 200px;
+  background: url('https://api.dicebear.com/7.x/initials/svg?seed=silhouette&backgroundColor=1a1a1a&fontFamily=Arial&fontSize=40&textColor=1a1a1a');
+  background-size: cover;
+  filter: brightness(0.1) blur(4px) contrast(1.2);
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  opacity: 0.6;
+  margin-bottom: 1.5rem;
+}
+
+.placeholder-name {
+  font-family: var(--ff-serif);
+  font-size: 1.5rem;
+  color: var(--gold-light);
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 20px rgba(184, 134, 11, 0.5);
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+/* Fix for Side Panel undefined values */
+.meta-value:empty::before, .meta-value[textContent="undefined"]::before {
+  content: "탐색 중...";
+  opacity: 0.5;
+  font-style: italic;
+}

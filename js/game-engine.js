@@ -397,7 +397,11 @@ export function renderScene() {
         
         if (avatarUrl) {
           portraitArea.style.display = 'flex';
-          portraitArea.innerHTML = `<img src="${avatarUrl}" class="fadein" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=1f1f1f&fontFamily=Arial&fontSize=40&textColor=ffffff'">`;
+          portraitArea.innerHTML = `<img src="${avatarUrl}" class="fadein" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                                    <div class="silhouette-placeholder" style="display:none">
+                                      <div class="silhouette-img"></div>
+                                      <div class="placeholder-name">${name}</div>
+                                    </div>`;
           portraitArea.classList.remove('dim');
         } else if (line.speaker === 'narrator') {
           portraitArea.style.display = 'block';
@@ -407,7 +411,7 @@ export function renderScene() {
           portraitArea.style.display = 'flex';
           portraitArea.innerHTML = `
             <div class="silhouette-placeholder fadein">
-              <img src="https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=1a1a1a&fontFamily=Arial&fontSize=40&textColor=333333" style="filter: brightness(0.2) blur(2px);">
+              <div class="silhouette-img"></div>
               <div class="placeholder-name">${name}</div>
             </div>
           `;

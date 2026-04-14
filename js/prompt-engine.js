@@ -507,12 +507,12 @@ export function normalizeSceneResult(result) {
         "low quality, blurry, bad hands, extra fingers, text, watermark",
     },
     // --- READER METADATA ---
-    setting: scene.setting || "",
+    setting: scene.setting || "배경 정보 탐색 중",
     participants: Array.isArray(scene.participants) ? scene.participants : [],
-    time_context: scene.time_context || "",
+    time_context: scene.time_context || "현재",
     emotion_tags: Array.isArray(scene.emotion_tags) ? scene.emotion_tags : [],
-    narrative_function: scene.narrative_function || "",
-    source_excerpt: scene.source_excerpt || scene.source_span || "",
+    narrative_function: scene.narrative_function || "서사 전개",
+    source_excerpt: scene.source_excerpt || scene.source_span || "원문 정보 없음",
     related_scene_ids: Array.isArray(scene.related_scene_ids) ? scene.related_scene_ids : [],
   }));
 

@@ -579,6 +579,7 @@ function renderEntityResolveCard(container, data, resolve) {
  * 비주얼 스타일 선택 카드
  */
 function renderStyleSelectCard(container, data, resolve) {
+  const { recommendation } = data;
   const styles = [
     { id: 'semi_realistic_anime', name: '세미리얼 애니', desc: '현대적이고 깔끔한 화풍', img: 'https://images.unsplash.com/photo-1580477667995-2b94f01c9516?q=80&w=400&auto=format&fit=crop' },
     { id: 'webtoon_korean', name: '한국 웹툰풍', desc: '대조가 명확하고 화려한 스타일', img: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=400&auto=format&fit=crop' },
@@ -586,25 +587,40 @@ function renderStyleSelectCard(container, data, resolve) {
     { id: 'cyberpunk_noir', name: '사이버펑크 누아르', desc: '강렬한 조명과 어두운 분위기', img: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=400&auto=format&fit=crop' }
   ];
 
+  const recommendedId = recommendation?.id || styles[0].id;
+  
   container.innerHTML = `
     <div class="wf-card-h">🎨 비주얼 스타일 결정</div>
-    <div class="wf-style-grid">
-      ${styles.map(s => `
-        <div class="wf-style-card" data-style="${s.id}">
-          <img src="${s.img}" class="wf-style-img">
-          <div class="wf-style-info">
-            <div class="wf-style-name">${s.name}</div>
-            <div class="wf-style-desc">${s.desc}</div>
-          </div>
+    ${recommendation?.reason ? `
+      <div class="wf-rec-box">
+        <span class="icon">✨</span>
+        <div class="txt">
+          <b>AI 추천:</b> ${recommendation.reason}
         </div>
-      `).join('')}
+      </div>
+    ` : '<p style="font-size:12px; color:var(--ink2); margin-bottom:1.5rem;">작품의 분위기와 가장 잘 어울리는 화풍을 선택해 주세요.</p>'}
+    
+    <div class="wf-style-grid">
+      ${styles.map(s => {
+        const isRec = s.id === recommendedId;
+        return `
+          <div class="wf-style-card ${isRec ? 'selected' : ''}" data-style="${s.id}">
+            ${isRec ? '<div class="wf-style-badge">AI 추천</div>' : ''}
+            <img src="${s.img}" class="wf-style-img">
+            <div class="wf-style-info">
+              <div class="wf-style-name">${s.name}</div>
+              <div class="wf-style-desc">${s.desc}</div>
+            </div>
+          </div>
+        `;
+      }).join('')}
     </div>
     <div class="wf-actions">
       <button class="btn-wf-primary" id="btn-wf-confirm">스타일 확정 및 마스터 생성 →</button>
     </div>
   `;
 
-  let selected = styles[0].id;
+  let selected = recommendedId;
   container.querySelectorAll('.wf-style-card').forEach(c => {
     c.onclick = () => {
       container.querySelectorAll('.wf-style-card').forEach(x => x.classList.remove('selected'));

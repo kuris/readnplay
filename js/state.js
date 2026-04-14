@@ -48,7 +48,8 @@ export const state = {
     },
     visualStyle: {
       profile: 'semi_realistic_anime',
-      lighting: 'cinematic'
+      lighting: 'cinematic',
+      aiRecommendation: null // { id: '...', reason: '...' }
     },
     imagePlan: {
       portraitScope: 'major_only', // 'all', 'major_only', 'none'

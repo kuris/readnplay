@@ -145,23 +145,16 @@ export function buildEntityExtractionPrompt({ text, workTitle = "" }) {
 4. **Visual Signature**:
    - 인물의 경우 외모 특징(appearance)을 **영문(English)**으로 상세히 기술하라.
    - **GLOBAL STYLE**: 모든 이미지 관련 묘사는 "${GLOBAL_STYLE_PROFILE}" 스타일을 염두에 두라.
+5. **Style Recommendation**:
+   - 작품의 장르, 시대적 배경, 텍스트에서 느껴지는 전반적인 분위기를 고려하여 가장 잘 어울리는 비주얼 스타일(recommended_style)을 하나만 제안하라.
 
 응답 형식 (JSON만):
-{
-  "entities": [
-    {
-      "id": "char_001",
-      "canonical_name": "대표 이름 (한국어)",
-      "aliases": ["이름1", "이름2"],
-      "type": "person_major",
-      "importance": "A",
-      "gender": "male|female|unknown",
-      "role_summary": "서사 내 핵심 역할 (예: 복수를 꿈꾸는 퇴역 장교)",
-      "relationship_tags": ["주인공의 스승", "비밀의 수호자"],
-      "appearance": "Detailed English description of face, hair, eyes, build, clothing style",
-      "summary": "엔티티 설명 (한국어)"
     }
-  ]
+  ],
+  "recommended_style": {
+    "id": "semi_realistic_anime | webtoon_korean | classic_watercolor | cyberpunk_noir",
+    "reason": "이 작품의 분위기와 장르에 이 화풍이 어울리는 이유 (한국어, 1문장)"
+  }
 }
 
 텍스트:

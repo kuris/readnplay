@@ -259,6 +259,11 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
     const entityResRaw = await fetchGeminiStory(entityPrompt);
     const entityData = extractJsonFromModelResponse(entityResRaw);
     const rawEntities = entityData.entities || [];
+    
+    // AI 화풍 추천 저장
+    if (entityData.recommended_style) {
+      state.userDecisions.visualStyle.aiRecommendation = entityData.recommended_style;
+    }
 
     const characters = rawEntities.filter(e => e.type?.includes('person')).length;
     const locations = rawEntities.filter(e => e.type === 'location').length;
@@ -281,7 +286,9 @@ async function generateStoryMode({ processingText, cacheKey, retryCount }) {
     // 2단계: 비주얼 스타일 결정
     // -- Interrupt Point 3: Visual Style Selection --
     await postAiMessage("서사를 시각화할 차례입니다. 작품의 감정선과 분위기에 가장 잘 어울리는 화풍을 제안합니다.");
-    const chosenStyle = await waitForUserApproval({ idx: 4, type: 'STYLE_SELECTION' }, {});
+    const chosenStyle = await waitForUserApproval({ idx: 4, type: 'STYLE_SELECTION' }, { 
+      recommendation: state.userDecisions.visualStyle.aiRecommendation 
+    });
     
     const styleMap = { 'semi_realistic_anime': '세미리얼 애니', 'webtoon_korean': '한국 웹툰풍', 'classic_watercolor': '클래식 수채화', 'cyberpunk_noir': '사이버펑크 누아르' };
     const friendlyStyle = styleMap[chosenStyle] || chosenStyle;
@@ -368,6 +375,12 @@ async function generateTeaserMode({ processingText, cacheKey, retryCount }) {
     const entityResRaw = await fetchGeminiStory(entityPrompt);
     const entityData = extractJsonFromModelResponse(entityResRaw);
     const rawEntities = entityData.entities || [];
+    
+    // AI 화풍 추천 저장
+    if (entityData.recommended_style) {
+      state.userDecisions.visualStyle.aiRecommendation = entityData.recommended_style;
+    }
+
     const trash = rawEntities.filter(e => e.type === 'trash' || e.importance === 'T').length;
 
     // -- Interrupt Point 2: Entity Resolution --
@@ -385,7 +398,9 @@ async function generateTeaserMode({ processingText, cacheKey, retryCount }) {
     // 2단계: 비주얼 스타일 결정
     // -- Interrupt Point 3: Visual Style Selection --
     await postAiMessage("좋습니다! 어떤 화풍으로 인물들을 그려낼까요?");
-    const chosenStyle = await waitForUserApproval({ idx: 4, type: 'STYLE_SELECT' }, {});
+    const chosenStyle = await waitForUserApproval({ idx: 4, type: 'STYLE_SELECT' }, {
+      recommendation: state.userDecisions.visualStyle.aiRecommendation
+    });
     state.userDecisions.visualStyle.profile = chosenStyle;
     updateWorkflowSummary();
 
